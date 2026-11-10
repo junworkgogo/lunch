@@ -6,7 +6,7 @@
 <title>午餐團</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F4F5F7;--top-bg:#FFFFFF;--card:#FFFFFF;--text:#111827;--muted:#4B5563;--line:#E5E7EB;--accent:#0E7A4F;--accent-ink:#FFFFFF;--soft:#DCF5E8;--soft-ink:#075C3A;--err:#B91C1C;--radius:20px;--radius-sm:14px;--radius-btn:999px;--font:'Noto Sans TC',sans-serif;--bad-bg:#FEE2E2;--bad-ink:#7F1D1D;--ok-bg:#DCFCE7;--ok-ink:#14532D;--dis-bg:#E5E7EB;--dis-ink:#374151;--warn-bg:#FEF3C7;--warn-ink:#78350F}
 *{box-sizing:border-box}
@@ -274,6 +274,182 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
 @media(min-width:900px){.lines{max-height:40vh}}
 .wrap.hp{grid-template-areas:"group" "promo" "shop" "mine" "menu" "all"}
 @media(min-width:900px){.wrap.hp{grid-template-areas:"group side" "promo side" "mine side" "menu side" "all side"}}
+/* v3: 小巧精緻 */
+:root{--radius:14px;--radius-sm:10px}
+body{font-size:14px;line-height:1.55}
+.top-in{padding:8px 16px;gap:8px}
+.logo{width:28px;height:28px}.logo svg{width:16px;height:16px}
+.brand{font-size:16px;font-weight:700}
+.page,.wrap{padding:14px 16px 40px}
+.page>section{margin-bottom:20px}
+.page h1.ph{font-size:20px;font-weight:700}
+.page h2.sh{font-size:15px;font-weight:700;margin:0 2px 8px}
+.card{padding:14px;box-shadow:0 1px 4px rgba(17,24,39,.05)}
+.btn{min-height:36px;padding:4px 15px;font-size:13.5px;font-weight:600}
+.btn.sm{min-height:30px;padding:2px 12px;font-size:12.5px}
+.hero{padding:16px 18px;gap:10px}
+.hero h1{font-size:21px;font-weight:700}
+.hero p{font-size:13px}
+.grid{gap:12px}
+.gcard{gap:8px}
+.gcard h3{font-size:15px;font-weight:700}
+.meta{font-size:13px;gap:2px 12px}
+.meta svg,.info svg{width:15px;height:15px}
+.info svg{margin-top:3px}
+.badge{min-height:20px;font-size:12px;padding:0 8px}
+.tagline{font-size:12.5px}
+.form{gap:12px}
+.fld>label,.fld>.lbl{font-weight:600}
+.fld .hint{font-size:12.5px}
+.fld input,.fld select,.share-row input,.modal input{min-height:40px;padding:6px 14px}
+.share-row input{min-height:36px}
+.share h2,.pad h2{font-size:15px;font-weight:700}
+.tabsx button{min-height:34px;padding:4px 14px;font-size:13.5px;font-weight:600}
+.nums{gap:8px}
+.num{padding:10px}.num span{font-size:12px}.num b{font-size:19px;font-weight:700}
+.person{padding:12px;margin-bottom:10px}
+.p-name{min-height:34px;font-size:15px;font-weight:700}
+.cell{min-height:40px;font-size:13.5px}
+.sumcat h3{font-size:15px;font-weight:700}
+.sumnote{font-size:12.5px}
+.sumtotal{font-size:16px;font-weight:700}
+.wrap{gap:12px;padding-bottom:96px}
+.group{padding:16px}
+.eyebrow{font-size:12px}
+.group h1{font-size:19px;font-weight:700}
+.group .meta{margin-top:8px}
+.shop h2,.cart h2,.mine h2,.all summary{font-size:15px;font-weight:700;margin-bottom:8px}
+.shop,.cart-card,.mine,.all{padding:14px;box-shadow:0 1px 4px rgba(17,24,39,.05)}
+.shop .sname{font-size:15px}
+.map{height:170px}
+.maplink{font-size:13.5px;min-height:32px;margin-top:6px}
+.info{font-size:13.5px;gap:4px}
+.ob{padding:8px 12px}.ob ul{font-size:13.5px}.ob .lnote{font-size:12px}
+.tabs{gap:6px;padding:8px 0}
+.tab{min-height:32px;padding:4px 14px;font-size:13.5px;font-weight:600}
+.cat{scroll-margin-top:54px;margin-bottom:16px}
+.cat h2{font-size:16px;font-weight:700;margin:4px 2px 8px}
+.cat h2 small{font-size:12px}
+.items{gap:8px}
+.item{padding:8px 12px;box-shadow:0 1px 4px rgba(17,24,39,.05)}
+.row{min-height:36px;gap:10px}
+.itemhit{min-height:36px}
+.iname{font-size:14.5px;font-weight:600}
+.item .gnames{font-size:12px}
+.price{font-size:15px;font-weight:700}
+.vrow .price{font-size:14px}
+.qty{width:104px}
+.q-btn{width:32px;height:32px}.q-btn svg{width:16px;height:16px}
+.notebtn{font-size:12.5px;min-height:28px}
+.note input,.field input,.pk-note{min-height:40px}
+.cart-bar{min-height:50px;padding:8px 16px;font-weight:700}
+.cart-pad{padding:14px}
+.lines{font-size:13.5px}
+.lines .lo,.lines .lnote{font-size:12px}
+.lines .lsub{font-weight:700}
+.lines .lc .q-btn{width:30px;height:30px}
+.sum b{font-size:20px;font-weight:700}
+.submit{min-height:44px;font-size:15px;font-weight:700}
+.editing,.closedmsg{font-size:13px}
+.promo{padding:8px 12px;font-size:13.5px}
+.modal{padding:18px}
+.modal h2{font-size:17px;font-weight:700}
+.pk-h{padding:14px 16px 4px}
+.pk-h h2{font-size:17px;font-weight:700}
+.pk-x{width:34px;height:34px}.pk-x svg{width:16px;height:16px}
+.pg{margin-top:12px}
+.pg-h{font-weight:700;font-size:14px;margin-bottom:6px}
+.pg-tag{font-size:11.5px;min-height:19px;padding:0 7px}
+.chips{gap:6px}
+.chip{min-height:34px;padding:4px 13px;font-size:13.5px;font-weight:600}
+.gerr{font-size:12.5px}
+.pk-q{margin-top:12px}
+.qctl .q-btn{width:34px;height:34px}
+.qctl b{font-size:16px}
+.av{width:32px;height:32px;font-size:14px;font-weight:700}
+.pn{font-size:15px;font-weight:700}
+.pill{min-height:30px;padding:2px 12px;font-size:12.5px;font-weight:700}
+.trash{width:34px;height:34px}.trash svg{width:17px;height:17px}
+.sold-cat{font-weight:700}
+.sw{min-height:36px}
+.sw .trk{width:40px;height:22px}
+.sw .trk::after{width:16px;height:16px}
+.sw[aria-checked="true"] .trk::after{left:21px}
+@media(min-width:900px){
+.wrap{grid-template-columns:minmax(0,1fr) 340px;column-gap:28px;padding-bottom:40px}
+.group h1{font-size:22px}
+.map{height:180px}
+.cart-pad{padding:14px}
+}
+@media(max-width:480px){.num b{font-size:17px}.hero h1{font-size:19px}}
+/* B：再小一號 */
+:root{--radius:12px;--radius-sm:8px}
+body{font-size:13.5px}
+.btn{min-height:32px;padding:3px 13px;font-size:13px}
+.btn.sm{min-height:28px;padding:2px 11px;font-size:12px}
+.page h1.ph{font-size:18px}
+.hero{padding:14px 16px}.hero h1{font-size:18px}
+.gcard h3{font-size:14.5px}
+.meta{font-size:12.5px}
+.card,.shop,.cart-card,.mine,.all{padding:12px}
+.group{padding:14px}.group h1{font-size:17px}
+.cat h2{font-size:15px}
+.item{padding:7px 11px}
+.row,.itemhit{min-height:32px}
+.iname{font-size:14px}
+.price{font-size:14px}
+.qty{width:94px}
+.q-btn{width:28px;height:28px}.q-btn svg{width:14px;height:14px}
+.tab{min-height:30px;padding:3px 12px;font-size:13px}
+.chip{min-height:30px;padding:3px 11px;font-size:13px}
+.pk-h h2{font-size:16px}
+.qctl .q-btn{width:30px;height:30px}
+.cart-bar{min-height:46px}
+.submit{min-height:40px;font-size:14px}
+.sum b{font-size:18px}
+.pill{min-height:28px;font-size:12px}
+.av{width:28px;height:28px;font-size:13px}
+.pn{font-size:14px}
+.trash{width:30px;height:30px}
+.map{height:150px}
+@media(min-width:900px){.group h1{font-size:20px}.wrap{grid-template-columns:minmax(0,1fr) 320px}}
+/* 配色 v2：深灰＋淺灰為主，萊姆綠只留給主按鈕（使用者 2026-11-11：顏色太多，要乾淨整潔、用深灰淺灰調和） */
+:root{--bg:#FBFBFC;--text:#121826;--line:#E9EBEF;--accent:#394150;--accent-ink:#FFFFFF;--soft:#F1F2F4;--soft-ink:#394150;--lime:#D1F770}
+a{color:#394150}
+.card,.shop,.cart-card,.mine,.all,.item,.person,.num,.promo{border:1px solid #ECEDF0;box-shadow:0 1px 3px rgba(17,24,39,.04)}
+.item.off{border-color:#E9EBEF}
+.btn{background:#E9EBEF;border-color:#8B909A;color:#121826;font-weight:700}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#394150;font-weight:500}
+.btn.danger{background:#fff}
+.btn[disabled]{background:var(--dis-bg);color:var(--dis-ink);border-color:var(--dis-bg)}
+.submit{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--lime);color:#394150;font-weight:500}
+.btn.primary:not(:has(svg))::after,.submit::after{content:'';flex:none;width:18px;height:18px;border-radius:50%;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23394150' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 7l5 5-5 5'/%3E%3C/svg%3E") center/12px no-repeat}
+.btn[disabled]::after,.submit[disabled]::after{display:none}
+.hero .btn.primary{background:var(--lime);border-color:var(--lime);color:#394150}
+.group.ended{background:#E9EBEF;color:#394150}
+.chip,.q-btn,.pk-x,.p-name,.fld input,.fld select,.fld textarea,.share-row input,.modal input,.note input,.field input,.pk-note,.copyfallback{border-color:#8B909A}
+.price{color:#121826}
+.pg-tag.req{background:#394150;color:#fff}
+.trash{border-color:#8B909A;color:#4B5563}
+.lines .lc .ldel{background:#fff;color:#4B5563;border-color:#8B909A}
+.sw .trk{background:#8B909A}
+.sw[aria-checked="true"] .trk{background:#121826}
+.pill.none{background:#394150;color:#fff;border-color:#394150}
+.pill.part{background:#fff;color:#394150;border-color:#394150}
+.pill.ok{background:#F1F2F4;color:#394150;border-color:#8B909A}
+.cell.unpaid{background:#fff;color:#121826;border-color:#394150}
+.cell.unpaid .lb{background:#394150;color:#fff}
+.cell.paid{background:#F1F2F4;color:#4B5563;border-color:#C9CDD3}
+.cell.paid .lb{background:#fff;color:#4B5563}
+.num.bad b,.num.ok b{color:#121826}
+.av{background:#E9EBEF!important;color:#394150}
+.editing{background:#F1F2F4;color:#394150}
+.meta li{word-break:keep-all}
+.meta b{white-space:nowrap}
+/* 已付款＝螢光綠（使用者 2026-11-11 指定） */
+.pill.ok{background:var(--lime);color:#394150;border-color:var(--lime)}
+.cell.paid{background:var(--lime);color:#394150;border-color:var(--lime)}
+.cell.paid .lb{background:#fff;color:#394150}
 </style>
 </head>
 <body>
