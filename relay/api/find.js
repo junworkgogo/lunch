@@ -19,9 +19,11 @@ const GOOGLE_HOST = /^(?:maps\.app\.goo\.gl|goo\.gl|g\.co|(?:www\.|maps\.)?googl
 
 function setCors(req, res) {
   const o = String(req.headers.origin || '');
+  // 每個回應都要 Vary: Origin；快取一律只放在使用者瀏覽器（private），
+  // 否則 Vercel 共用快取會把「沒有 Access-Control-Allow-Origin 的那份」發給網站，瀏覽器就擋掉（2026-11-11 實測踩到）
+  res.setHeader('Vary', 'Origin');
   if (ALLOW_ORIGINS.some(function (r) { return r.test(o); })) {
     res.setHeader('Access-Control-Allow-Origin', o);
-    res.setHeader('Vary', 'Origin');
   }
 }
 
@@ -159,7 +161,7 @@ module.exports = async function (req, res) {
     if (op === 'lookup') {
       const t = textOf(q.q);
       if (!t) out = { status: 400, json: { error: 'bad-q' } };
-      else { out = await lookup(t); cache = 'public, s-maxage=3600'; }
+      else { out = await lookup(t); cache = 'private, max-age=3600'; }
     } else if (op === 'dbd-map' || op === 'nidin-near') {
       const lat = num(q.lat, 20, 27), lng = num(q.lng, 117, 123);
       if (lat == null || lng == null) out = { status: 400, json: { error: 'bad-latlng' } };
@@ -167,21 +169,21 @@ module.exports = async function (req, res) {
         const d = 0.0035;
         const qs = new URLSearchParams({ northLat: (lat + d).toFixed(6), southLat: (lat - d).toFixed(6), westLng: (lng - d).toFixed(6), eastLng: (lng + d).toFixed(6), zoom: '17' });
         out = await upstreamJson(DBD + 'shop/idine/map-shops?' + qs.toString());
-        cache = 'public, s-maxage=3600';
+        cache = 'private, max-age=3600';
       } else {
         const qs = new URLSearchParams({ count: '20', latitude: lat.toFixed(7), longitude: lng.toFixed(7), page: '1' });
         out = await upstreamJson(NIDIN + 'store/listByPositionNew?' + qs.toString());
-        cache = 'public, s-maxage=3600';
+        cache = 'private, max-age=3600';
       }
     } else if (op === 'dbd-search') {
       const t = textOf(q.term);
       if (!t) out = { status: 400, json: { error: 'bad-term' } };
-      else { out = await upstreamJson(DBD + 'shop/idine/search?' + new URLSearchParams({ term: t.slice(0, 60) }).toString()); cache = 'public, s-maxage=3600'; }
+      else { out = await upstreamJson(DBD + 'shop/idine/search?' + new URLSearchParams({ term: t.slice(0, 60) }).toString()); cache = 'private, max-age=3600'; }
     } else if (op === 'dbd-detail' || op === 'nidin-menu') {
       const id = idOf(q.id);
       if (!id) out = { status: 400, json: { error: 'bad-id' } };
-      else if (op === 'dbd-detail') { out = await upstreamJson(DBD + 'shop/idine/detail?shopId=' + id); cache = 'public, s-maxage=600'; }
-      else { out = await upstreamJson(NIDIN + 'store/' + id + '/onShelfMenu'); cache = 'public, s-maxage=600'; }
+      else if (op === 'dbd-detail') { out = await upstreamJson(DBD + 'shop/idine/detail?shopId=' + id); cache = 'private, max-age=600'; }
+      else { out = await upstreamJson(NIDIN + 'store/' + id + '/onShelfMenu'); cache = 'private, max-age=600'; }
     } else {
       out = { status: 400, json: { error: 'bad-op' } };
     }
