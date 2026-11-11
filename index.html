@@ -848,7 +848,8 @@ function impFind(q){
     if(L.error&&L.error!=='link-without-place')throw impErr('讀不到這個位置，請換成貼地址或店名試試');
     var hasLL=L.lat!=null&&L.lng!=null,jobs=[],out=[];
     // 店名：連結或地圖認得的店名優先；打的字像地址就不拿來比店名（改用門牌比對）
-    var addrKey=isLink?'':impAddrKey(q),name=L.name||(isLink||addrKey?null:q);
+    // 「台中老虎城 六堆」這種：中繼站用「老虎城」定位（how=place-part），剩下的「六堆」才是店名
+    var part=L.how==='place-part',addrKey=isLink?'':impAddrKey(q),name=L.name||(part?(L.rest||null):(isLink||addrKey?null:q));
     if(hasLL){
       jobs.push(relayGet({op:'dbd-map',lat:L.lat,lng:L.lng}).then(function(j){
         arr(j&&j.data).forEach(function(s){if(s&&s.id)out.push({src:'dbd',id:s.id,name:s.name,address:s.address||'',dist:(s.lat!=null&&s.lng!=null)?impDist(L.lat,L.lng,s.lat,s.lng):null});});
@@ -861,7 +862,7 @@ function impFind(q){
         });
       },function(){}));
     }
-    var term=L.name||(isLink?L.text:q);
+    var term=L.name||(isLink?L.text:(part?L.rest:q)); // 只打商場名（沒有店名）就不用名字搜
     term=String(term||'').replace(/[（(][^）)]*[）)]/g,' ').trim().slice(0,40);
     if(impKey(term).length>=2)jobs.push(relayGet({op:'dbd-search',term:term}).then(function(j){ // 一個字 dinbendon 會回 400
       arr(j&&j.data).forEach(function(s){
@@ -1070,8 +1071,13 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
   function live(my){return my===seq&&ir.isConnected;} // 換了頁或又按了一次 → 舊的結果不要再寫回畫面
   function msg(html,bad){ir.innerHTML='<p class="imp-msg'+(bad?' bad':'')+'">'+html+'</p>';}
   function listHtml(r){
-    if(!r.list.length)return '<p class="imp-msg">附近找不到名字相近的店。dinbendon、nidin 可能沒有這家，請手動輸入菜單。</p>';
-    return '<p class="imp-msg">找到 '+r.list.length+' 家，點「帶入」選一家：</p><ul class="imp-list">'+r.list.map(function(c,i){
+    var L=r.where||{},hasLL=L.lat!=null&&L.lng!=null,place=L.how==='place-part'&&L.place?String(L.place):'';
+    if(!r.list.length){
+      if(!hasLL)return '<p class="imp-msg">找不到這個位置，也沒有同名的店。可以改貼 Google 地圖連結或完整地址；商場裡的店，商場名和店名中間空一格（例如「台中老虎城 六堆」）。也可能 dinbendon、nidin 沒有這家，請手動輸入菜單。</p>';
+      if(place)return '<p class="imp-msg">「'+esc(place)+'」附近'+(L.rest?'找不到「'+esc(L.rest)+'」':'找不到店')+'。dinbendon、nidin 可能沒有這家，請手動輸入菜單。</p>';
+      return '<p class="imp-msg">附近找不到名字相近的店。dinbendon、nidin 可能沒有這家，請手動輸入菜單。</p>';
+    }
+    return '<p class="imp-msg">'+(place?'在「'+esc(place)+'」附近找到 ':'找到 ')+r.list.length+' 家，點「帶入」選一家：</p><ul class="imp-list">'+r.list.map(function(c,i){
       var dt=impDistText(c.dist),sub=esc(c.address||'')+(dt?(c.address?'・':'')+'<span class="imp-d">'+dt+'</span>':'');
       return '<li><div class="imp-m"><p class="imp-n"><span>'+esc(c.name)+'</span><span class="imp-src">'+IMP_SRC[c.src]+'</span>'+(c.best?'<span class="imp-best">最符合</span>':'')+'</p>'+(sub?'<p class="imp-a">'+sub+'</p>':'')+'</div><button type="button" class="btn sm" data-i="'+i+'" aria-label="帶入 '+esc(c.name)+'（'+IMP_SRC[c.src]+'）">帶入</button></li>';
     }).join('')+'</ul>';
