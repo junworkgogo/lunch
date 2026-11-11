@@ -450,6 +450,23 @@ a{color:#394150}
 .pill.ok{background:var(--lime);color:#394150;border-color:var(--lime)}
 .cell.paid{background:var(--lime);color:#394150;border-color:var(--lime)}
 .cell.paid .lb{background:#fff;color:#394150}
+/* 從 Google 地圖帶入（2026-11-11）：灰底小框，按鈕用一般灰鈕，萊姆綠仍只給「儲存店家」 */
+.imp{padding:12px;border:1px solid #ECEDF0;border-radius:var(--radius-sm);background:#F6F7F8}
+.imp-row{display:flex;gap:8px}
+.imp-row input{flex:1;min-width:0;width:auto}
+.imp-row .btn{flex:none}
+.imp-msg{font-size:13px;color:#4B5563;margin:0}
+.imp-msg.bad{color:var(--err);font-weight:700}
+.imp-list{display:grid;gap:6px;margin:6px 0 0;padding:0;list-style:none}
+.imp-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:#fff;border:1px solid #ECEDF0;border-radius:var(--radius-sm)}
+.imp-m{min-width:0}
+.imp-n{display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;margin:0;font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
+.imp-a{margin:2px 0 0;font-size:12px;color:#4B5563;overflow-wrap:anywhere}
+.imp-src,.imp-best{font-size:11px;font-weight:600;line-height:1.5;padding:0 7px;border-radius:999px;white-space:nowrap}
+.imp-src{border:1px solid #8B909A;color:#394150;background:#fff}
+.imp-best{background:#394150;color:#fff}
+.imp-list .btn{flex:none}
+.imp-d{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -779,6 +796,7 @@ function pageShops(root){
 P.list2='<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>';
 P.trash='<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
 /* ---------- 店家編輯 ---------- */
+var DEFAULT_MENU='{主食}\n範例便當, 80\n範例麵, 50\n  尺寸*: 小碗, 大碗+20';
 var INS={drink:'  尺寸*: 小杯, 中杯+5, 大杯+20\n  甜度*: 全糖, 半糖, 微糖, 無糖\n  冰塊*: 正常冰, 少冰, 去冰, 熱\n',bento:'  客製: 飯少, 飯多, 不要蔥, 要切\n'};
 function insertAtCursor(ta,text){
   var a=ta.selectionStart,b=ta.selectionEnd,v=ta.value,pre=v.slice(0,a),post=v.slice(b);
@@ -788,12 +806,322 @@ function insertAtCursor(ta,text){
   ta.dispatchEvent(new Event('input',{bubbles:true}));
 }
 function groupLine(g){return esc(g.n)+(g.req?'*（必選）':'（可複選）')+'：'+g.o.map(function(x){return esc(x.n)+(x.add?' +$'+x.add:'');}).join('／');}
+/* ---------- 從 Google 地圖帶入（dinbendon／nidin 菜單） ----------
+   2026-11-11：使用者「我給 google map 地址後，幫我去 dinbendon、nidin 抓資料」，選「網站自己抓」。
+   dinbendon 不准別的網站直接讀，所以全部經過中繼站 lunch-relay（Vercel，原始碼在 repo 的 relay/api/find.js）。
+   轉出來的就是一般菜單文字，帶入後照樣可以手改；不另外存來源資料。 */
+var RELAY='https://lunch-relay.vercel.app/api/find';
+var DBD_TYPES={BENDON:'便當',NOODLE:'麵食',VEGETABLE:'素食',DRINK:'飲料',ICE:'冰品',APPETIZER:'小吃',CHINESE:'中式',JAPANESE:'日式',WESTEN:'西式',SOUTHEAST_ASIA:'南洋',PASTRY:'餅類',CAKE:'蛋糕',BREAD:'麵包',BREAKFAST:'早點',GIFT:'禮品',DESSERT:'甜點',OTHERS:'其他'};
+function impErr(msg){var e=new Error(msg);e.imp=true;return e;}
+function relayGet(params){
+  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+  var ctl=window.AbortController?new AbortController():null,t=setTimeout(function(){if(ctl)ctl.abort();},20000);
+  return fetch(RELAY+'?'+qs,ctl?{signal:ctl.signal}:{}).then(function(r){
+    clearTimeout(t);
+    return r.json().catch(function(){return {error:'bad-json'};}).then(function(j){if(!r.ok&&j&&!j.error)j.error='http-'+r.status;return j||{error:'empty'};});
+  },function(e){clearTimeout(t);throw impErr('連不到菜單來源（中繼站），請稍後再試，或直接手動輸入菜單');});
+}
+/* 名字比對 */
+function impKey(s){return String(s||'').toLowerCase().replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);}).replace(/臺/g,'台').replace(/[\s\-_.,，、。:：;；'"`’()（）\[\]【】「」『』|｜·•・\/\\~～!！?？#&＆+＋*＊]/g,'');}
+function impBigr(s){var a=Array.from(s),o=[];for(var i=0;i<a.length-1;i++)o.push(a[i]+a[i+1]);if(a.length===1)o.push(a[0]);return o;}
+function impSim1(a,b){
+  a=impKey(a);b=impKey(b);if(!a||!b)return 0;if(a===b)return 1;
+  var sh=Math.min(a.length,b.length),lo=Math.max(a.length,b.length);
+  // 一邊包含另一邊：「二十三號小吃店」在「二十三號小吃店（二三小吃）」裡 → 高分；只有品牌名「水巷茶弄」→ 分數較低
+  if(sh>=3&&(a.indexOf(b)>=0||b.indexOf(a)>=0))return 0.5+0.5*sh/lo;
+  var x=impBigr(a),y=impBigr(b),m={},hit=0;
+  y.forEach(function(g){m[g]=(m[g]||0)+1;});x.forEach(function(g){if(m[g]){hit++;m[g]--;}});
+  return 2*hit/(x.length+y.length);
+}
+function impSim(q,c){return q?impSim1(q,c):0;}
+// 地址裡的「路名＋門牌」：「407台中市西屯區環河路23號」→「環河路23號」，用來認出同一個門牌的店
+var ADDR_RE=/([㐀-鿿]+(?:路|街|大道)(?:[一二三四五六七八九十\d]+段)?(?:\d+巷)?(?:\d+弄)?\d+(?:之\d+)?號)/;
+function impAddrKey(q){var m=ADDR_RE.exec(impKey(q));return m?m[1].replace(/^.*[市縣區鄉鎮]/,''):'';}
+function impDist(a1,o1,a2,o2){var R=6371000,r=Math.PI/180,dA=(a2-a1)*r,dO=(o2-o1)*r,h=Math.sin(dA/2)*Math.sin(dA/2)+Math.cos(a1*r)*Math.cos(a2*r)*Math.sin(dO/2)*Math.sin(dO/2);return 2*R*Math.asin(Math.sqrt(h));}
+function impDistText(m){if(m==null)return '';if(m<1000)return '約 '+Math.max(10,Math.round(m/10)*10)+' 公尺';return '約 '+(m/1000).toFixed(1)+' 公里';}
+function impHours(a,b){var f=function(s){var m=/^(\d{1,2}):(\d{2})/.exec(String(s||''));return m?p2(m[1])+':'+m[2]:'';};a=f(a);b=f(b);return a&&b&&a!==b?a+'–'+b:'';}
+/* 找店：Google 地圖連結／地址／店名 → 兩邊附近或同名的店 */
+function impFind(q){
+  var isLink=/^https?:\/\//i.test(q);
+  return relayGet({op:'lookup',q:q}).then(function(L){
+    if(L.error==='not-google-maps-link')throw impErr('這個網址不是 Google 地圖連結。請貼 Google 地圖的分享連結、地址或店名');
+    if(L.error&&L.error!=='link-without-place')throw impErr('讀不到這個位置，請換成貼地址或店名試試');
+    var hasLL=L.lat!=null&&L.lng!=null,jobs=[],out=[];
+    // 店名：連結或地圖認得的店名優先；打的字像地址就不拿來比店名（改用門牌比對）
+    var addrKey=isLink?'':impAddrKey(q),name=L.name||(isLink||addrKey?null:q);
+    if(hasLL){
+      jobs.push(relayGet({op:'dbd-map',lat:L.lat,lng:L.lng}).then(function(j){
+        arr(j&&j.data).forEach(function(s){if(s&&s.id)out.push({src:'dbd',id:s.id,name:s.name,address:s.address||'',dist:(s.lat!=null&&s.lng!=null)?impDist(L.lat,L.lng,s.lat,s.lng):null});});
+      },function(){}));
+      jobs.push(relayGet({op:'nidin-near',lat:L.lat,lng:L.lng}).then(function(j){
+        arr(j&&j.list).forEach(function(s){
+          if(!s||!s.id)return;
+          var nm=String(s.name||''),br=String(s.brand_name||'');
+          out.push({src:'nidin',id:s.id,name:(br&&nm.indexOf(br)<0?br+' ':'')+nm,address:(s.address||'')+(s.address_remark?' '+s.address_remark:''),phone:s.tel||'',hours:impHours(s.start_time,s.end_time),dist:s.distance!=null?Number(s.distance):null});
+        });
+      },function(){}));
+    }
+    var term=L.name||(isLink?L.text:q);
+    term=String(term||'').replace(/[（(][^）)]*[）)]/g,' ').trim().slice(0,40);
+    if(impKey(term).length>=2)jobs.push(relayGet({op:'dbd-search',term:term}).then(function(j){ // 一個字 dinbendon 會回 400
+      arr(j&&j.data).forEach(function(s){
+        if(!s||!s.id)return;
+        var sum=String(s.highlightedSummary||'').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
+        if(s.name&&sum.indexOf(s.name)===0)sum=sum.slice(s.name.length).trim();
+        out.push({src:'dbd',id:s.id,name:s.name,address:sum.slice(0,60),dist:null,byName:true});
+      });
+    },function(){}));
+    if(!jobs.length)throw impErr('讀不到這個位置，請換成貼地址或店名試試');
+    return Promise.all(jobs).then(function(){
+      var seen={},list=[];
+      out.forEach(function(c){var k=c.src+':'+c.id;if(seen[k]){if(seen[k].dist==null&&c.dist!=null)seen[k].dist=c.dist;return;}seen[k]=c;list.push(c);});
+      list.forEach(function(c){
+        c.sim=name?impSim(name,c.name):0;
+        if(addrKey&&impKey(c.address).indexOf(addrKey)>=0)c.sim=Math.max(c.sim,1); // 同一個門牌
+      });
+      var lim=name?120:200;
+      list=list.filter(function(c){return c.sim>=0.45||(c.dist!=null&&c.dist<=lim);});
+      // 已經知道位置、附近也找到名字相符的店 → 不列只靠名字搜到、不知道在哪的同名分店（例如別縣市的分店）
+      if(hasLL&&list.some(function(c){return c.dist!=null&&c.sim>=0.6;}))list=list.filter(function(c){return c.dist!=null;});
+      list.sort(function(a,b){
+        var ta=hasLL&&a.dist==null?1:0,tb=hasLL&&b.dist==null?1:0;if(ta!==tb)return ta-tb;
+        var s=Math.round(b.sim*10)-Math.round(a.sim*10);if(s)return s;
+        var da=a.dist==null?1e9:a.dist,db=b.dist==null?1e9:b.dist;return da-db;
+      });
+      list=list.slice(0,8);
+      if(list.length&&list[0].sim>=0.6)list[0].best=true;
+      return {where:L,list:list};
+    });
+  });
+}
+/* ---- 轉成本站菜單文字 ---- */
+var CJK=/[㐀-鿿]/;
+function nzh(s){ // 中文名後面接的英文拿掉：「糖心蜜紅茶 Sweet Black Tea」「7分糖 70% sugar」「加料Toppings」；「雙Q」「大杯(22oz)」不動
+  s=String(s==null?'':s).replace(/\s+/g,' ').trim();
+  if(!CJK.test(s))return s;
+  var tk=s.split(' '),k=tk.length;
+  while(k>1&&!CJK.test(tk[k-1]))k--;
+  if(k<tk.length&&tk.slice(k).join(' ').replace(/[^A-Za-z]/g,'').length>=3)tk=tk.slice(0,k);
+  var m=/^(.*[㐀-鿿)）\]】])([A-Za-z]{3,})$/.exec(tk[tk.length-1]);
+  if(m&&!CJK.test(m[1]))m=null;
+  if(m)tk[tk.length-1]=m[1];
+  return tk.join(' ').trim();
+}
+function mtName(s){return String(s==null?'':s).replace(/[\r\n\t]+/g,' ').replace(/[,，﹐､]/g,'/').replace(/[{}｛｝]/g,'').replace(/^[\s\-–—•・*＊]+/,'').replace(/\s+/g,' ').trim();}
+function mtOpt(s){return mtName(s).replace(/[+＋]/g,'加');}
+function mtGrp(s){return mtOpt(s).replace(/[:：]/g,' ').replace(/[*＊]+/g,'').replace(/\s+/g,' ').trim();}
+function impNum(v){var n=Number(v);return isFinite(n)?n:0;}
+function impUniq(names){var used={};return names.map(function(n){var b=n||'選項',x=b,i=2;while(used[x])x=b+' '+(i++);used[x]=1;return x;});}
+// 一個選項群組：opts=[{n,raw,price}]；必選單選時把最低價併進品項價格
+function impAddGroup(it,name,req,opts){
+  var seen={},o=[];
+  opts.forEach(function(x){var k=x.n+'|'+x.price;if(seen[k])return;seen[k]=1;o.push(x);});
+  if(!o.length)return;
+  // 同名不同價：先改用原名（含英文），還撞名才加編號
+  var cnt={};o.forEach(function(x){cnt[x.n]=(cnt[x.n]||0)+1;});
+  o.forEach(function(x){if(cnt[x.n]>1&&x.raw)x.n=mtOpt(x.raw);});
+  var names=impUniq(o.map(function(x){return mtOpt(x.n);}));
+  var min=Math.min.apply(null,o.map(function(x){return x.price;}));
+  if(req){
+    if(o.length===1){it.p+=Math.max(0,o[0].price);return;}
+    it.p=Math.max(0,it.p+min);
+    it.g.push({n:name,req:true,o:o.map(function(x,i){return {n:names[i],add:Math.round(x.price-min)};})});
+  }else{
+    it.g.push({n:name,req:false,o:o.map(function(x,i){return {n:names[i],add:Math.max(0,Math.round(x.price))};})});
+  }
+}
+function impFixGroupNames(it){var ns=impUniq(it.g.map(function(g){return mtGrp(g.n)||'選項';}));it.g.forEach(function(g,i){g.n=ns[i];});}
+function dbdToShop(d){
+  var cats=arr(d.categories).map(function(cat){
+    return {c:cat&&cat.name,items:arr(cat&&cat.products).map(function(p){
+      var vs=arr(p&&p.variations).filter(function(v){return v&&v.price!=null&&isFinite(Number(v.price));});
+      if(!vs.length)return null;
+      var it={n:mtName(p.name)||'品項',p:0,so:false,g:[]};
+      if(vs.length===1){
+        var vn=String(vs[0].name||'').trim();
+        it.p=impNum(vs[0].price);
+        if(vn&&vn!==p.name&&!/^(一般|單一|預設|標準|default)$/i.test(vn))it.n+='（'+mtName(vn)+'）';
+        return it;
+      }
+      var labels=vs.map(function(v){return String(v.name||'').trim();});
+      var gname=labels.every(function(x){return /^(不辣|微辣|小辣|中辣|大辣|特辣|辣)$/.test(x);})?'辣度':labels.every(function(x){return /^(湯|乾)$/.test(x);})?'做法':'規格';
+      impAddGroup(it,gname,true,vs.map(function(v,i){return {n:mtOpt(labels[i])||('規格'+(i+1)),price:impNum(v.price)};}));
+      impFixGroupNames(it);
+      return it;
+    }).filter(Boolean)};
+  });
+  return {name:String(d.name||'').trim(),address:String(d.address||'').trim(),phone:String(d.telNo||'').replace(/\s+/g,' ').trim(),hours:'',
+    tags:arr(d.serviceTypes).map(function(t){return DBD_TYPES[t];}).filter(Boolean).slice(0,3).join('・'),cats:cats};
+}
+function nidinRows(blk,idKey){
+  var out={};if(!blk||!blk.schema||!blk.data)return out;
+  var sc=blk.schema,keys=Object.keys(sc),d=blk.data,list=Array.isArray(d)?d:Object.keys(d).map(function(k){return d[k];});
+  list.forEach(function(v,i){if(!Array.isArray(v))return;var r={_i:i};keys.forEach(function(f){r[f]=v[sc[f]];});if(r[idKey]!=null)out[String(r[idKey])]=r;});
+  return out;
+}
+function nidinToShop(m){
+  var C=nidinRows(m.category_list_json,'product_id'),P=nidinRows(m.product_list_json,'product_id'),A=nidinRows(m.adjust_list_json,'product_id'),
+      O=nidinRows(m.option_list_json,'product_id'),B=nidinRows(m.block_list_json,'product_id'),K=nidinRows(m.combine_list_json,'combine_id'),G=nidinRows(m.group_list_json,'group_id');
+  function ok(x){return !!x&&x.is_visible!==false;}
+  function bySort(a,b){return impNum(a.sort)-impNum(b.sort);}
+  function prodItem(p){
+    var it={n:mtName(nzh(p.name))||'品項',raw:p.name,p:impNum(p.price),so:p.is_enable===false,g:[]};
+    if(arr(p.block_list).length){ // 套餐：每一格選一樣
+      arr(p.block_list).forEach(function(bid){
+        var b=B[String(bid)];if(!ok(b))return;
+        var opts=arr(b.product_list).map(function(i){return P[String(i)];}).filter(function(q){return ok(q)&&q.is_enable!==false;})
+          .map(function(q){return {n:nzh(q.name),raw:q.name,price:impNum(q.price)};});
+        impAddGroup(it,nzh(b.name),!!b.is_mandatory&&Number(b.max_limit)===1,opts);
+      });
+    }else{
+      var allow=null,over={};
+      arr(p.combine_list).forEach(function(cid){
+        var k=K[String(cid)];if(!k||!k.edge_list)return;allow=allow||{};
+        Object.keys(k.edge_list).forEach(function(eid){var e=k.edge_list[eid];if(!Array.isArray(e)||Number(e[4])!==2)return;allow[String(e[0])]=1;if(e[2]!=null&&isFinite(Number(e[2])))over[String(e[0])]=Number(e[2]);});
+      });
+      // 每個品項列選項的順序不一樣，統一照店家後台的群組順序，同分類的品項才會排得一致
+      arr(p.adjust_list).map(function(aid){return A[String(aid)];}).filter(function(a){return ok(a)&&a.is_enable!==false;})
+      .sort(function(x,y){return (impNum(x.sort)-impNum(y.sort))||(x._i-y._i);}).forEach(function(a){
+        var all=arr(a.option_list),ids=allow?all.filter(function(oid){return allow[String(oid)];}):all;
+        if(!ids.length)ids=all; // 組合表沒列到這一組時，整組照列
+        var opts=ids.map(function(oid){return O[String(oid)];}).filter(function(o){return ok(o)&&o.is_enable!==false;})
+          .map(function(o){var k=String(o.product_id);return {n:nzh(o.name),raw:o.name,price:over[k]!=null?over[k]:impNum(o.price)};});
+        impAddGroup(it,nzh(a.name),!!a.is_mandatory&&Number(a.max_limit)===1,opts);
+      });
+    }
+    impFixGroupNames(it);
+    return it;
+  }
+  function groupItem(gr,members){ // 同一品項拆成多個規格（例如 冰-美式-M、熱-美式-L）→ 併回一個品項
+    var gname=String(gr.name||'');
+    var it=prodItem(members[0]);
+    var base=it.p-impNum(members[0].price);
+    // 「熱-手沖-白藝伎-M」「冰-拿鐵-白藝伎-L」→ 只留每個規格不一樣的部分：「熱」「冰 L」
+    var toks=members.map(function(q){return String(q.name||'').split(/\s*[-_／\/]\s*|\s+/).filter(Boolean);});
+    var common=toks[0].filter(function(t){return toks.every(function(x){return x.indexOf(t)>=0;});});
+    var vs=members.map(function(q,i){
+      var lb=toks[i].filter(function(t){return common.indexOf(t)<0;}).join(' ');
+      return {n:nzh(lb||q.name),raw:q.name,price:impNum(q.price)};
+    });
+    var min=Math.min.apply(null,vs.map(function(v){return v.price;}));
+    var tmp={p:0,g:[]};impAddGroup(tmp,'規格',true,vs);
+    it.n=mtName(nzh(gname))||it.n;it.p=Math.max(0,base+min);it.so=members.every(function(q){return q.is_enable===false;});
+    if(tmp.g.length)it.g.unshift(tmp.g[0]);
+    impFixGroupNames(it);
+    return it;
+  }
+  function itemsOf(ids){
+    var out=[],done={};
+    ids.forEach(function(id){
+      var p=P[String(id)];if(!ok(p))return;
+      var gid=p.group_id&&G[String(p.group_id)]?String(p.group_id):null;
+      if(gid){
+        if(done[gid])return;done[gid]=1;
+        var mem=ids.map(function(i){return P[String(i)];}).filter(function(q){return ok(q)&&String(q.group_id)===gid;});
+        out.push(groupItem(G[gid],mem));return;
+      }
+      out.push(prodItem(p));
+    });
+    // 拿掉英文後撞名 → 改回原名
+    var cnt={};out.forEach(function(x){cnt[x.n]=(cnt[x.n]||0)+1;});
+    out.forEach(function(x){if(cnt[x.n]>1&&x.raw)x.n=mtName(x.raw);delete x.raw;});
+    return out;
+  }
+  var sub={};Object.keys(C).forEach(function(k){arr(C[k].category_list).forEach(function(s){sub[String(s)]=1;});});
+  var cats=[];
+  function walk(cat,prefix){
+    if(!ok(cat)||cat.is_enable===false)return;
+    var nm=mtName(nzh(cat.name))||'其他',full=prefix?prefix+'／'+nm:nm,items=itemsOf(arr(cat.product_list));
+    if(items.length)cats.push({c:full,items:items});
+    arr(cat.category_list).map(function(i){return C[String(i)];}).filter(Boolean).sort(bySort).forEach(function(s){walk(s,full);});
+  }
+  Object.keys(C).filter(function(k){return !sub[k];}).map(function(k){return C[k];}).sort(bySort).forEach(function(c){walk(c,'');});
+  return {name:'',address:'',phone:'',hours:'',tags:'',cats:cats};
+}
+function impGroupLine(g){return mtGrp(g.n)+(g.req?'*':'')+': '+g.o.map(function(o){return mtOpt(o.n)+(o.add>0?'+'+o.add:'');}).join(', ');}
+function menuTextFrom(cats){
+  var lines=[];
+  cats.forEach(function(c){
+    var items=arr(c.items).filter(Boolean);if(!items.length)return;
+    lines.push('{'+(mtName(c.c)||'其他')+'}');
+    var common={},sigs=[];
+    if(items.length>=2)arr(items[0].g).forEach(function(g){var s=impGroupLine(g);if(items.every(function(it){return arr(it.g).some(function(h){return impGroupLine(h)===s;});})){common[s]=1;sigs.push(s);}});
+    sigs.forEach(function(s){lines.push('  '+s);});
+    items.forEach(function(it){
+      lines.push((mtName(it.n)||'品項')+', '+Math.max(0,Math.round(it.p||0))+(it.so?', 停售':''));
+      arr(it.g).forEach(function(g){var s=impGroupLine(g);if(!common[s])lines.push('  '+s);});
+    });
+  });
+  return lines.join('\n');
+}
+function impLoad(c){
+  if(c.src==='dbd')return relayGet({op:'dbd-detail',id:c.id}).then(function(j){
+    var d=j&&j.data&&j.data.detail;if(!d)throw impErr('dinbendon 讀不到這家店的菜單');
+    var s=dbdToShop(d);s.src='dinbendon';return s;
+  });
+  return relayGet({op:'nidin-menu',id:c.id}).then(function(j){
+    var m=j&&j.menu;if(!m)throw impErr('nidin 讀不到這家店的菜單');
+    var s=nidinToShop(m);s.src='nidin';s.name=c.name;s.address=c.address;s.phone=c.phone;s.hours=c.hours;s.tags='';return s;
+  });
+}
+var IMP_SRC={dbd:'dinbendon',nidin:'nidin'};
+function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
+  var iq=root.querySelector('#iq'),ib=root.querySelector('#ib'),ir=root.querySelector('#ir'),seq=0,last=[],filled={};
+  function live(my){return my===seq&&ir.isConnected;} // 換了頁或又按了一次 → 舊的結果不要再寫回畫面
+  function msg(html,bad){ir.innerHTML='<p class="imp-msg'+(bad?' bad':'')+'">'+html+'</p>';}
+  function listHtml(r){
+    if(!r.list.length)return '<p class="imp-msg">附近找不到名字相近的店。dinbendon、nidin 可能沒有這家，請手動輸入菜單。</p>';
+    return '<p class="imp-msg">找到 '+r.list.length+' 家，點「帶入」選一家：</p><ul class="imp-list">'+r.list.map(function(c,i){
+      var dt=impDistText(c.dist),sub=esc(c.address||'')+(dt?(c.address?'・':'')+'<span class="imp-d">'+dt+'</span>':'');
+      return '<li><div class="imp-m"><p class="imp-n"><span>'+esc(c.name)+'</span><span class="imp-src">'+IMP_SRC[c.src]+'</span>'+(c.best?'<span class="imp-best">最符合</span>':'')+'</p>'+(sub?'<p class="imp-a">'+sub+'</p>':'')+'</div><button type="button" class="btn sm" data-i="'+i+'" aria-label="帶入 '+esc(c.name)+'（'+IMP_SRC[c.src]+'）">帶入</button></li>';
+    }).join('')+'</ul>';
+  }
+  function busy(on){ib.disabled=on;Array.prototype.forEach.call(ir.querySelectorAll('button'),function(b){b.disabled=on;});}
+  function find(){
+    var q=iq.value.trim();
+    if(!q){msg('請先貼上 Google 地圖連結、地址或店名',true);iq.focus();return;}
+    var my=++seq;busy(true);msg('正在找店…');
+    impFind(q).then(function(r){if(!live(my))return;last=r.list;ir.innerHTML=listHtml(r);busy(false);},
+      function(e){if(!live(my))return;busy(false);msg(esc(e&&e.imp?e.message:'找店時出了問題，請稍後再試'),true);});
+  }
+  ib.addEventListener('click',find);
+  iq.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();find();}}); // 不要觸發「儲存店家」
+  ir.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('button[data-i]');if(!b)return;
+    var c=last[+b.getAttribute('data-i')];if(!c)return;
+    var my=++seq;busy(true);b.textContent='讀取中…';
+    impLoad(c).then(function(s){
+      if(!live(my))return;
+      var text=menuTextFrom(s.cats),r=parseMenu(text);
+      if(!r.count)throw impErr('這家店在 '+IMP_SRC[c.src]+' 上沒有可用的品項');
+      // 欄位是空的、或內容還是上一次帶入的 → 換成這家的；使用者自己打過的（含編輯頁原本存好的）不動
+      var F=[['#sn','店名',s.name||c.name],['#sa','地址',s.address],['#sp','電話',s.phone],['#sh','營業時間',s.hours],['#st','類型',s.tags]].filter(function(f){return root.querySelector(f[0]);});
+      F.forEach(function(f){var el=root.querySelector(f[0]);f[2]=String(f[2]||'').slice(0,+el.getAttribute('maxlength')||200);f[3]=el.value.trim();f[4]=!f[3]||f[3]===filled[f[0]];});
+      function fill(f){if(f[4]){root.querySelector(f[0]).value=f[2];filled[f[0]]=f[2];}}
+      var chg=F.filter(function(f){return f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];}),
+          keep=F.filter(function(f){return !f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];});
+      function apply(){
+        F.forEach(fill);
+        h.sm.value=text;h.pv();h.mp();
+        busy(false);b.textContent='帶入';
+        msg('已帶入「'+esc(s.name||c.name)+'」'+r.cats.length+' 個分類、'+r.count+' 個品項（來源 '+IMP_SRC[c.src]+'）。'+(r.errors.length?'有 '+r.errors.length+' 行要手動修正（菜單框紅字）。':'')+'請看預覽，沒問題再按「儲存店家」。');
+        toast('已帶入 '+r.count+' 個品項，記得按「儲存店家」');
+      }
+      if(h.isDefaultMenu(h.sm.value))return apply();
+      return ask({title:'取代目前的菜單？',body:'菜單框會換成「'+(s.name||c.name)+'」的 '+r.count+' 個品項'+(chg.length?'，'+chg.join('、')+'也會換成這家的':'')+(keep.length?'；'+keep.join('、')+'維持原本的，不會被改':'')+'。按「儲存店家」之前都不會存。',okText:'取代'}).then(function(ok){
+        if(ok)apply();else{busy(false);b.textContent='帶入';}
+      });
+    }).catch(function(e){if(!live(my))return;busy(false);b.textContent='帶入';msg(esc(e&&e.imp?e.message:'讀取菜單時出了問題，請稍後再試'),true);});
+  });
+}
+
 function pageShopEdit(root,id){
   var isNew=id==='new',sid=isNew?DB.newId():id,cur=null,loaded=false,timer;
   root.innerHTML='<div class="page"><p class="muted">載入中…</p></div>';
   function build(){
-    var s=cur||{name:'',address:'',phone:'',tags:'',hours:'',promos:'',menuText:'{主食}\n範例便當, 80\n範例麵, 50\n  尺寸*: 小碗, 大碗+20'};
+    var s=cur||{name:'',address:'',phone:'',tags:'',hours:'',promos:'',menuText:DEFAULT_MENU};
     root.innerHTML='<div class="page"><section><h1 class="ph">'+(isNew?'新增店家':'編輯店家')+'</h1><p><a href="#/shops">← 回店家清單</a></p></section><div class="two"><section class="card"><form class="form" id="f" novalidate>'+
+    '<div class="fld imp" role="group" aria-labelledby="iqL"><label id="iqL" for="iq">從 Google 地圖帶入（選填）</label><div class="imp-row"><input id="iq" maxlength="300" autocomplete="off" enterkeyhint="search" placeholder="貼上 Google 地圖連結、地址或店名"><button type="button" class="btn" id="ib">找菜單</button></div><p class="hint">會到 dinbendon、nidin 找這家店，選一家就帶入店名、電話、地址和菜單；帶入後還是可以自己改。</p><div id="ir" aria-live="polite"></div></div>'+
     '<div class="fld"><label for="sn">店名（必填）</label><input id="sn" value="'+esc(s.name)+'" maxlength="40" autocomplete="off"><p class="err" id="snE" role="alert" hidden>請輸入店名</p></div>'+
     '<div class="fld"><label for="sa">地址</label><input id="sa" value="'+esc(s.address)+'" maxlength="100" autocomplete="off" placeholder="填了就會顯示 Google 地圖"></div>'+
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
@@ -816,6 +1144,7 @@ function pageShopEdit(root,id){
     root.querySelector('#ins2').addEventListener('click',function(){insertAtCursor(sm,INS.bento);});
     function mp(){root.querySelector('#mp').innerHTML=sa.value.trim()?mapHtml(sa.value.trim()):'';}
     mp();sa.addEventListener('input',function(){clearTimeout(timer);timer=setTimeout(mp,700);});
+    impWire(root,{sm:sm,pv:pv,mp:mp,isDefaultMenu:function(v){v=String(v||'').trim();return !v||v===DEFAULT_MENU.trim();}});
     root.querySelector('#f').addEventListener('submit',function(e){
       e.preventDefault();
       var name=root.querySelector('#sn').value.trim(),r=parseMenu(sm.value),saveE=root.querySelector('#saveE');
