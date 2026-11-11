@@ -40,8 +40,8 @@ async function fetchT(url, opt) {
   } finally { clearTimeout(t); }
 }
 
-async function upstreamJson(url) {
-  const r = await fetchT(url);
+async function upstreamJson(url, timeout) {
+  const r = await fetchT(url, { timeout: timeout });
   const text = await r.text();
   try { return { status: r.status, json: JSON.parse(text) }; }
   catch (e) { return { status: 502, json: { error: 'upstream-not-json', upstreamStatus: r.status } }; }
@@ -101,15 +101,125 @@ function isGoogleUrl(href) {
   catch (e) { return false; }
 }
 
-async function geocode(text) {
-  const qs = new URLSearchParams({ f: 'json', maxLocations: '1', countryCode: 'TWN', outFields: 'PlaceName,Place_addr,Addr_type', SingleLine: text });
-  const r = await upstreamJson(ARCGIS + '?' + qs.toString());
+// 台灣範圍（含金門、馬祖；經度 118.19 以西是廈門）
+function inTaiwan(lat, lng) { return lat >= 21.8 && lat <= 26.5 && lng >= 118.19 && lng <= 122.3; }
+function kmBetween(a1, o1, a2, o2) {
+  const R = 6371, d = Math.PI / 180, x = (o2 - o1) * d * Math.cos((a1 + a2) / 2 * d), y = (a2 - a1) * d;
+  return Math.sqrt(x * x + y * y) * R;
+}
+
+async function arcgis(text, timeout) {
+  const qs = new URLSearchParams({ f: 'json', maxLocations: '1', countryCode: 'TWN', outFields: 'PlaceName,Place_addr,Addr_type,Type,Country', SingleLine: text });
+  const r = await upstreamJson(ARCGIS + '?' + qs.toString(), timeout);
   const c = r.json && r.json.candidates && r.json.candidates[0];
   if (!c || !c.location || !(c.score >= 80)) return null;
-  const lat = num(c.location.y, 20, 27), lng = num(c.location.x, 117, 123);
-  if (lat == null || lng == null) return null;
   const a = c.attributes || {};
-  return { lat: lat, lng: lng, placeName: a.Addr_type === 'POI' ? (a.PlaceName || null) : null, address: a.Place_addr || c.address || null, kind: a.Addr_type || null };
+  if (a.Country && a.Country !== 'TWN') return null; // 例：「老虎城」會找到廈門的
+  const lat = Number(c.location.y), lng = Number(c.location.x);
+  if (!inTaiwan(lat, lng)) return null;
+  return { lat: lat, lng: lng, placeName: a.Addr_type === 'POI' ? (a.PlaceName || null) : null, address: a.Place_addr || c.address || null, kind: a.Addr_type || null, type: a.Type || null };
+}
+// 整句地址／店名（原本的做法）；只認出「台中市」「西屯區」這種大範圍的不算找到（中心點附近不是使用者要的地方）
+const WHOLE_OK = /^(POI|PointAddress|StreetAddress|StreetAddressExt|Subaddress|BuildingName|StreetInt|StreetName)$/;
+async function geocode(text) {
+  const g = await arcgis(text, 6000);
+  return g && WHOLE_OK.test(g.kind || '') ? g : null;
+}
+
+// ---------- 整句找不到時：拆開找「地點」那一段（商場、車站、地標、地址），剩下的字當店名 ----------
+// 例：「台中老虎城 六堆」→ 地點＝老虎城購物中心，店名＝六堆
+// 只接受「地點類」的結果；餐廳、飲料店這類店名不拿來定位（「八方雲集 朝富店」不會被定到隨便一家八方雲集）
+const PHOTON = 'https://photon.komoot.io/api/';
+const CITIES = [['台北', 25.04, 121.56], ['新北', 25.01, 121.46], ['桃園', 24.99, 121.30], ['台中', 24.15, 120.67], ['台南', 22.99, 120.21],
+  ['高雄', 22.63, 120.30], ['基隆', 25.13, 121.74], ['新竹', 24.80, 120.97], ['苗栗', 24.56, 120.82], ['彰化', 24.08, 120.54],
+  ['南投', 23.91, 120.68], ['雲林', 23.71, 120.43], ['嘉義', 23.48, 120.45], ['屏東', 22.67, 120.49], ['宜蘭', 24.75, 121.75],
+  ['花蓮', 23.99, 121.60], ['台東', 22.76, 121.14], ['澎湖', 23.57, 119.58], ['金門', 24.43, 118.32], ['連江', 26.16, 119.95], ['馬祖', 26.16, 119.95]];
+const CITY_KM = 40; // 寫了城市就只收這個範圍內的（「台中新光三越」不會跑到台北那家）
+const ARC_PLACE = /^(Shopping Center|Department Store|Building|Tourist Attraction|Landmark|Historical Monument|Train Station|Metro Station|Bus Station|Airport|College|University|School|Hospital|Convention Center|Exhibition Center|Government Office|City Hall|Court House|Museum|Park|Stadium|Sports Center|Market|Industrial Zone|Science Park)$/i;
+const ARC_ADDR = /^(PointAddress|StreetAddress|Subaddress|BuildingName)$/;
+const PHOTON_PLACE = { shop: /^(mall|department_store)$/, amenity: /^(marketplace|university|college|school|hospital|townhall|bus_station|courthouse|exhibition_centre|conference_centre)$/,
+  tourism: /^(attraction|museum)$/, railway: /^(station|halt)$/, public_transport: /^station$/, building: /./,
+  leisure: /^(park|stadium|sports_centre)$/, aeroway: /^aerodrome$/, highway: /^bus_stop$/ };
+// 不收 office、landuse（「麥當勞 逢甲店」曾被定到台南一塊叫「麥當勞」的商業區土地）；建築只收名稱像大樓、商場的
+const PLACE_WORD = /(大樓|大廈|廣場|中心|商場|百貨|購物|園區|大廳|101)/;
+
+function tw(s) { return String(s).replace(/臺/g, '台'); }
+function splitCity(t) { // 「台中老虎城」→ { city:['台中',…], core:'老虎城' }；「台中」→ core ''
+  const s = tw(t);
+  for (let i = 0; i < CITIES.length; i++) {
+    if (s.indexOf(CITIES[i][0]) === 0) return { city: CITIES[i], core: s.slice(CITIES[i][0].length).replace(/^[市縣]/, '') };
+  }
+  return { city: null, core: String(t) };
+}
+// 寫了城市：地址／行政區開頭就是那個縣市，或離縣市中心 40 公里內，才算（「屏東縣恆春鎮…」離屏東市很遠但地址寫明了，照樣算）
+function okCity(city, lat, lng, admins) {
+  if (!city) return true;
+  if ((admins || []).some(function (a) { return tw(String(a || '')).replace(/^[\d\s]+/, '').indexOf(city[0]) === 0; })) return true;
+  return kmBetween(city[1], city[2], lat, lng) <= CITY_KM;
+}
+// 找到的地點名稱要跟打的字對得上（「老虎城」↔「老虎城購物中心」），避免模糊比對亂抓
+function nkey(s) { return tw(s).toLowerCase().replace(/[\s\-_.,，、。:：;；'"()（）\[\]【】「」|｜·•・\/]/g, ''); }
+function nameFits(name, text) {
+  const a = nkey(name || ''), b = nkey(text || '');
+  return a.length >= 2 && b.length >= 2 && (a.indexOf(b) >= 0 || b.indexOf(a) >= 0);
+}
+
+async function arcPlace(text, city) {
+  const g = await arcgis(text, 4000);
+  if (!g || !okCity(city, g.lat, g.lng, [g.address])) return null;
+  const isAddr = ARC_ADDR.test(g.kind || '');
+  if (!(isAddr || (g.kind === 'POI' && ARC_PLACE.test(g.type || '') && nameFits(g.placeName, text)))) return null;
+  return { lat: g.lat, lng: g.lng, place: g.placeName || g.address, address: g.address, rank: 1 };
+}
+async function photonPlace(text, city) {
+  const qs = new URLSearchParams({ q: text, limit: '6', bbox: '118.19,21.8,122.3,26.5' });
+  if (city) { qs.set('lat', String(city[1])); qs.set('lon', String(city[2])); }
+  const r = await upstreamJson(PHOTON + '?' + qs.toString(), 4000);
+  const fs = (r.json && r.json.features) || [];
+  let best = null;
+  fs.forEach(function (f) {
+    const p = (f && f.properties) || {}, g = f && f.geometry && f.geometry.coordinates;
+    if (!g || (p.countrycode && p.countrycode !== 'TW')) return;
+    const lat = Number(g[1]), lng = Number(g[0]);
+    if (!inTaiwan(lat, lng) || !okCity(city, lat, lng, [p.state, p.county, p.city])) return;
+    const re = PHOTON_PLACE[p.osm_key];
+    if (!re || !re.test(String(p.osm_value || '')) || !nameFits(p.name, text)) return;
+    if (p.osm_key === 'building' && !PLACE_WORD.test(String(p.name || ''))) return;
+    const rank = p.osm_key === 'highway' ? 3 : 2; // 公車站牌只在沒有別的時候用
+    if (best && best.rank <= rank) return;
+    const addr = [p.city || p.county, p.district, p.street, p.housenumber].filter(Boolean).join('');
+    best = { lat: lat, lng: lng, place: p.name || addr || text, address: addr || null, rank: rank };
+  });
+  return best;
+}
+
+async function locateByParts(q) {
+  const tokens = q.split(/[\s,，、/]+/).filter(Boolean).slice(0, 4);
+  let city = null;
+  tokens.forEach(function (t) { const s = splitCity(t); if (!city && s.city) city = s.city; });
+  // 要試的字：整句、每一段、每一段去掉開頭的城市名；只有城市名的那段（「台中」）不拿來定位
+  const tries = [];
+  function add(text, idx) {
+    text = String(text || '').trim();
+    if (text.length < 2 || tries.some(function (x) { return x.text === text; })) return;
+    tries.push({ text: text, idx: idx });
+  }
+  add(q, -1);
+  tokens.forEach(function (t, i) { const s = splitCity(t); if (!s.core) return; add(t, i); add(s.core, i); });
+  const found = await Promise.all(tries.slice(0, 6).map(function (x) {
+    return Promise.all([
+      x.idx === -1 ? null : arcPlace(x.text, city).catch(function () { return null; }), // 整句已經用 ArcGIS 找過
+      photonPlace(x.text, city).catch(function () { return null; })
+    ]).then(function (a) { return a[0] && a[1] ? (a[0].rank <= a[1].rank ? a[0] : a[1]) : (a[0] || a[1]); });
+  }));
+  let pick = -1;
+  for (let i = 0; i < found.length; i++) {
+    if (found[i] && (pick < 0 || found[i].rank < found[pick].rank)) pick = i;
+  }
+  if (pick < 0) return null;
+  const hit = found[pick], at = tries[pick].idx;
+  const rest = at < 0 ? '' : tokens.filter(function (t, i) { return i !== at && splitCity(t).core && t !== '附近'; }).join(' ');
+  return { lat: hit.lat, lng: hit.lng, place: hit.place, address: hit.address, rest: rest };
 }
 
 async function lookup(q) {
@@ -141,10 +251,18 @@ async function lookup(q) {
   }
   // 一般文字：地址或店名
   info.text = q;
-  const g = await geocode(q);
+  const city = splitCity(q).city;
+  let g = await geocode(q);
+  if (g && !okCity(city, g.lat, g.lng, [g.address])) g = null; // 開頭寫了城市、卻找到別的縣市 → 不算
   if (g) {
     info.lat = g.lat; info.lng = g.lng; info.address = g.address; info.how = 'geocode';
     if (g.placeName) info.name = g.placeName;
+    return { status: 200, json: info };
+  }
+  // 整句找不到 → 拆開找地點那一段（例：「台中老虎城 六堆」）
+  const p = await locateByParts(q);
+  if (p) {
+    info.lat = p.lat; info.lng = p.lng; info.address = p.address; info.place = p.place; info.rest = p.rest; info.how = 'place-part';
   }
   return { status: 200, json: info };
 }
@@ -161,7 +279,11 @@ module.exports = async function (req, res) {
     if (op === 'lookup') {
       const t = textOf(q.q);
       if (!t) out = { status: 400, json: { error: 'bad-q' } };
-      else { out = await lookup(t); cache = 'private, max-age=3600'; }
+      else {
+        out = await lookup(t);
+        // 定不出位置的不快取：可能只是查詢服務一時逾時，下一次要能重新查
+        cache = out.json && out.json.lat != null ? 'private, max-age=3600' : 'no-store';
+      }
     } else if (op === 'dbd-map' || op === 'nidin-near') {
       const lat = num(q.lat, 20, 27), lng = num(q.lng, 117, 123);
       if (lat == null || lng == null) out = { status: 400, json: { error: 'bad-latlng' } };
