@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>午餐團</title>
+<title>JUN胖達</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
@@ -482,7 +482,7 @@ a{color:#394150}
 </head>
 <body>
 <div class="demo" id="demoBar" hidden>示範模式：資料只存在這台電腦</div>
-<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">午餐團</span></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/shops">店家</a></nav></div></header>
+<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/shops">店家</a></nav></div></header>
 <main id="app"></main>
 <div id="toast" role="status" hidden></div>
 <script>
@@ -843,7 +843,7 @@ function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+
 
 /* ---------- 首頁 ---------- */
 function pageHome(root){
-  root.innerHTML='<div class="page"><section class="hero"><div><h1>午餐團</h1><p>選店家、開團、分享連結，同事自己點餐。</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><h2 class="sh">進行中的團</h2><div class="grid" id="act"></div></section><section><h2 class="sh">最近結束</h2><div class="grid" id="end"></div></section></div>';
+  root.innerHTML='<div class="page"><section class="hero"><div><h1>JUN胖達</h1><p>選店家、開團、分享連結，同事自己點餐。</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><h2 class="sh">進行中的團</h2><div class="grid" id="act"></div></section><section><h2 class="sh">最近結束</h2><div class="grid" id="end"></div></section></div>';
   var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false;
   function stats(gid){var l=liveOrders(orders[gid]);return {people:peopleCount(orders[gid]),qty:l.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0)};}
   function canRemove(g){return !!(g&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||g.ownerUserId&&g.ownerUserId===userId()));}
@@ -1764,7 +1764,7 @@ function parseHash(){
 }
 function route(){
   if(cleanup){try{cleanup();}catch(e){}cleanup=null;}
-  var r=parseHash(),p=r.parts;document.title='午餐團';
+  var r=parseHash(),p=r.parts;document.title='JUN胖達';
   window.scrollTo(0,0);
   try{
     if(routeGuard&&routeGuard(app,p,r.q,location.hash)===false)return;
