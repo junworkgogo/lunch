@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="64x64" href="assets/jun-blue-smile-64.png?v=20261117smile">
 <link rel="icon" type="image/svg+xml" href="jun-blue-smile.svg?v=20261117smile">
 <link rel="apple-touch-icon" href="assets/jun-blue-smile-180.png?v=20261117smile">
-<link rel="preload" as="image" href="assets/jun-mascot.png">
+<link rel="preload" as="image" href="assets/jun-mascot-360.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
@@ -485,7 +485,7 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261117smile">
+<link rel="stylesheet" href="glass.css?v=20261118small">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
@@ -1489,7 +1489,7 @@ function pageGroup(root,gid){
     var mine=mineIds.map(function(k){var o=orders[k];if(o){o.id=k;}return o;}).filter(function(o){return o&&mayEditOrder(gid,o.id,o);});
     $('#mine').hidden=!mine.length;
     $('#mineL').innerHTML=mine.map(function(o){return '<div class="ob"><div class="order-sent-badge"><span class="order-sent-check" aria-hidden="true">'+I('check',16)+'</span><span>已成功送出</span><small>尚不代表已付款</small></div><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'<div class="actions"><button type="button" class="btn sm" data-edit="'+esc(o.id)+'"'+(dis?' disabled':'')+'>修改</button><button type="button" class="btn sm danger" data-cancel="'+esc(o.id)+'"'+(closed?' disabled':'')+'>取消</button></div></div>';}).join('');
-    $('#allN').textContent=live.length;
+    $('#allN').textContent=peopleCount(orders);
     $('#allL').innerHTML=live.length?live.map(function(o){return '<div class="ob"><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'</div>';}).join(''):'<p class="muted">還沒有人點餐</p>';
   }
   function tickText(){var l=$('#left');if(l)l.textContent=groupClosed(group)?'已截止':fmtLeft(group.deadline-now());}
@@ -1864,7 +1864,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 </script>
 <script src="menu-vision.js?v=20261117a"></script>
 <script src="interface.js?v=20261117smile"></script>
-<script src="mascot.js?v=20261117glass1"></script>
+<script src="mascot.js?v=20261118small"></script>
 <script src="participants.js?v=20261117pos1"></script>
 <script src="members.js?v=20261117glass1"></script>
 </body>
