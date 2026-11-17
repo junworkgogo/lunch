@@ -2,6 +2,8 @@
 (function () {
   'use strict';
   var A, auth = null, verified = null, authReady = false, startupError = '', pendingNext = '', activeRefresh = null;
+  /* settled：已經知道「有沒有登入」（含讀完會員資料）。還不知道時先顯示「確認登入狀態中」，不急著送去登入頁。 */
+  var settled = false, settleTimer = null;
   var C = window.LUNCH_MEMBERS_CONFIG || window.LUNCH_MEMBER_CONFIG || {};
   var avatars = ['☀', '☁', '✦', '◒', '✿', '▰'];
   var departments = ['設計部', '企劃部', '影相部', '會計部', '工程部', '廣告部', 'BOSS們'];
@@ -24,6 +26,8 @@
   }
   function avatar(u, cls) { var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
   function notify(root, message) { var el = root.querySelector('[data-member-status]'); if (el) { el.textContent = message; el.hidden = false; } }
+  function waitView(root) { root.innerHTML = '<div class="page member-page"><p class="member-loading" role="status" aria-live="polite">確認登入狀態中…</p></div>'; }
+  function settle() { settled = true; if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; } }
   function messageBox() { return '<p class="member-status" data-member-status role="status" aria-live="polite" hidden></p>'; }
   function money(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('zh-TW'); }
   function total(o) { return Number(A.orderTotal(o)) || 0; }
@@ -135,8 +139,10 @@
       if(imageBusy||!form.reportValidity())return;
       var name=form.elements.displayName.value.trim();
       var selected=form.querySelector('input[name="avatar"]:checked');
-      if(!name||!selected||departments.indexOf(form.elements.department.value)<0)return;
-      var p={name:name,department:form.elements.department.value.trim(),avatar:Number(selected.value),updatedAt:A.now()};
+      if(!name||departments.indexOf(form.elements.department.value)<0)return;
+      if(!selected&&!avatarImage){notify(root,'請選一個內建頭貼，或上傳自己的照片。');return;}
+      var oldAvatar=Number(u.avatar);oldAvatar=Number.isInteger(oldAvatar)&&oldAvatar>=0&&oldAvatar<avatars.length?oldAvatar:0;
+      var p={name:name,department:form.elements.department.value.trim(),avatar:selected?Number(selected.value):oldAvatar,avatarImage:avatarImage||'',updatedAt:A.now()};
       var b=form.querySelector('button[type="submit"]');b.disabled=true;
       A.DB.update('members/'+u.uid,p).then(function(){
         Object.assign(verified,p,{needsProfile:false});
@@ -210,13 +216,15 @@
   function guardRoute(_,parts,query,href) {
     if (!secure() || parts[0] === 'members') return true;
     if (verified) return true;
-    pendingNext=safeNext(href); go('#/members/login?next='+encodeURIComponent(pendingNext)); return false;
+    pendingNext=safeNext(href);
+    if (!settled) { waitView(_); return false; }
+    go('#/members/login?next='+encodeURIComponent(pendingNext)); return false;
   }
   function render(root,parts,query) {
     query=query || {}; if (!(query instanceof Object)) query={};
     if (query instanceof URLSearchParams) { var q={}; query.forEach(function(v,k){q[k]=v;});query=q; }
     var page=parts[1] || '';
-    if (!verified) { if (!query.next && location.hash.indexOf('/members/login') < 0) pendingNext=safeNext(location.hash); return loginView(root,query); }
+    if (!verified) { if (!query.next && location.hash.indexOf('/members/login') < 0) pendingNext=safeNext(location.hash); if (!settled) return waitView(root); return loginView(root,query); }
     if (page === 'orders') return orderView(root);
     if (page === 'collection') return collectionView(root,parts[2]);
     return profileView(root);
@@ -224,16 +232,22 @@
   function loadScript(src) { return new Promise(function(resolve,reject){var s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=function(){reject(new Error('SDK'));};document.head.appendChild(s);}); }
   function initAuth() {
     if (!configured()) return;
+    var SLOW='登入服務回應較慢，可稍候重新整理再試。';
+    settleTimer=setTimeout(function(){settleTimer=null;if(settled)return;settled=true;startupError=SLOW;updateNav();A.route();},12000);
     var appReady=typeof A.firebaseReady === 'function' ? A.firebaseReady() : Promise.resolve();
     appReady.then(function(){ if(!window.firebase) return loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'); }).then(function(){if(!firebase.apps.length)firebase.initializeApp(config());return typeof firebase.auth === 'function' ? null : loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');}).then(function(){auth=firebase.auth();return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);}).then(function(){auth.onAuthStateChanged(function(fu){authReady=true;var expected=fu&&fu.uid; verified=null;
-      if (!fu) { A.setUser(null); if(location.hash.indexOf('#/members')===0)A.route(); return; }
-      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult()]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};verified={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',avatar:p.avatar || 0,avatarImage:p.avatarImage || '',authenticated:true,needsProfile:!p.updatedAt || !p.name || !p.department,admin:claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0};A.setUser(verified);var next=pendingNext;pendingNext='';if(verified.needsProfile){if(location.hash==='#/members')A.route();else go('#/members');}else if(next && location.hash.indexOf('#/members')===0)go(next);else if(location.hash.indexOf('#/members')===0)A.route();}).catch(function(){startupError='無法確認帳號權限，請重新登入。';verified=null;A.setUser(null);});
-    });}).catch(function(){startupError='會員登入載入失敗，請聯絡站長檢查登入設定與授權網域。';if(location.hash.indexOf('#/members')===0)A.route();});
+      if (!fu) { settle(); if(startupError===SLOW)startupError=''; A.setUser(null); return; }
+      settled=false;
+      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult()]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};verified={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',avatar:p.avatar || 0,avatarImage:p.avatarImage || '',authenticated:true,needsProfile:!p.updatedAt || !p.name || !p.department,admin:claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0};settle();if(startupError===SLOW)startupError='';var next=pendingNext;pendingNext='';
+        /* 先決定要停在哪一頁再通知畫面，避免先閃過別的頁面。setUser 會自己重畫一次。 */
+        if(verified.needsProfile){if(location.hash!=='#/members')go('#/members');}else if(next && location.hash.indexOf('#/members')===0)go(next);
+        A.setUser(verified);}).catch(function(){startupError='無法確認帳號權限，請重新登入。';verified=null;settle();A.setUser(null);});
+    });}).catch(function(){startupError='會員登入載入失敗，請聯絡站長檢查登入設定與授權網域。';settle();updateNav();A.route();});
   }
   function updateNav() {
     var nav=document.querySelector('header .nav');if(!nav)return;
     var el=nav.querySelector('[data-members-nav]');if(!el){el=document.createElement('span');el.setAttribute('data-members-nav','');el.className='member-nav';nav.appendChild(el);}
-    el.innerHTML=verified ? '<a class="btn sm" href="#/members/orders">我的訂單</a><a class="member-nav-profile" href="#/members" aria-label="我的會員資料">'+avatar(verified)+'<span>'+esc(verified.name)+'</span></a><button type="button" class="member-nav-logout" data-member-nav-logout>登出</button>' : '<a class="btn sm primary" href="#/members/login">會員登入</a>';
+    el.innerHTML=!verified && !settled ? '' : verified ?'<a class="btn sm" href="#/members/orders">我的訂單</a><a class="member-nav-profile" href="#/members" aria-label="我的會員資料">'+avatar(verified)+'<span>'+esc(verified.name)+'</span></a><button type="button" class="member-nav-logout" data-member-nav-logout>登出</button>' : '<a class="btn sm primary" href="#/members/login">會員登入</a>';
     var b=el.querySelector('[data-member-nav-logout]');if(b)b.onclick=function(){if(demo()){verified=null;A.setUser(null);go('#/members/login');}else if(auth)auth.signOut().catch(function(){A.toast('登出未成功，請稍後重試');});};
   }
   function start() {
@@ -242,6 +256,7 @@
     if(typeof A.setRouteGuard==='function')A.setRouteGuard(guardRoute);
     window.LunchMembers={guardRoute:guardRoute,getUser:user,isConfigured:configured,isSecure:secure};
     window.addEventListener('lunch:userchange',updateNav);
+    settled = !configured();
     updateNav();
     A.route();
     initAuth();

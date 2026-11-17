@@ -7,6 +7,9 @@
 <link rel="icon" type="image/svg+xml" href="./jun-blue-smile.svg?v=20261117b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F4F5F7;--top-bg:#FFFFFF;--card:#FFFFFF;--text:#111827;--muted:#4B5563;--line:#E5E7EB;--accent:#0E7A4F;--accent-ink:#FFFFFF;--soft:#DCF5E8;--soft-ink:#075C3A;--err:#B91C1C;--radius:20px;--radius-sm:14px;--radius-btn:999px;--font:'Noto Sans TC',sans-serif;--bad-bg:#FEE2E2;--bad-ink:#7F1D1D;--ok-bg:#DCFCE7;--ok-ink:#14532D;--dis-bg:#E5E7EB;--dis-ink:#374151;--warn-bg:#FEF3C7;--warn-ink:#78350F}
@@ -479,8 +482,7 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117ordersuccess">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <script src="members-config.js?v=20261117c"></script>
-<script src="opencc.js?v=20261117c"></script>
-<script src="traditional.js?v=20261117c"></script>
+<script src="traditional.js?v=20261117lazy"></script>
 </head>
 <body>
 <div class="demo" id="demoBar" hidden>示範模式：資料只存在這台電腦</div>
@@ -1839,6 +1841,6 @@ if(!window.LUNCH_DEFER_BOOT)route();
 </script>
 <script src="menu-vision.js?v=20261117a"></script>
 <script src="interface.js?v=20261117e"></script>
-<script src="members.js?v=20261117avataradmin"></script>
+<script src="members.js?v=20261117authwait"></script>
 </body>
 </html>
