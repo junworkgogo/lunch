@@ -39,7 +39,7 @@
   function times(){businessHours();app.querySelectorAll('input[type="time"]').forEach(timeSelect);}
   function home(){
     var hero=app.querySelector('.hero');if(!hero||hero.dataset.interfaceHome)return;hero.dataset.interfaceHome='true';
-    var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今日團購';if(p)p.textContent='選擇開放中的團購，登入後即可點餐。';
+    var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今天吃什麼？';if(p)p.textContent='挑一團跟著點，登入後就能下單';
     // 拿掉「查看今日團購」（就在本頁，使用者 2026-11-18 指定），只留「開新團」並改成主按鈕。
     if(actions){var create=el('a','btn primary','開新團');create.href='#/new';actions.replaceChildren(create);}
   }

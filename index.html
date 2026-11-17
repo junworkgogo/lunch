@@ -858,7 +858,7 @@ function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+
 function pageHome(root,history){
   root.innerHTML=history
     ? '<div class="page"><section><a class="backlink" href="#/">'+I('back',15)+'回首頁</a><h1 class="ph">歷史團購</h1><p class="muted">已結束的團購，可查看訂單或進入管理。</p></section><section aria-label="已結束的團購"><div class="grid" id="end"></div></section></div>'
-    : '<div class="page"><section class="hero"><div><h1>JUN胖達</h1><p>選店家、開團、分享連結，同事自己點餐。</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><h2 class="sh">進行中的團</h2><div class="grid" id="act"></div></section></div>';
+    : '<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>挑一團跟著點，登入後就能下單</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><h2 class="sh">進行中的團</h2><div class="grid" id="act"></div></section></div>';
   var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false;
   function stats(gid){var l=liveOrders(orders[gid]);return {people:peopleCount(orders[gid]),qty:l.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0)};}
   function canRemove(g){return !!(g&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||g.ownerUserId&&g.ownerUserId===userId()));}
@@ -1889,7 +1889,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
 <script src="menu-vision.js?v=20261117a"></script>
-<script src="interface.js?v=20261118all"></script>
+<script src="interface.js?v=20261118hero"></script>
 <script src="mascot.js?v=20261118small"></script>
 <script src="participants.js?v=20261118wait"></script>
 <script src="members.js?v=20261118back"></script>
