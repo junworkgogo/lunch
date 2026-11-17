@@ -1405,11 +1405,14 @@ function pageGroup(root,gid){
     toast('已載入訂單，改好後按「更新訂單」');
   }
   function itemsHtml(o){return '<ul>'+arr(o.items).map(function(it){return '<li><span>'+esc(lineLabel(it))+' ×'+it.qty+(it.note?'<span class="lnote">備註：'+esc(it.note)+'</span>':'')+'</span><span>'+money(lineTotal(it))+'</span></li>';}).join('')+'</ul>';}
+  function canManageGroup(){
+    return !!(group&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||(group.ownerUserId&&userId()===group.ownerUserId)));
+  }
   function refresh(){
     var closed=groupClosed(group);lastClosed=closed;
     $('#gCard').className='group'+(closed?' ended':'');
     var live=liveOrders(orders),qn=live.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0);
-    $('#gCard').innerHTML='<p class="eyebrow">'+(closed?'已截止的團購':'進行中的團購')+'</p><h1>'+esc(group.title)+'</h1><ul class="meta"><li>'+I('user')+'負責人 '+esc(group.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(group.deadline))+' 截止・<b id="left"></b></li><li>'+I('people')+'已有 '+peopleCount(orders)+' 人訂購・'+qn+' 份</li></ul><div class="share-row" style="margin:12px 0"><input id="shareUrl" readonly value="'+esc(shareUrl(gid))+'" aria-label="團購分享連結"><button type="button" class="btn" id="copyLink">'+I('copy')+'複製團購連結</button></div><div id="freeShippingProgress" aria-live="polite"></div>';
+    $('#gCard').innerHTML='<p class="eyebrow">'+(closed?'已截止的團購':'進行中的團購')+'</p><h1>'+esc(group.title)+'</h1><ul class="meta"><li>'+I('user')+'負責人 '+esc(group.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(group.deadline))+' 截止・<b id="left"></b></li><li>'+I('people')+'已有 '+peopleCount(orders)+' 人訂購・'+qn+' 份</li></ul><div class="share-row" style="margin:12px 0"><input id="shareUrl" readonly value="'+esc(shareUrl(gid))+'" aria-label="團購分享連結"><button type="button" class="btn" id="copyLink">'+I('copy')+'複製團購連結</button>'+(canManageGroup()?'<a class="btn primary" href="#/g/'+esc(gid)+'/admin" aria-label="管理此團購">管理</a>':'')+'</div><div id="freeShippingProgress" aria-live="polite"></div>';
     wireShare($('#gCard'),gid,group.title);
     tickText();
     var dis=closed;
