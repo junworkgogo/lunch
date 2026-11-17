@@ -1,6 +1,8 @@
 (function(){
   'use strict';
   var app=document.getElementById('app');if(!app)return;
+  // 2026-11-18 每次刪除都先跳確認視窗（共用 index.html 的 ask，同一個橘色卡片樣式）
+  function confirmDel(o,fn){var A=window.LunchApp;if(A&&typeof A.ask==='function'){A.ask({title:o.title,body:o.body,okText:o.okText||'刪除',cancelText:'先不要',danger:true}).then(function(ok){if(ok)fn();});}else if(window.confirm(o.title))fn();}
   function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
   function button(text,fn){var b=el('button','btn sm',text);b.type='button';if(fn)b.addEventListener('click',fn);return b;}
   function numericDisplay(value){return String(value).replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xfee0);});}
@@ -39,7 +41,7 @@
   function times(){businessHours();app.querySelectorAll('input[type="time"]').forEach(timeSelect);}
   function home(){
     var hero=app.querySelector('.hero');if(!hero||hero.dataset.interfaceHome)return;hero.dataset.interfaceHome='true';
-    var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今天吃什麼？';if(p)p.textContent='挑一團跟著點，登入後就能下單';
+    var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今天吃什麼？';if(p)p.textContent='點進開放中的團就能點餐，想自己揪團就按「開新團」';
     // 拿掉「查看今日團購」（就在本頁，使用者 2026-11-18 指定），只留「開新團」並改成主按鈕。
     if(actions){var create=el('a','btn primary','開新團');create.href='#/new';actions.replaceChildren(create);}
   }
@@ -116,13 +118,13 @@
       if(validation&&validation.errors.length)panel.append(el('p','editor-error','原始菜單有 '+validation.errors.length+' 處格式待修正，請切換進階原始格式查看下方提示。未識別的原文仍會保留。'));
       model.cats.forEach(function(cat){
         var section=el('section','editor-cat'),head=el('div','editor-cat-head');head.append(input(cat.name,'分類名稱',function(v){if(/[{}｛｝\r\n]/.test(v))return;if(cat.line<0)model.lines.unshift('{'+v+'}');else model.lines[cat.line]='{'+v+'}';commit(model.lines.join('\n'));}));
-        head.append(button('刪除分類',function(){var next=model.cats[model.cats.indexOf(cat)+1],start=cat.line<0?0:cat.line;model.lines.splice(start,(next?next.line:model.lines.length)-start);commit(model.lines.join('\n'));}));section.append(head);
+        head.append(button('刪除分類',function(){confirmDel({title:'刪除分類「'+(cat.name||'未命名')+'」？',body:'這個分類和裡面 '+cat.items.length+' 道餐點會一起移除；按「儲存店家」才會正式存檔。'},function(){var next=model.cats[model.cats.indexOf(cat)+1],start=cat.line<0?0:cat.line;model.lines.splice(start,(next?next.line:model.lines.length)-start);commit(model.lines.join('\n'));});}));section.append(head);
         if(cat.options.length)section.append(el('p','editor-cat-options','共用選項（保留）\n'+cat.options.join('\n')));
         cat.items.forEach(function(it){var row=el('div','editor-item');row.append(input(it.name,'餐點名稱',function(v){if(/[,，{}\r\n]/.test(v))return;updateItem(model,it,'name',v);}));
           if(it.normal)row.append(input(it.price,'價格',function(v){updateItem(model,it,'price',v);},'number'));else{
             var variants=el('div','editor-variants');it.parts.slice(1).forEach(function(part,vi){var match=/^(.*?)\s+[$＄]?([0-9０-９]+)元?$/.exec(part.trim());if(!match){variants.append(el('p','editor-note',part));return;}variants.append(input(match[2],match[1]+'價格',function(v){var parts=it.parts.slice();parts[vi+1]=match[1]+' '+v;model.lines[it.line]=parts.join(', ')+(it.sold?', 停售':'');commit(model.lines.join('\n'));},'number'));});row.append(variants);
           }
-          var status=el('label','editor-status'),check=el('input');check.type='checkbox';check.checked=it.sold;status.append(check,document.createTextNode(it.sold?'已售完':'供應中'));check.addEventListener('change',function(){updateItem(model,it,'sold',check.checked);});row.append(status,button('刪除',function(){var end=it.line+1;while(end<model.lines.length&&(!model.lines[end].trim()||/^(?:[ \t　]{2,}|\t|[ \t　]*-[ \t　]+)/.test(model.lines[end])))end++;model.lines.splice(it.line,end-it.line);commit(model.lines.join('\n'));}));
+          var status=el('label','editor-status'),check=el('input');check.type='checkbox';check.checked=it.sold;status.append(check,document.createTextNode(it.sold?'已售完':'供應中'));check.addEventListener('change',function(){updateItem(model,it,'sold',check.checked);});row.append(status,button('刪除',function(){confirmDel({title:'刪除「'+(it.name||'這道餐點')+'」？',body:'這道餐點會從菜單移除；按「儲存店家」才會正式存檔。'},function(){var end=it.line+1;while(end<model.lines.length&&(!model.lines[end].trim()||/^(?:[ \t　]{2,}|\t|[ \t　]*-[ \t　]+)/.test(model.lines[end])))end++;model.lines.splice(it.line,end-it.line);commit(model.lines.join('\n'));});}));
           if(it.options.length)row.append(el('p','editor-options','規格選項（保留）\n'+it.options.join('\n')));section.append(row);
         });
         section.append(button('＋ 新增餐點',function(){var next=model.cats[model.cats.indexOf(cat)+1],at=next?next.line:model.lines.length;model.lines.splice(at,0,'新餐點, 0');commit(model.lines.join('\n'));}));panel.append(section);

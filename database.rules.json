@@ -20,7 +20,7 @@
           ".validate": "newData.isString() && newData.val().length <= 40"
         },
         "avatar": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5 && newData.val() % 1 === 0"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6 && newData.val() % 1 === 0"
         },
         "updatedAt": {
           ".validate": "newData.isNumber() && newData.val() <= now + 120000"
@@ -132,6 +132,44 @@
         },
         "department": {
           ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "memberAvatars": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && newData.exists() && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')))",
+        ".validate": "newData.hasChildren(['avatar']) && root.child('members').child($uid).exists() && newData.child('avatar').val() === root.child('members').child($uid).child('avatar').val() && (newData.child('avatarImage').exists() ? newData.child('avatarImage').val() === root.child('members').child($uid).child('avatarImage').val() : (!root.child('members').child($uid).child('avatarImage').exists() || root.child('members').child($uid).child('avatarImage').val() === ''))",
+        "avatar": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6 && newData.val() % 1 === 0"
+        },
+        "avatarImage": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40000 && newData.val().matches(/^data:image\\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/)"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "payInfo": {
+      "$uid": {
+        ".read": "auth != null && root.child('members').child(auth.uid).exists()",
+        ".write": "auth != null && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['updatedAt'])",
+        "bank": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
+        },
+        "account": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30 && newData.val().matches(/^[0-9][0-9 -]*$/)"
+        },
+        "linePayQr": {
+          ".validate": "newData.isString() && newData.val().length <= 300000 && (newData.val().beginsWith('data:image/png;base64,') || newData.val().beginsWith('data:image/jpeg;base64,'))"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
         },
         "$other": {
           ".validate": false

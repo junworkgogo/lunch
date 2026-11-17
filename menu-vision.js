@@ -1,6 +1,8 @@
 /* JUN胖達 菜單相片辨識：AI 優先，OCR 備援；永不直接寫入 Firebase */
 (function(){
 'use strict';
+// 2026-11-18 每次刪除都先跳確認視窗（共用 index.html 的 ask）
+function confirmDel(o,fn){var A=window.LunchApp;if(A&&typeof A.ask==='function'){A.ask({title:o.title,body:o.body,okText:o.okText||'移除',cancelText:'先不要',danger:true}).then(function(ok){if(ok)fn();});}else if(window.confirm(o.title))fn();}
 var MAX_FILES=5, MAX_FILE_BYTES=12*1024*1024, MAX_EDGE=1800;
 var OCR_SRC='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 var API='https://lunch-relay.vercel.app/api/vision';
@@ -147,9 +149,15 @@ function mount(form){
   });
   photos.addEventListener('click',function(e){
     var b=e.target.closest('[data-mv-del]');if(!b||working)return;
-    items.splice(Number(b.getAttribute('data-mv-del')),1);recognized=null;result.hidden=true;update();status(box,items.length?'剩下 '+items.length+' 張照片':'請上傳菜單照片');
+    var it=items[Number(b.getAttribute('data-mv-del'))];if(!it)return;
+    confirmDel({title:'移除這張菜單照片？',body:'只會從這次辨識拿掉，不影響原本菜單。'},function(){
+      var at=items.indexOf(it);if(working||at<0)return;
+      items.splice(at,1);recognized=null;result.hidden=true;update();status(box,items.length?'剩下 '+items.length+' 張照片':'請上傳菜單照片');
+    });
   });
-  clear.addEventListener('click',function(){if(working)return;items=[];recognized=null;result.hidden=true;update();status(box,'已清空照片，不影響原本菜單');});
+  clear.addEventListener('click',function(){if(working||!items.length)return;
+    confirmDel({title:'清空全部 '+items.length+' 張照片？',body:'只會從這次辨識拿掉，不影響原本菜單。',okText:'清空'},function(){if(working)return;items=[];recognized=null;result.hidden=true;update();status(box,'已清空照片，不影響原本菜單');});
+  });
   run.addEventListener('click',async function(){
     if(working||!items.length)return;
     working=true;update();result.hidden=true;status(box,'正在使用 AI 辨識 '+items.length+' 張菜單…');

@@ -4,10 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JUN胖達</title>
-<link rel="icon" type="image/png" sizes="64x64" href="assets/jun-blue-smile-64.png?v=20261117smile">
-<link rel="icon" type="image/svg+xml" href="jun-blue-smile.svg?v=20261117smile">
-<link rel="apple-touch-icon" href="assets/jun-blue-smile-180.png?v=20261117smile">
-<link rel="preload" as="image" href="assets/jun-mascot-360.jpg">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/jun-orange-smile-64.png?v=20261118orange">
+<link rel="icon" type="image/svg+xml" href="jun-orange-smile.svg?v=20261118orange">
+<link rel="apple-touch-icon" href="assets/jun-orange-smile-180.png?v=20261118orange">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
@@ -485,7 +484,7 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261118orange">
+<link rel="stylesheet" href="glass.css?v=20261118dept">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
@@ -510,6 +509,7 @@ var P={
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/>',
  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
  people:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/><path d="M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.8c2.2.6 3.5 2.3 3.5 5.2"/>',
+ list:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
  pin:'<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
  tag:'<path d="M4 4h7l9 9-7 7-9-9z"/><circle cx="8.5" cy="8.5" r="1.2"/>',
@@ -567,7 +567,8 @@ function toast(msg,bad){toastEl.textContent=window.LunchTraditional?window.Lunch
 function ask(o){
   return new Promise(function(res){
     var ov=document.createElement('div');ov.className='modal-ov';
-    ov.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mdT"><h2 id="mdT">'+esc(o.title)+'</h2><p>'+esc(o.body||'')+'</p>'+(o.input?'<input id="mdIn" type="'+(o.input==='password'?'password':'text')+'" inputmode="'+(o.numeric?'numeric':'text')+'" autocomplete="off" aria-label="'+esc(o.title)+'">':'')+'<p class="err" id="mdErr" role="alert" hidden></p><div class="modal-actions"><button type="button" class="btn" data-r="0">'+esc(o.cancelText||'取消')+'</button><button type="button" class="btn '+(o.danger?'dangerfill':'primary')+'" data-r="1">'+esc(o.okText||'確定')+'</button></div></div>';
+    // 2026-11-18 所有確認視窗統一成橘色毛玻璃卡片；刪除類（danger）上方多一個垃圾桶圖示
+    ov.innerHTML='<div class="modal'+(o.danger?' is-danger':'')+'" role="dialog" aria-modal="true" aria-labelledby="mdT">'+(o.danger?'<div class="modal-ic" aria-hidden="true">'+I('trash',22)+'</div>':'')+'<h2 id="mdT">'+esc(o.title)+'</h2>'+(o.body?'<p>'+esc(o.body)+'</p>':'')+(o.input?'<input id="mdIn" type="'+(o.input==='password'?'password':'text')+'" inputmode="'+(o.numeric?'numeric':'text')+'" autocomplete="off" aria-label="'+esc(o.title)+'">':'')+'<p class="err" id="mdErr" role="alert" hidden></p><div class="modal-actions"><button type="button" class="btn" data-r="0">'+esc(o.cancelText||'取消')+'</button><button type="button" class="btn '+(o.danger?'dangerfill':'primary')+'" data-r="1">'+esc(o.okText||'確定')+'</button></div></div>';
     var prev=document.activeElement;
     document.body.appendChild(ov);
     function done(r){document.removeEventListener('keydown',key);ov.parentNode.removeChild(ov);if(prev&&prev.focus)prev.focus();res(r);}
@@ -781,7 +782,7 @@ function parseFreeShippingThreshold(value){
   var n=Number(text);return Number.isSafeInteger(n)&&n<=1000000?n:NaN;
 }
 function freeShippingField(id,value){
-  return '<div class="fld"><label for="'+id+'">滿＿＿元免運（選填）</label><input id="'+id+'" type="text" inputmode="numeric" maxlength="7" value="'+esc(value||'')+'" placeholder="例如 1000" aria-describedby="'+id+'Hint"><p class="hint" id="'+id+'Hint">填 1–1,000,000 的整數；留白或 0 不設定。系統只統計價差，運費由團主核對設定。</p></div>';
+  return '<div class="fld fld-ship"><label for="'+id+'"><span>滿</span><input id="'+id+'" type="text" inputmode="numeric" maxlength="7" value="'+esc(value||'')+'" aria-describedby="'+id+'Hint"><span>元免運</span><span class="fld-opt">（選填）</span></label><p class="hint" id="'+id+'Hint">填 1–1,000,000 的整數；留白或 0 不設定。系統只統計價差，運費由團主核對設定。</p></div>';
 }
 function freeShippingStats(g,os,cartTotal,editingId){
   var threshold=parseFreeShippingThreshold(g&&g.freeShippingThreshold);if(!threshold||!Number.isFinite(threshold))return null;
@@ -838,6 +839,18 @@ function avatar(name){
   for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
   return '<span class="av" style="background:'+AVC[h%AVC.length]+'" aria-hidden="true">'+esc(ch.toUpperCase())+'</span>';
 }
+// 2026-11-18 會員頭貼共用（收錢表格、首頁團購卡）：先讀 memberAvatars/<uid>（登入者可讀），管理員或本人再退回 members/<uid>，都沒有就用名字第一個字。
+var MAV={};
+function memberAvHtml(id,name){var v=id&&MAV[id],LM=window.LunchMembers;if(v&&typeof v==='object'&&LM&&LM.avatarHtml)return LM.avatarHtml(v,'mav');return avatar(name);}
+function memberAvSlot(id,name,cls){if(id)loadMemberAv(id);return '<span class="'+(cls||'mav-slot')+'" data-av-uid="'+esc(id||'')+'" data-av-name="'+esc(name||'')+'">'+memberAvHtml(id,name)+'</span>';}
+function loadMemberAv(id){
+  if(!id||MAV[id]!==undefined)return;MAV[id]=0;
+  DB.get('memberAvatars/'+id).catch(function(){return null;}).then(function(v){if(v)return v;return adminUser()||id===userId()?DB.get('members/'+id).catch(function(){return null;}):null;}).then(function(v){
+    MAV[id]=v&&typeof v==='object'&&v.avatar!=null?{avatar:v.avatar,avatarImage:v.avatarImage||''}:null;
+    if(!MAV[id])return;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-av-uid]'),function(s){if(s.getAttribute('data-av-uid')===id)s.innerHTML=memberAvHtml(id,s.getAttribute('data-av-name'));});
+  });
+}
 function shareUrl(gid){return location.href.split('#')[0]+'#/g/'+gid;}
 function mapUrls(addr){var q=encodeURIComponent(addr);return {embed:'https://www.google.com/maps?q='+q+'&output=embed&hl=zh-TW',open:'https://www.google.com/maps/search/?api=1&query='+q};}
 function mapHtml(addr){
@@ -858,13 +871,13 @@ function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+
 function pageHome(root,history){
   root.innerHTML=history
     ? '<div class="page"><section><a class="backlink" href="#/">'+I('back',15)+'回首頁</a><h1 class="ph">歷史團購</h1><p class="muted">已結束的團購，可查看訂單或進入管理。</p></section><section aria-label="已結束的團購"><div class="grid" id="end"></div></section></div>'
-    : '<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>挑一團跟著點，登入後就能下單</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><h2 class="sh">進行中的團</h2><div class="grid" id="act"></div></section></div>';
+    : '<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><h2 class="sh">進行中的團</h2><div class="grid" id="act"></div></section></div>';
   var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false;
   function stats(gid){var l=liveOrders(orders[gid]);return {people:peopleCount(orders[gid]),qty:l.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0)};}
   function canRemove(g){return !!(g&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||g.ownerUserId&&g.ownerUserId===userId()));}
   function card(id,g,ended){
     var s=stats(id),closed=groupClosed(g);
-    return '<article class="card gcard'+(ended?' ended':'')+' group-card-link"><h3><a class="group-card-title" href="#/g/'+esc(id)+'">'+esc(g.title)+'</a></h3><ul class="meta"><li>'+I('store')+esc((g.shop||{}).name)+'</li><li>'+I('user')+'負責人 '+esc(g.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(g.deadline))+' 截止・<b>'+(closed?'已截止':esc(fmtLeft(g.deadline-now())))+'</b></li><li>'+I('people')+'已訂 '+s.people+' 人・'+s.qty+' 份</li></ul><div class="actions"><a class="btn '+(ended?'':'primary')+'" href="#/g/'+esc(id)+'">'+(ended?'查看':(mayJoinGroup(g)?'我要點餐':'查看團購'))+'</a><a class="btn" href="#/g/'+esc(id)+'/admin">管理</a>'+(ended&&canRemove(g)?'<button type="button" class="group-delete" data-delete-group="'+esc(id)+'" title="刪除團購" aria-label="刪除團購：'+esc(g.title)+'">'+I('trash',18)+'</button>':'')+'</div></article>';
+    return '<article class="card gcard'+(ended?' ended':'')+' group-card-link"><span class="gcard-owner" role="img" aria-label="負責人 '+esc(g.owner)+'" title="負責人 '+esc(g.owner)+'">'+memberAvSlot(g.ownerUserId,g.owner,'gcard-av')+'</span><h3><a class="group-card-title" href="#/g/'+esc(id)+'">'+esc(g.title)+'</a></h3><ul class="meta"><li>'+I('store')+esc((g.shop||{}).name)+'</li><li>'+I('clock')+esc(fmtDeadline(g.deadline))+' 截止・<b>'+(closed?'已截止':esc(fmtLeft(g.deadline-now())))+'</b></li><li>'+I('people')+'已訂 '+s.people+' 人・'+s.qty+' 份</li></ul><div class="actions"><a class="btn '+(ended?'':'primary')+'" href="#/g/'+esc(id)+'">'+(ended?'查看':(mayJoinGroup(g)?'我要點餐':'查看團購'))+'</a><a class="btn" href="#/g/'+esc(id)+'/admin">管理</a>'+(ended&&canRemove(g)?'<button type="button" class="group-delete" data-delete-group="'+esc(id)+'" title="刪除團購" aria-label="刪除團購：'+esc(g.title)+'">'+I('trash',18)+'</button>':'')+'</div></article>';
   }
   function draw(){
     var ids=Object.keys(groups).filter(function(k){return groups[k]&&!groups[k].deleted;});
@@ -1495,11 +1508,18 @@ function pageGroup(root,gid){
   function canManageGroup(){
     return !!(group&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||(group.ownerUserId&&userId()===group.ownerUserId)));
   }
+  // 2026-11-18 付款按鈕：自己不是負責人、訂單沒取消、金額大於 0 才出現。
+  function canPay(o){return !!(o&&!o.cancelled&&group&&group.ownerUserId!==userId()&&orderTotal(o)>0&&window.LunchPay);}
+  function openPay(oid){
+    var o=orders[oid];if(!canPay(o))return;
+    var bill=settlement(orders,group).orders[oid];
+    window.LunchPay.open({ownerUid:group.ownerUserId||'',ownerName:group.owner,title:group.title,due:bill?bill.due:orderTotal(o),closed:groupClosed(group),paidPath:'paid/'+gid+'/'+oid,lineCount:arr(o.items).length,avatarHtml:memberAvSlot(group.ownerUserId,group.owner,'pay-dlg-av')});
+  }
   function refresh(){
     var closed=groupClosed(group);lastClosed=closed;
     $('#gCard').className='group'+(closed?' ended':'');
     var live=liveOrders(orders),qn=live.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0);
-    $('#gCard').innerHTML='<p class="eyebrow">'+(closed?'已截止的團購':'進行中的團購')+'</p><h1>'+esc(group.title)+'</h1><ul class="meta"><li>'+I('user')+'負責人 '+esc(group.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(group.deadline))+' 截止・<b id="left"></b></li><li>'+I('people')+'已有 '+peopleCount(orders)+' 人訂購・'+qn+' 份<button type="button" class="all-open" data-all-open aria-haspopup="dialog" aria-controls="all">看大家點了什麼</button></li></ul><div class="share-row" style="margin:12px 0"><input id="shareUrl" readonly value="'+esc(shareUrl(gid))+'" aria-label="團購分享連結"><button type="button" class="btn" id="copyLink">'+I('copy')+'複製團購連結</button>'+(canManageGroup()?'<a class="btn primary" href="#/g/'+esc(gid)+'/admin" aria-label="管理此團購">管理</a>':'')+'</div><div id="freeShippingProgress" aria-live="polite"></div>';
+    $('#gCard').innerHTML='<p class="eyebrow">'+(closed?'已截止的團購':'進行中的團購')+'</p><h1>'+esc(group.title)+'</h1><ul class="meta"><li>'+I('user')+'負責人 '+esc(group.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(group.deadline))+' 截止・<b id="left"></b></li><li>'+I('people')+'已有 '+peopleCount(orders)+' 人訂購・'+qn+' 份<button type="button" class="all-open" data-all-open aria-haspopup="dialog" aria-controls="all" title="看大家點了什麼">'+I('list',14)+'清單</button></li></ul><div class="share-row" style="margin:12px 0"><input id="shareUrl" readonly value="'+esc(shareUrl(gid))+'" aria-label="團購分享連結"><button type="button" class="btn" id="copyLink">'+I('copy')+'複製團購連結</button>'+(canManageGroup()?'<a class="btn primary" href="#/g/'+esc(gid)+'/admin" aria-label="管理此團購">管理</a>':'')+'</div><div id="freeShippingProgress" aria-live="polite"></div>';
     wireShare($('#gCard'),gid,group.title);
     tickText();
     var dis=closed||!mayJoinGroup(group);
@@ -1512,7 +1532,7 @@ function pageGroup(root,gid){
     var mineIds=myOrders(gid).slice();if(userId())Object.keys(orders).forEach(function(k){if(orders[k].userId===userId()&&mineIds.indexOf(k)<0)mineIds.push(k);});
     var mine=mineIds.map(function(k){var o=orders[k];if(o){o.id=k;}return o;}).filter(function(o){return o&&mayEditOrder(gid,o.id,o);});
     $('#mine').hidden=!mine.length;
-    $('#mineL').innerHTML=mine.map(function(o){return '<div class="ob"><div class="order-sent-badge"><span class="order-sent-check" aria-hidden="true">'+I('check',16)+'</span><span>已成功送出</span><small>尚不代表已付款</small></div><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'<div class="actions"><button type="button" class="btn sm" data-edit="'+esc(o.id)+'"'+(dis?' disabled':'')+'>修改</button><button type="button" class="btn sm danger" data-cancel="'+esc(o.id)+'"'+(closed?' disabled':'')+'>取消</button></div></div>';}).join('');
+    $('#mineL').innerHTML=mine.map(function(o){return '<div class="ob"><div class="order-sent-badge"><span class="order-sent-check" aria-hidden="true">'+I('check',16)+'</span><span>已成功送出</span><small>尚不代表已付款</small></div><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'<div class="actions">'+(canPay(o)?'<button type="button" class="btn sm primary pay-open" data-pay="'+esc(o.id)+'">付款</button>':'')+'<button type="button" class="btn sm" data-edit="'+esc(o.id)+'"'+(dis?' disabled':'')+'>修改</button><button type="button" class="btn sm danger" data-cancel="'+esc(o.id)+'"'+(closed?' disabled':'')+'>取消</button></div></div>';}).join('');
     $('#allN').textContent=peopleCount(orders);
     $('#allL').innerHTML=live.length?live.map(function(o){return '<div class="ob"><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'</div>';}).join(''):'<p class="muted">還沒有人點餐</p>';
   }
@@ -1595,7 +1615,14 @@ function pageGroup(root,gid){
     linesEl.addEventListener('click',function(e){
       var b=e.target.closest('[data-cm]');if(!b||groupClosed(group))return;
       var i=+b.getAttribute('data-ci'),l=cart[i],act=b.getAttribute('data-cm');if(!l)return;
-      if(act==='-')l.qty=Math.max(1,l.qty-1);else if(act==='+')l.qty=Math.min(99,l.qty+1);else cart.splice(i,1);
+      if(act==='-')l.qty=Math.max(1,l.qty-1);else if(act==='+')l.qty=Math.min(99,l.qty+1);
+      else{
+        // 2026-11-18 使用者要求：每次刪除都先確認
+        ask({title:'從購物車移除？',body:'「'+lineLabel(l)+'」×'+l.qty+' 會從購物車拿掉。',okText:'移除',cancelText:'先不要',danger:true}).then(function(ok){
+          if(!ok||!mounted())return;var at=cart.indexOf(l);if(at>=0){cart.splice(at,1);update();}
+        });
+        return;
+      }
       update();
     });
     bar.addEventListener('click',function(){var o=cartEl.classList.toggle('open');bar.setAttribute('aria-expanded',String(o));});
@@ -1645,7 +1672,9 @@ function pageGroup(root,gid){
       }).catch(fail).finally(function(){submitting=false;if(mounted())refresh();});
     });
     tabsEl.addEventListener('click',function(e){var b=e.target.closest('.tab');if(!b)return;$('#cat-'+b.getAttribute('data-t')).scrollIntoView({behavior:'smooth',block:'start'});});
+    // 2026-11-18 付款：截止前後都能按，所以要放在「已截止就不處理」之前。
     $('#mineL').addEventListener('click',function(e){
+      var pb=e.target.closest('[data-pay]');if(pb){openPay(pb.getAttribute('data-pay'));return;}
       if(groupClosed(group))return;
       var ed=e.target.closest('[data-edit]'),ca=e.target.closest('[data-cancel]');
       if(ed){var o=orders[ed.getAttribute('data-edit')];if(o&&mayEditOrder(gid,ed.getAttribute('data-edit'),o)){o.id=ed.getAttribute('data-edit');loadOrder(o);}}
@@ -1733,12 +1762,14 @@ function pageAdmin(root,gid,q){
     live.forEach(function(o){lines(o).forEach(function(it,i){var v=calc.orders[o.id]?calc.orders[o.id].lineDues[i]:0;if(isPaid(o.id,i))got2+=v;});});
     var h='<div class="roster-overview">'+window.LunchParticipants.summaryHtml(group,orders)+'<button type="button" class="text-button" data-go-people>查看與設定參加名單 →</button></div>'+freeShippingHtml(group,orders,true)+adjustmentHtml()+'<div class="nums"><div class="num"><span>應收</span><b>'+money(total)+'</b></div><div class="num ok"><span>已收</span><b>'+money(got2)+'</b></div><div class="num bad"><span>未收</span><b>'+money(total-got2)+'</b></div></div>';
     if(!live.length)return h+emptyBox('還沒有人點餐。');
-    return h+live.map(function(o){
+    // 2026-11-18 收錢改成卡片：一人一張（頭貼＋名字＋應付｜品項｜收款＋刪除），細線；有運費或折扣才顯示算式。品項不能逐項打勾（使用者要求），只能整張切換；未收款淺灰底、已收款漸層底。
+    return h+'<div class="paycards">'+live.map(function(o){
       var receipt=calc.orders[o.id]||{base:0,shipping:0,discount:0,due:0,lineDues:[]};var ls=lines(o),np=ls.filter(function(it,i){return isPaid(o.id,i);}).length;
       var st=np===0?'none':(np===ls.length?'ok':'part'),stT=st==='ok'?'已收款':(st==='part'?'部分':'未收款');
-      return '<section class="person"><div class="p-head">'+avatar(o.name)+'<div class="pinfo"><span class="pn">'+esc(o.name)+'</span><span class="p-sum">'+money(receipt.due)+'</span></div><div class="pright"><button type="button" class="pill '+st+'" data-all="'+esc(o.id)+'" aria-label="'+esc(o.name)+'：'+stT+'，點一下整個人切換已收／未收">'+(st==='ok'?I('check',14):(st==='none'?I('x',14):''))+stT+'</button><button type="button" class="trash" data-del="'+esc(o.id)+'" aria-label="刪除 '+esc(o.name)+' 的訂單" title="刪除這筆訂單">'+I('trash',20)+'</button></div></div><p class="muted">餐點原價 '+money(receipt.base)+' · 運費 '+money(receipt.shipping)+' · 折扣 −'+money(receipt.discount)+' · 應付 '+money(receipt.due)+'</p><div class="cells">'+ls.map(function(it,i){var pd=isPaid(o.id,i);
-        return '<button type="button" class="cell '+(pd?'paid':'unpaid')+'" data-o="'+esc(o.id)+'" data-i="'+i+'" aria-pressed="'+pd+'"><span class="lb">'+(pd?I('check',13)+'已付':I('x',13)+'未付')+'</span><span class="t">'+esc(lineLabel(it))+' ×'+it.qty+' '+money(receipt.lineDues[i]||0)+'</span></button>';}).join('')+'</div></section>';
-    }).join('');
+      var extra=receipt.shipping||receipt.discount?'<p class="pay-calc">原價 '+money(receipt.base)+(receipt.shipping?'＋運費 '+money(receipt.shipping):'')+(receipt.discount?'－折扣 '+money(receipt.discount):'')+'</p>':'';
+      return '<article class="pay-card is-'+st+'"><div class="pc-head">'+memberAvSlot(o.userId,o.name,'pay-av')+'<span class="pc-name">'+esc(o.name)+'</span><span class="pc-due">'+money(receipt.due)+'</span></div><div class="pay-items'+(ls.length===1?' is-one':'')+'">'+ls.map(function(it,i){
+        return '<div class="pay-line"><span class="pay-t">'+esc(lineLabel(it))+' <span class="pay-q">×'+it.qty+'</span></span><span class="pay-lm">'+money(receipt.lineDues[i]||0)+'</span></div>';}).join('')+extra+'</div><div class="pc-foot"><button type="button" class="pay-pill is-'+st+'" data-all="'+esc(o.id)+'" aria-label="'+esc(o.name)+'：'+stT+'，點一下整個人切換已收／未收">'+(st==='ok'?I('check',13):'')+stT+'</button><button type="button" class="pay-trash" data-del="'+esc(o.id)+'" aria-label="刪除 '+esc(o.name)+' 的訂單" title="刪除這筆訂單">'+I('trash',16)+'</button></div></article>';
+    }).join('')+'</div>';
   }
   function aggregate(){
     var map={},order=[],live=liveOrders(orders),totalQty=0,totalMoney=0;
@@ -1780,7 +1811,7 @@ function pageAdmin(root,gid,q){
     });
   }
   function setHtml(){
-    return '<div class="card"><form class="form" id="sf" novalidate><p>目前狀態：<span class="stat" id="stat"></span></p><div class="setrow"><button type="button" class="btn" id="toggleClose"></button></div><hr class="sep" style="margin:2px 0"><div class="fld"><label for="stl">團名</label><input id="stl" maxlength="40" value="'+esc(group.title)+'" autocomplete="off"></div><div class="fld"><label for="sow">負責人</label><input id="sow" maxlength="20" value="'+esc(group.owner)+'" autocomplete="off"></div><div class="row2"><div class="fld"><label for="sdd">截止日期</label><input id="sdd" type="date" value="'+dateVal(group.deadline)+'"></div><div class="fld"><label for="sdt">截止時間</label><input id="sdt" type="time" value="'+fmtTime(group.deadline)+'"></div></div>'+freeShippingField('sfs',group.freeShippingThreshold)+'<p class="err" id="sE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存設定</button></div></form></div><div style="height:16px"></div><div class="card"><h2 style="font-size:18px;font-weight:900;margin-bottom:4px">停售品項</h2><p class="muted">打開開關＝停售。點餐頁會馬上變灰、不能再加入；已經放進別人購物車的，送出時會被擋下。</p><div id="solds">'+soldHtml()+'</div></div><div style="height:16px"></div>'+shareBlock(gid)+'<div style="height:16px"></div><div class="card"><h2 style="font-size:18px;font-weight:900;margin-bottom:4px">刪除這個團</h2><p class="muted">刪除後首頁和連結都看不到這個團（資料不會真的消失）。</p><div class="actions"><button type="button" class="btn danger" id="delG">刪除這個團</button></div></div>';
+    return '<div class="card"><form class="form" id="sf" novalidate><p>目前狀態：<span class="stat" id="stat"></span></p><div class="setrow"><button type="button" class="btn" id="toggleClose"></button></div><hr class="sep" style="margin:2px 0"><div class="fld"><label for="stl">團名</label><input id="stl" maxlength="40" value="'+esc(group.title)+'" autocomplete="off"></div><div class="fld"><label for="sow">負責人</label><input id="sow" maxlength="20" value="'+esc(group.owner)+'" autocomplete="off"></div><div class="row2"><div class="fld"><label for="sdd">截止日期</label><input id="sdd" type="date" value="'+dateVal(group.deadline)+'"></div><div class="fld"><label for="sdt">截止時間</label><input id="sdt" type="time" value="'+fmtTime(group.deadline)+'"></div></div>'+freeShippingField('sfs',group.freeShippingThreshold)+'<p class="err" id="sE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存設定</button></div></form></div><div style="height:16px"></div><div class="card"><h2 style="font-size:18px;font-weight:900;margin-bottom:4px">停售品項</h2><p class="muted">打開開關＝停售。點餐頁會馬上變灰、不能再加入；已經放進別人購物車的，送出時會被擋下。</p><div id="solds">'+soldHtml()+'</div></div><div style="height:16px"></div>'+shareBlock(gid)+'<div style="height:16px"></div><div class="card"><h2 style="font-size:18px;font-weight:900;margin-bottom:4px">刪除這個團</h2><p class="muted">刪除後首頁和連結都看不到這個團。</p><div class="actions"><button type="button" class="btn danger" id="delG">刪除這個團</button></div></div>';
   }
   function updStat(){
     var st=$('#stat');if(!st)return;st.textContent=statusText();
@@ -1789,8 +1820,6 @@ function pageAdmin(root,gid,q){
   }
   function bodyClick(e){
     if(e.target.closest('[data-go-people]')){tab='people';draw();return;}
-    var cell=e.target.closest('.cell');
-    if(cell){var oid=cell.getAttribute('data-o'),i=cell.getAttribute('data-i');DB.set('paid/'+gid+'/'+oid+'/'+i,!isPaid(oid,i)).catch(fail);return;}
     var all=e.target.closest('[data-all]');
     if(all){var id=all.getAttribute('data-all'),o=orders[id],ls=arr(o.items),allPaid=ls.every(function(it,i){return isPaid(id,i);}),obj={};ls.forEach(function(it,i){obj[i]=!allPaid;});DB.update('paid/'+gid+'/'+id,obj).catch(fail);return;}
     var del=e.target.closest('[data-del]');
@@ -1881,17 +1910,17 @@ function route(){
     else app.innerHTML='<div class="page">'+emptyBox('找不到這一頁。','<br><a class="btn primary" href="#/">回首頁</a>')+'</div>';
   }catch(e){app.innerHTML='<div class="page">'+emptyBox('頁面暫時無法開啟，請重新整理。','<br><a class="btn primary" href="#/">回首頁</a>')+'</div>';}
 }
-window.LunchApp={firebaseConfig:FIREBASE_CONFIG,initFirebase:FbDB.init,firebaseReady:FbDB.init,setRouteGuard:function(fn){routeGuard=fn;},DB:DB,LS:LS,K:K,parseMenu:parseMenu,menuOf:menuOf,settlement:settlement,orderTotal:orderTotal,lineTotal:lineTotal,lineLabel:lineLabel,liveOrders:liveOrders,peopleCount:peopleCount,groupClosed:groupClosed,now:now,esc:esc,toast:toast,fail:fail,shareUrl:shareUrl,parseHash:parseHash,getUser:function(){return currentUser;},setUser:function(user){currentUser=user||null;window.dispatchEvent(new CustomEvent('lunch:userchange',{detail:currentUser}));route();},registerRoute:function(name,handler){extraRoutes[name]=handler;},route:route};
+window.LunchApp={ask:ask,memberAvSlot:memberAvSlot,firebaseConfig:FIREBASE_CONFIG,initFirebase:FbDB.init,firebaseReady:FbDB.init,setRouteGuard:function(fn){routeGuard=fn;},DB:DB,LS:LS,K:K,parseMenu:parseMenu,menuOf:menuOf,settlement:settlement,orderTotal:orderTotal,lineTotal:lineTotal,lineLabel:lineLabel,liveOrders:liveOrders,peopleCount:peopleCount,groupClosed:groupClosed,now:now,esc:esc,toast:toast,fail:fail,shareUrl:shareUrl,parseHash:parseHash,getUser:function(){return currentUser;},setUser:function(user){currentUser=user||null;window.dispatchEvent(new CustomEvent('lunch:userchange',{detail:currentUser}));route();},registerRoute:function(name,handler){extraRoutes[name]=handler;},route:route};
 window.addEventListener('hashchange',route);
 window.__lunch={parseMenu:parseMenu,menuOf:menuOf,legacyMenuText:legacyMenuText,demo23Text:demo23Text,DEMO_MENU:DEMO_MENU,DEMO_TEA_TEXT:DEMO_TEA_TEXT};
 if(!FIREBASE_CONFIG)ensureSeed();
 if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
-<script src="menu-vision.js?v=20261117a"></script>
-<script src="interface.js?v=20261118hero"></script>
-<script src="mascot.js?v=20261118small"></script>
-<script src="participants.js?v=20261118wait"></script>
-<script src="members.js?v=20261118back"></script>
+<script src="menu-vision.js?v=20261118dept"></script>
+<script src="interface.js?v=20261118dept"></script>
+<script src="participants.js?v=20261118dept"></script>
+<script src="pay.js?v=20261118dept"></script>
+<script src="members.js?v=20261118dept"></script>
 </body>
 </html>

@@ -77,6 +77,17 @@
     var load=u.admin?A.DB.get('members').then(function(m){Object.keys(m||{}).forEach(function(id){if(validProfile(m[id]))profiles[id]=clean(m[id]);});}):Promise.resolve();
     return load.then(function(){return A.DB.get('memberDirectory');}).then(function(existing){var patch={};Object.keys(profiles).forEach(function(id){if(JSON.stringify(existing&&existing[id])!==JSON.stringify(profiles[id]))patch[id]=profiles[id];});return Object.keys(patch).length?A.DB.update('memberDirectory',patch):null;}).catch(function(){/* Profile/Auth remains usable; the picker reports unavailable directory reads. */});
   }
-  window.LunchParticipants={canJoin:canJoin,progress:progress,picker:picker,summaryHtml:summaryHtml,management:management,syncDirectory:syncDirectory};
-  window.addEventListener('lunch:userchange',function(e){syncDirectory(e.detail);});
+  // 2026-11-18：收錢頁要顯示會員自己的頭貼，但 members/ 只有本人與管理員讀得到。
+  // 另開 memberAvatars/<uid>（登入者可讀，內容須與 members/<uid> 的 avatar／avatarImage 相同），本人登入或改頭貼時同步自己那筆，管理員登入時補齊全部。
+  // 規則還沒發布時寫入會被拒，這裡靜默略過，不影響登入與個人資料。
+  var AV_IMG=/^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/;
+  function avatarRecord(p){var a=Number(p&&p.avatar);if(!Number.isInteger(a)||a<0||a>6)return null;var r={avatar:a},img=p&&typeof p.avatarImage==='string'?p.avatarImage:'';if(img&&img.length<=40000&&AV_IMG.test(img))r.avatarImage=img;return r;}
+  function syncAvatars(u){
+    var id=uid(u);if(!id||!validProfile(u))return;
+    var recs={},own=avatarRecord(u);if(own)recs[id]=own;
+    var load=u.admin?A.DB.get('members').then(function(m){Object.keys(m||{}).forEach(function(k){var r=avatarRecord(m[k]);if(r&&validProfile(m[k]))recs[k]=r;});}):Promise.resolve();
+    return load.then(function(){return u.admin?A.DB.get('memberAvatars'):A.DB.get('memberAvatars/'+id).then(function(v){var o={};if(v)o[id]=v;return o;});}).then(function(existing){var patch={};Object.keys(recs).forEach(function(k){if(JSON.stringify(existing&&existing[k])!==JSON.stringify(recs[k]))patch[k]=recs[k];});return Object.keys(patch).length?A.DB.update('memberAvatars',patch):null;}).catch(function(){});
+  }
+  window.LunchParticipants={canJoin:canJoin,progress:progress,picker:picker,summaryHtml:summaryHtml,management:management,syncDirectory:syncDirectory,syncAvatars:syncAvatars};
+  window.addEventListener('lunch:userchange',function(e){syncDirectory(e.detail);syncAvatars(e.detail);});
 })();
