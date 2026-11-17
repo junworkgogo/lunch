@@ -112,3 +112,31 @@ body { font-size: 14px; line-height: 1.65; }
 
 .member-editor select { width: 100%; min-height: 44px; padding: 12px; border: 1px solid #dfe2e9; border-radius: 8px; background: #fafbfc; color: #191b21; font: inherit; }
 .member-editor select:focus { outline: 2px solid var(--accent, #2600ff); outline-offset: 2px; }
+
+/* Independent hour/minute choices, including every minute. */
+.time-select { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 6px; min-width: 0; width: 100%; }
+.time-select select { min-width: 0; width: 100%; min-height: 44px; padding: 8px; font: inherit; color: var(--text); background: #fff; border: 1px solid #8b909a; border-radius: 8px; }
+.time-select select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.time-colon { color: var(--muted); }
+.hours-picker { display: grid; gap: 10px; min-width: 0; margin-top: 10px; }
+.hours-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.hours-endpoint { min-width: 0; }
+.hours-picker > .btn { justify-self: start; }
+.hours-picker .editor-note { margin: 0; }
+input[data-time-select][hidden] { display: none !important; }
+@media (max-width: 480px) { .hours-range { grid-template-columns: minmax(0, 1fr); } .row2 > .fld { min-width: 0; } }
+.group-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; margin-left: auto; padding: 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #85858f; cursor: pointer; }
+.group-delete:hover { background: #ececf0; color: #4b4b55; }
+.group-delete:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; background: #ececf0; }
+.group-delete:disabled { opacity: .4; cursor: wait; }
+
+.free-shipping{margin:14px 0;padding:14px 16px;border:1px solid #d7e5dc;border-radius:12px;background:#f5faf7;color:#214b35}
+.free-shipping p{margin:0 0 7px;line-height:1.6}
+.free-shipping p:first-child{display:flex;justify-content:space-between;gap:6px 16px;flex-wrap:wrap}
+.free-shipping p:first-child span{font-size:13px}
+.free-shipping .free-shipping-status{font-weight:700}
+.free-shipping progress{display:block;width:100%;height:8px;margin:8px 0 10px;accent-color:#328056}
+.free-shipping .hint{font-size:12px;margin-bottom:0;color:#5f7165}
+.free-shipping.reached{border-color:#a5cdb4;background:#eef8f1}
+.free-shipping-estimate{margin:0 0 14px;padding:10px 12px;border-radius:9px;background:#f4f5f7;color:#545c68;font-size:13px;line-height:1.65}
+.free-shipping-estimate[hidden]{display:none}
