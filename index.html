@@ -467,6 +467,11 @@ a{color:#394150}
 .imp-best{background:#394150;color:#fff}
 .imp-list .btn{flex:none}
 .imp-d{white-space:nowrap}
+.group-card-link{position:relative}
+.group-card-title{color:inherit;text-decoration:none}
+.group-card-title::after{content:"";position:absolute;inset:0;border-radius:inherit}
+.group-card-link .actions a,.group-card-link .actions button{position:relative;z-index:1}
+.group-card-title:focus-visible::after{outline:2px solid #2600ff;outline-offset:3px}
 </style>
 <link rel="stylesheet" href="interface.css?v=20261117c">
 <link rel="stylesheet" href="members.css?v=20261117c">
@@ -844,7 +849,7 @@ function pageHome(root){
   function canRemove(g){return !!(g&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||g.ownerUserId&&g.ownerUserId===userId()));}
   function card(id,g,ended){
     var s=stats(id),closed=groupClosed(g);
-    return '<article class="card gcard'+(ended?' ended':'')+'"><h3>'+esc(g.title)+'</h3><ul class="meta"><li>'+I('store')+esc((g.shop||{}).name)+'</li><li>'+I('user')+'負責人 '+esc(g.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(g.deadline))+' 截止・<b>'+(closed?'已截止':esc(fmtLeft(g.deadline-now())))+'</b></li><li>'+I('people')+'已訂 '+s.people+' 人・'+s.qty+' 份</li></ul><div class="actions"><a class="btn '+(ended?'':'primary')+'" href="#/g/'+esc(id)+'">'+(ended?'查看':'我要點餐')+'</a><a class="btn" href="#/g/'+esc(id)+'/admin">管理</a>'+(ended&&canRemove(g)?'<button type="button" class="group-delete" data-delete-group="'+esc(id)+'" title="刪除團購" aria-label="刪除團購：'+esc(g.title)+'">'+I('trash',18)+'</button>':'')+'</div></article>';
+    return '<article class="card gcard'+(ended?' ended':'')+' group-card-link"><h3><a class="group-card-title" href="#/g/'+esc(id)+'">'+esc(g.title)+'</a></h3><ul class="meta"><li>'+I('store')+esc((g.shop||{}).name)+'</li><li>'+I('user')+'負責人 '+esc(g.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(g.deadline))+' 截止・<b>'+(closed?'已截止':esc(fmtLeft(g.deadline-now())))+'</b></li><li>'+I('people')+'已訂 '+s.people+' 人・'+s.qty+' 份</li></ul><div class="actions"><a class="btn '+(ended?'':'primary')+'" href="#/g/'+esc(id)+'">'+(ended?'查看':'我要點餐')+'</a><a class="btn" href="#/g/'+esc(id)+'/admin">管理</a>'+(ended&&canRemove(g)?'<button type="button" class="group-delete" data-delete-group="'+esc(id)+'" title="刪除團購" aria-label="刪除團購：'+esc(g.title)+'">'+I('trash',18)+'</button>':'')+'</div></article>';
   }
   function draw(){
     var ids=Object.keys(groups).filter(function(k){return groups[k]&&!groups[k].deleted;});
