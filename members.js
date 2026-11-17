@@ -4,7 +4,7 @@
   var A, auth = null, verified = null, authReady = false, startupError = '', pendingNext = '', activeRefresh = null;
   var C = window.LUNCH_MEMBERS_CONFIG || window.LUNCH_MEMBER_CONFIG || {};
   var avatars = ['☀', '☁', '✦', '◒', '✿', '▰'];
-  var departments = ['設計部', '企劃部', '影相部', '會計部', 'BOSS們'];
+  var departments = ['設計部', '企劃部', '影相部', '會計部', '工程部', '廣告部', 'BOSS們'];
   function departmentSelect(value) { return '<select name="department" required autocomplete="organization"><option value="" disabled '+(departments.indexOf(value)<0?'selected':'')+'>請選擇部門</option>'+departments.map(function(d){return '<option value="'+d+'" '+(d===value?'selected':'')+'>'+d+'</option>';}).join('')+'</select>'; }
   function esc(v) { return A.esc(String(v == null ? '' : v)); }
   function path(v) { return /^[A-Za-z0-9_-]{1,160}$/.test(String(v)); }
