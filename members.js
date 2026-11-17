@@ -22,7 +22,7 @@
   function shell(title, body, hint) {
     return '<div class="page member-page"><div class="member-kicker">JUN胖達／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1><p>'+esc(hint || '查看餐點、訂單與個人資料。')+'</p></div><a class="member-back" href="#/">回團訂首頁 ↗</a></div>'+body+'</div>';
   }
-  function avatar(u, cls) { var av = Number(u && u.avatar); av = Number.isInteger(av) && av >= 0 && av < avatars.length ? av : 0; return '<span class="member-avatar '+(cls || '')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
+  function avatar(u, cls) { var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
   function notify(root, message) { var el = root.querySelector('[data-member-status]'); if (el) { el.textContent = message; el.hidden = false; } }
   function messageBox() { return '<p class="member-status" data-member-status role="status" aria-live="polite" hidden></p>'; }
   function money(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('zh-TW'); }
@@ -47,8 +47,35 @@
     root.innerHTML=shell('會員登入', '<section class="member-login"><div class="member-art" aria-hidden="true"><span>一起</span><span>吃飯</span><i>午餐有人作伴</i><div class="member-art-orb">✦</div></div><form class="member-login-form member-editor" data-demo><p class="member-kicker">本機示範</p><h2>選擇個人頭像</h2><div class="member-notice"><strong>本機示範會員，不是真實登入</strong><p>資料只存在這個瀏覽器，無法跨裝置同步。正式網站必須完成帳戶身分驗證。</p></div><fieldset class="member-avatars"><legend>選擇頭像</legend>'+avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(!i?'checked':'')+'><span class="member-avatar tone-'+i+'" aria-label="頭像 '+(i+1)+'">'+a+'</span></label>';}).join('')+'</fieldset><label>顯示名字<input name="displayName" required maxlength="30" autocomplete="name" placeholder="怎麼稱呼你？"></label><label>部門'+departmentSelect('')+'</label><button class="btn primary" type="submit">進入本機示範 →</button></form></section>');
     root.querySelector('[data-demo]').onsubmit=function(e){e.preventDefault();var f=e.currentTarget,name=f.displayName.value.trim();if(!name)return;var uid='demo-member';try{uid=localStorage.getItem('lunch_demo_member_uid') || ('demo-'+Date.now().toString(36));localStorage.setItem('lunch_demo_member_uid',uid);}catch(ignore){}verified={uid:uid,id:uid,name:name,department:f.department.value.trim(),avatar:Number(f.avatar.value),demo:true,authenticated:false,admin:true};A.setUser(verified);go(safeNext(query.next || pendingNext));pendingNext='';};
   }
+  function compressAvatar(file) {
+    return new Promise(function(resolve,reject) {
+      if(!file || file.size>12*1024*1024){reject(new Error('請選擇小於 12MB 的照片'));return;}
+      var url=URL.createObjectURL(file),img=new Image();
+      img.onload=function(){
+        URL.revokeObjectURL(url);
+        try{
+          var scale=Math.min(1,192/Math.max(img.naturalWidth,img.naturalHeight));
+          var cv=document.createElement('canvas');
+          cv.width=Math.max(1,Math.round(img.naturalWidth*scale));
+          cv.height=Math.max(1,Math.round(img.naturalHeight*scale));
+          var ctx=cv.getContext('2d');
+          ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+          ctx.drawImage(img,0,0,cv.width,cv.height);
+          var result='';
+          for(var quality=.85;quality>=.3;quality-=.1){
+            var data=cv.toDataURL('image/jpeg',quality);
+            if(data.length<=39000){result=data;break;}
+          }
+          if(!result)throw new Error('照片無法壓縮，請換一張照片');
+          resolve(result);
+        }catch(e){reject(e);}
+      };
+      img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('無法讀取圖片，請改用 JPG 或 PNG'))};
+      img.src=url;
+    });
+  }
   function profileView(root) {
-    var u = verified, firstSetup = !!u.needsProfile;
+    var u = verified, firstSetup = !!u.needsProfile, avatarImage=u.avatarImage||'', imageBusy=false;
     root.innerHTML = shell('我的帳號',
       '<div class="member-dashboard"><section class="member-profile">'+
       '<button type="button" class="member-avatar-edit" data-edit-avatar aria-label="修改自己的頭貼"><span data-profile-avatar>'+avatar(u, 'member-avatar-large')+'</span><span class="member-avatar-edit-caption">更換頭貼 ✎</span></button>'+
@@ -58,8 +85,8 @@
       '<p class="member-fine">'+esc(auth && auth.currentUser && auth.currentUser.email || '')+'</p>'+
       '<div class="actions"><a class="btn primary" href="#/members/orders">我的訂單 ↗</a><button class="btn" type="button" data-logout>登出</button></div></section>'+
       '<form class="member-editor" data-profile id="profileEdit"><h2>修改頭貼與姓名</h2>'+
-      '<p class="member-muted">可以隨時修改自己的頭貼與顯示姓名。儲存後更新會員資料，不會影響既有訂單。</p>'+
-      '<fieldset class="member-avatars" data-avatar-choices><legend>選擇頭貼</legend>'+
+      '<p class="member-muted">可上傳自己的照片，自動壓縮成小圖。每位會員只保留目前的一張，新圖片會覆蓋舊圖片。</p>'+
+      '<label class="member-upload-label" for="avatarUpload">上傳自己的頭貼</label><input id="avatarUpload" type="file" accept="image/*" data-avatar-upload><p class="member-muted" data-avatar-status>選擇照片後先預覽，儲存才會更換</p>'+ '<fieldset class="member-avatars" data-avatar-choices><legend>或選內建頭貼（會移除舊照片）</legend>'+
       avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(Number(u.avatar || 0)===i ? 'checked' : '')+'><span class="member-avatar tone-'+i+'" aria-label="頭貼 '+(i+1)+'">'+a+'</span></label>';}).join('')+
       '</fieldset><label>顯示姓名<input name="displayName" required maxlength="30" autocomplete="name" value="'+esc(u.name)+'"></label>'+
       '<label>部門'+departmentSelect(u.department)+'</label>'+
@@ -68,10 +95,9 @@
     var form = root.querySelector('[data-profile]');
     root.querySelector('[data-logout]').onclick = function() { if(demo()){verified=null;A.setUser(null);go('#/members/login');}else auth.signOut().catch(function(e){notify(root,errorText(e));}); };
     root.querySelector('[data-edit-avatar]').onclick = function() {
-      var target=form.querySelector('[data-avatar-choices]');
+      var target=form.querySelector('[data-avatar-upload]');
       target.scrollIntoView({behavior:'smooth',block:'center'});
-      var selected=target.querySelector('input[name="avatar"]:checked');
-      if(selected)selected.focus();
+      target.click();
     };
     root.querySelector('[data-edit-name]').onclick = function() {
       var input=form.elements.displayName;
@@ -82,15 +108,31 @@
     function previewChanges(){
       var selected=form.querySelector('input[name="avatar"]:checked');
       var index=selected ? Number(selected.value) : 0;
-      root.querySelector('[data-profile-avatar]').innerHTML=avatar({avatar:index},'member-avatar-large');
+      root.querySelector('[data-profile-avatar]').innerHTML=avatar({avatar:index,avatarImage:avatarImage},'member-avatar-large');
       root.querySelector('[data-profile-name]').textContent=form.elements.displayName.value.trim()||'午餐夥伴';
       root.querySelector('[data-unsaved]').hidden=false;
     }
-    form.addEventListener('change',previewChanges);
+    form.querySelector('[data-avatar-upload]').addEventListener('change',function() {
+      var file=this.files&&this.files[0],status=form.querySelector('[data-avatar-status]');
+      if(!file)return;
+      imageBusy=true;
+      var submit=form.querySelector('button[type="submit"]');submit.disabled=true;
+      status.textContent='正在壓縮照片…';
+      compressAvatar(file).then(function(data){
+        if(!form.isConnected)return;
+        avatarImage=data;
+        form.querySelectorAll('input[name="avatar"]').forEach(function(radio){radio.checked=false;});
+        status.textContent='預覽完成（約 '+Math.ceil(data.length*.75/1024)+' KB），請按儲存修改';
+        previewChanges();
+      }).catch(function(e){if(form.isConnected)status.textContent=e.message;}).finally(function(){imageBusy=false;if(form.isConnected)submit.disabled=false;});
+    });
+    form.querySelectorAll('input[name="avatar"]').forEach(function(radio){
+      radio.addEventListener('change',function(){if(radio.checked){avatarImage='';form.querySelector('[data-avatar-upload]').value='';form.querySelector('[data-avatar-status]').textContent='已選內建頭貼，儲存後移除舊照片';previewChanges();}});
+    });
     form.elements.displayName.addEventListener('input',previewChanges);
     form.onsubmit = function(e) {
       e.preventDefault();
-      if(!form.reportValidity())return;
+      if(imageBusy||!form.reportValidity())return;
       var name=form.elements.displayName.value.trim();
       var selected=form.querySelector('input[name="avatar"]:checked');
       if(!name||!selected||departments.indexOf(form.elements.department.value)<0)return;
@@ -185,7 +227,7 @@
     var appReady=typeof A.firebaseReady === 'function' ? A.firebaseReady() : Promise.resolve();
     appReady.then(function(){ if(!window.firebase) return loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'); }).then(function(){if(!firebase.apps.length)firebase.initializeApp(config());return typeof firebase.auth === 'function' ? null : loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');}).then(function(){auth=firebase.auth();return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);}).then(function(){auth.onAuthStateChanged(function(fu){authReady=true;var expected=fu&&fu.uid; verified=null;
       if (!fu) { A.setUser(null); if(location.hash.indexOf('#/members')===0)A.route(); return; }
-      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult()]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};verified={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',avatar:p.avatar || 0,authenticated:true,needsProfile:!p.updatedAt || !p.name || !p.department,admin:claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0};A.setUser(verified);var next=pendingNext;pendingNext='';if(verified.needsProfile){if(location.hash==='#/members')A.route();else go('#/members');}else if(next && location.hash.indexOf('#/members')===0)go(next);else if(location.hash.indexOf('#/members')===0)A.route();}).catch(function(){startupError='無法確認帳號權限，請重新登入。';verified=null;A.setUser(null);});
+      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult()]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};verified={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',avatar:p.avatar || 0,avatarImage:p.avatarImage || '',authenticated:true,needsProfile:!p.updatedAt || !p.name || !p.department,admin:claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0};A.setUser(verified);var next=pendingNext;pendingNext='';if(verified.needsProfile){if(location.hash==='#/members')A.route();else go('#/members');}else if(next && location.hash.indexOf('#/members')===0)go(next);else if(location.hash.indexOf('#/members')===0)A.route();}).catch(function(){startupError='無法確認帳號權限，請重新登入。';verified=null;A.setUser(null);});
     });}).catch(function(){startupError='會員登入載入失敗，請聯絡站長檢查登入設定與授權網域。';if(location.hash.indexOf('#/members')===0)A.route();});
   }
   function updateNav() {
