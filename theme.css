@@ -17,7 +17,7 @@ body { font-size: 14px; line-height: 1.65; }
 .logo { width: 28px; height: 28px; background: transparent; color: var(--text); }
 .nav { align-items: center; min-width: 0; }
 .nav .btn { background: transparent; border-color: transparent; color: #62626b; font-weight: 500; }
-.nav .btn.primary { color: var(--accent); }
+.nav .btn.primary { color: var(--accent); background: transparent; border-color: transparent; }
 .page, .wrap { max-width: 1160px; padding-top: 30px; }
 .hero { min-height: 0; padding: 0 0 26px; border: 0; border-radius: 0; background: transparent; gap: 20px; }
 .hero h1, .page h1.ph { font-size: 25px; font-weight: 650; letter-spacing: -.6px; }
