@@ -18,3 +18,103 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 /* 店家資訊常開後右欄變高：多出來的高度放到最後一列，左欄卡片之間不再撐出空白（2026-11-17）。 */
 @media(min-width:900px){.wrap,.wrap.hp{grid-template-rows:auto auto auto auto 1fr}.wrap>.all{align-self:start}}
 .all .all-head{display:flex;align-items:center;min-height:30px;margin:0 0 10px;font-size:14px;font-weight:600;letter-spacing:0}
+
+/* 2026-11-18：標頭拿掉藍色微笑（瀏覽器分頁小圖示仍是微笑）；標頭與各頁內容同寬 1344，「JUN胖達」與下方標題左緣對齊。 */
+.brandlink .logo{display:none}
+.top-in,.page:has(#sm){max-width:1344px}
+/* 返回連結：放在大標上方的小膠囊（開新團、新增／編輯店家）。 */
+.backlink{display:inline-flex;align-items:center;gap:3px;min-height:32px;margin:0 0 14px;padding:0 14px 0 9px;border:1px solid #ffffffd9;border-radius:999px;background:#ffffffb8;box-shadow:inset 0 1px 0 #fff,0 2px 10px #ac703c12;color:var(--muted);font-size:13px;font-weight:600;line-height:1;text-decoration:none;transition:color .15s,background-color .15s}
+.backlink svg{flex:none;stroke-width:2.4}
+.backlink:hover{color:var(--accent);background:#fff6ec;text-decoration:none}
+/* 2026-11-18 使用者：「不應該出現紅色」。強調色由紅橘 #b63d00（色相 20°）改焦橘 #a65200（色相 30°；白底 5.49:1、卡片底 4.90:1）；
+   免運門檻進度條與「已成功送出」勾勾改用主按鈕同款橘色漸層，勾勾用按鈕文字的深咖啡色。 */
+:root{--accent:#a65200;--soft-ink:#a65200;accent-color:#a65200}
+.order-sent-badge,.member-status,.tone-0,.member-verified,.member-avatar-edit-caption,.member-edit-name{color:#a65200}
+.order-sent-check{background:linear-gradient(135deg,#ffac65,#ff852f);color:#302216;box-shadow:inset 0 1px 0 #ffffffb8}
+.free-shipping progress{-webkit-appearance:none;appearance:none;height:8px;border:0;border-radius:999px;background:#ebe8e2;overflow:hidden}
+.free-shipping progress::-webkit-progress-bar{background:#ebe8e2;border-radius:999px}
+.free-shipping progress::-webkit-progress-value{background:linear-gradient(90deg,#ffb978,#ff852f);border-radius:999px}
+.free-shipping progress::-moz-progress-bar{background:linear-gradient(90deg,#ffb978,#ff852f);border-radius:999px}
+/* 叫餐彙整：只有分類大標粗體，品項細體（使用者 2026-11-18 指定）。 */
+.sumcat .sumline{font-weight:400}
+/* 設定分頁「餐點供應狀態」：平時收起，整列標題可點（展開／收起），右側顯示已售完幾項（2026-11-18）。 */
+.sold-card h2{margin:0!important;font-size:15px!important;font-weight:700!important}
+.sold-toggle{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.sold-count{margin-left:auto;font-size:13px;font-weight:500;color:var(--muted)}
+.sold-count.has{color:var(--accent);font-weight:650}
+.sold-chev{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#f2f0eb;color:var(--muted);transition:transform .2s,background-color .15s,color .15s}
+.sold-toggle:hover .sold-chev{background:#fff0e1;color:var(--accent)}
+.sold-toggle[aria-expanded=true] .sold-chev{transform:rotate(180deg)}
+.sold-body{padding-top:8px}
+@media(prefers-reduced-motion:reduce){.sold-chev{transition:none}}
+/* 會員頁：返回膠囊取代原本標題右側「回團訂首頁 ↗」與工具列「← 個人資料／← 回團購管理」；登入頁維持不顯示。 */
+.member-page .member-backlink{margin-bottom:14px}
+.member-page:has(.member-login) .member-backlink{display:none}
+/* 個人資料卡：「更換頭貼」與「修改姓名」拉開距離，姓名區與頭貼區分成兩組（使用者 2026-11-18：離太近）。 */
+.member-profile h2{margin:24px 0 0}
+.member-profile .member-edit-name{margin-top:4px}
+.member-profile .member-edit-name+p{margin-top:14px}
+/* 2026-11-18 使用者：「整個官網都不能出現紅色」。錯誤提示、取消／刪除按鈕、售完開關、催收標籤原本用紅色 #B91C1C／#7F1D1D／#FEE2E2，
+   一律改成焦咖啡橘（#8f4500 白底 6.96:1、#7a3a00 淺橘底 7.79:1），淺紅底改淺橘底。菜單辨識錯誤字同步改。 */
+:root{--err:#8f4500;--bad-bg:#fff1e3;--bad-ink:#7a3a00}
+.menu-vision .mv-progress.error{color:var(--err)}
+/* 送出成功小撒花（confettiBurst 產生的碎片）。 */
+.order-confetti{position:fixed;width:0;height:0;pointer-events:none;z-index:1}
+.order-confetti i{position:absolute;left:-4px;top:-3px;width:9px;height:5px;border-radius:2px;opacity:0;animation:order-confetti 1.5s cubic-bezier(.2,.75,.35,1) var(--d) forwards}
+.order-confetti i.dot{width:7px;height:7px;border-radius:50%}
+@keyframes order-confetti{0%{opacity:1;transform:translate(0,0) rotate(0) scale(.4)}45%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot)*.5)) scale(1)}100%{opacity:0;transform:translate(calc(var(--dx)*1.15),calc(var(--dy) + 120px)) rotate(var(--rot)) scale(.85)}}
+@media(prefers-reduced-motion:reduce){.order-confetti{display:none}}
+/* 訂餐進度：「未訂餐」可點，下方小視窗列出誰還沒點（2026-11-18）。卡片有毛玻璃（自成圖層），要墊高才不會被下一張卡蓋住。 */
+.participation-summary{position:relative;z-index:3}
+.participation-numbers{position:relative}
+.participation-numbers>.wp-wrap{display:block}
+.wp-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:-6px -10px;padding:6px 10px;border:0;border-radius:12px;background:transparent;color:var(--muted);font:inherit;font-size:11px;text-align:left;cursor:pointer;transition:background-color .15s}
+.wp-btn:hover,.wp-btn[aria-expanded=true]{background:#fff0e1}
+.wp-label{display:inline-flex;align-items:center;gap:3px}
+.wp-btn[aria-expanded=true] .wp-label svg{transform:rotate(180deg)}
+.waiting-pop{position:absolute;top:calc(100% + 12px);right:0;z-index:5;width:min(280px,calc(100vw - 48px));padding:14px 14px 10px;border:1px solid #f0e6dc;border-radius:16px;background:#fffdfa;box-shadow:0 18px 50px #5a3a1f26,0 2px 8px #5a3a1f12;color:var(--text);font-size:13px;text-align:left;animation:wp-in .16s ease-out}
+.waiting-pop[hidden]{display:none}
+.wp-head{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+.wp-head strong{font-size:14px;font-weight:700}
+.wp-head span{font-size:12px;color:var(--muted)}
+.wp-close{margin-left:auto;width:28px;height:28px;border:0;border-radius:50%;background:#f3f1ec;color:var(--muted);font-size:17px;line-height:1;cursor:pointer}
+.wp-close:hover{background:#fff0e1;color:var(--accent)}
+.waiting-pop ul{max-height:240px;overflow:auto;margin:0;padding:0;list-style:none}
+.waiting-pop li{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 2px;border-top:1px solid var(--line)}
+.waiting-pop li:first-child{border-top:0}
+.waiting-pop li b{font-size:13px;font-weight:500;color:var(--text);overflow-wrap:anywhere}
+.waiting-pop li small{flex:none;font-size:12px;color:var(--muted)}
+.wp-empty{margin:4px 2px 6px;color:var(--muted)}
+.waiting-pop .wp-copy{min-height:34px;margin-top:2px}
+@keyframes wp-in{from{opacity:0;transform:translateY(-4px)}}
+@media(prefers-reduced-motion:reduce){.waiting-pop{animation:none}}
+/* 指定會員名單：團主那一列鎖定勾選，標「團主・自動加入」（2026-11-18）。 */
+.audience-person.is-owner{cursor:default}
+.audience-owner{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#fff0e1;color:var(--accent);font-size:11px;font-style:normal;font-weight:600;vertical-align:1px}
+/* 品項方格整張可點（點空白處＝按＋）。 */
+.item:not(.off){cursor:pointer}
+/* 確認視窗的「取消訂單／刪除」實心鈕：原本紅底白字，滑鼠移上去被一般 .btn:hover 的淺灰底蓋掉＝白字看不見（使用者 2026-11-18 回報）。
+   改深咖啡實心、白字（16:1），hover 只微微變亮，不出現紅色。 */
+.btn.dangerfill,.btn.dangerfill:hover:not(:disabled){background:#2b2622;border-color:#2b2622;color:#fff;box-shadow:none}
+.btn.dangerfill:hover:not(:disabled){background:#3d3630;border-color:#3d3630}
+.participation-numbers>.wp-wrap{flex:none}
+.wp-label{white-space:nowrap}
+.participation-numbers .waiting-pop li b{color:var(--text);font-size:13px;font-weight:500;line-height:1.5}
+/* 「大家點了什麼」：頁面上不再佔一塊，改成團購卡上的按鈕開置中視窗（2026-11-18）。 */
+.wrap>.all:not(.is-open){display:none}
+.all-open{display:inline-flex;align-items:center;min-height:30px;margin-left:10px;padding:0 13px;border:1px solid #f1dfcc;border-radius:999px;background:#fff6ec;color:var(--accent);font:inherit;font-size:13px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer;transition:background-color .15s,border-color .15s}
+.all-open:hover{background:#ffeedd;border-color:#ebcfb3}
+.all-top{display:flex;align-items:center;gap:12px;margin:0 0 10px}
+.all-top .all-head{margin:0}
+.all-close{display:none;flex:none;margin-left:auto;width:34px;height:34px;border:0;border-radius:50%;background:#f3f1ec;color:var(--muted);font-size:20px;line-height:1;cursor:pointer}
+.all-close:hover{background:#fff0e1;color:var(--accent)}
+.all.is-open .all-close{display:inline-flex;align-items:center;justify-content:center}
+.wrap>.all.is-open{position:fixed;left:50%;top:50%;z-index:1001;width:min(560px,calc(100vw - 32px));max-height:min(80vh,720px);overflow:auto;margin:0;padding:22px 24px 18px;border:1px solid #ffffffee;border-radius:22px;background:#fffdfa;box-shadow:0 26px 80px #2a1a0d33;transform:translate(-50%,-50%);animation:all-in .18s ease-out}
+.all-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(30,22,16,.42);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:all-fade .18s ease-out}
+body.all-locked{overflow:hidden}
+@keyframes all-in{from{opacity:0;transform:translate(-50%,-47%)}}
+@keyframes all-fade{from{opacity:0}}
+@media(max-width:600px){.wrap>.all.is-open{padding:18px 16px 14px;max-height:84vh}.all-open{margin:6px 0 0 0}}
+@media(prefers-reduced-motion:reduce){.wrap>.all.is-open,.all-backdrop{animation:none}}
+/* 會員頁手機版標題原本置中，返回鍵在左上後對不齊，改靠左（登入頁維持原樣）。 */
+.member-page:not(:has(.member-login)) .member-heading{align-items:flex-start}

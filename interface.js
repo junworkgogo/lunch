@@ -40,7 +40,8 @@
   function home(){
     var hero=app.querySelector('.hero');if(!hero||hero.dataset.interfaceHome)return;hero.dataset.interfaceHome='true';
     var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今日團購';if(p)p.textContent='選擇開放中的團購，登入後即可點餐。';
-    if(actions){var today=button('查看今日團購',function(){var active=app.querySelector('#act');if(active)active.closest('section').scrollIntoView({behavior:'smooth',block:'start'});});today.className='btn primary';var create=el('a','btn','開新團');create.href='#/new';actions.replaceChildren(today,create);}
+    // 拿掉「查看今日團購」（就在本頁，使用者 2026-11-18 指定），只留「開新團」並改成主按鈕。
+    if(actions){var create=el('a','btn primary','開新團');create.href='#/new';actions.replaceChildren(create);}
   }
   function simplify(name,shop){if(!shop)return name;var escaped=shop.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return name.replace(new RegExp('^'+escaped+'\\s*[-－—–:：/／]\\s*'),'')||name;}
   function ordering(){
@@ -65,9 +66,26 @@
       clear.hidden=true;search.append(input,clear);menu.prepend(search);menuList.after(empty);
     }
   }
+  var soldOpen=false;
   function settings(){
     var solds=app.querySelector('#solds'),share=app.querySelector('#body .share');
-    if(solds&&share){var card=solds.closest('.card');if(card&&card.previousElementSibling!==share)card.before(share);var h=card.querySelector('h2'),p=card.querySelector('p');if(h&&h.textContent!=='餐點供應狀態')h.textContent='餐點供應狀態';if(p&&p.textContent!=='切換為已售完後，同事將無法再加入這項餐點。')p.textContent='切換為已售完後，同事將無法再加入這項餐點。';}
+    if(solds&&share){var card=solds.closest('.card');
+      // 分享連結搬到供應狀態前面，連同原本的 16px 間隔一起搬，兩張卡不再黏在一起（2026-11-18）。
+      if(card&&!share.dataset.moved){var gap=share.previousElementSibling;card.before(share);if(gap&&gap.getAttribute('style')==='height:16px')share.after(gap);share.dataset.moved='1';}
+      var p=card&&card.querySelector('p');if(p&&p.textContent!=='切換為已售完後，同事將無法再加入這項餐點。')p.textContent='切換為已售完後，同事將無法再加入這項餐點。';
+      // 供應狀態平時收起，點標題才展開（使用者 2026-11-18 指定）；同一頁內記住開關，重畫時不會自己收回去。
+      var h=card&&card.querySelector('h2');
+      if(h&&!card.dataset.fold){card.dataset.fold='1';card.classList.add('sold-card');
+        var head=el('button','sold-toggle'),body=el('div','sold-body'),chev=el('span','sold-chev');head.type='button';head.setAttribute('aria-controls','soldsBody');body.id='soldsBody';
+        chev.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+        head.append(el('span','sold-title','餐點供應狀態'),el('span','sold-count'),chev);h.replaceChildren(head);
+        if(p)body.append(p);body.append(solds);h.after(body);
+        head.addEventListener('click',function(){soldOpen=!soldOpen;settings();});
+      }
+      var tog=card&&card.querySelector('.sold-toggle'),sb=card&&card.querySelector('.sold-body');
+      if(tog&&sb){var open=String(soldOpen);if(tog.getAttribute('aria-expanded')!==open)tog.setAttribute('aria-expanded',open);if(sb.hidden===soldOpen)sb.hidden=!soldOpen;
+        var n=card.querySelectorAll('[data-sold][aria-checked="true"]').length,c=tog.querySelector('.sold-count'),txt=n?'已售完 '+n+' 項':'全部供應中';if(c.textContent!==txt)c.textContent=txt;c.classList.toggle('has',n>0);}
+    }
     app.querySelectorAll('[data-sold]').forEach(function(b){var lab=b.querySelector('.lab'),text=b.getAttribute('aria-checked')==='true'?'已售完':'供應中';if(lab&&lab.textContent!==text)lab.textContent=text;});
     app.querySelectorAll('.soldtag').forEach(function(t){if(t.textContent!=='已售完')t.textContent='已售完';});
   }
@@ -113,6 +131,14 @@
     }
     ta.addEventListener('input',function(){if(!syncing)draw();});mode(false);
   }
+  // 「大家點了什麼」改由團購卡「已有 N 人訂購」旁的按鈕開視窗（使用者 2026-11-18）。
+  // 區塊本身留在點餐頁裡、照舊即時更新，平時隱藏；開啟時加 is-open 由 CSS 浮成置中視窗，另放一層半透明背景。
+  var allOpener=null;
+  function openAll(btn){var s=document.getElementById('all');if(!s)return;closeAll(true);allOpener=btn;var bd=el('div','all-backdrop');bd.setAttribute('data-all-close','');document.body.appendChild(bd);s.classList.add('is-open');s.setAttribute('role','dialog');s.setAttribute('aria-modal','true');s.setAttribute('aria-labelledby','allTitle');document.body.classList.add('all-locked');var c=s.querySelector('.all-close');if(c)c.focus();}
+  function closeAll(quiet){var s=document.getElementById('all');if(s){s.classList.remove('is-open');s.removeAttribute('role');s.removeAttribute('aria-modal');}document.querySelectorAll('.all-backdrop').forEach(function(b){b.remove();});document.body.classList.remove('all-locked');if(quiet)return;var back=allOpener&&document.contains(allOpener)?allOpener:document.querySelector('[data-all-open]');if(back)back.focus();allOpener=null;}
+  document.addEventListener('click',function(e){var t=e.target;if(!t||!t.closest)return;var o=t.closest('[data-all-open]');if(o){openAll(o);return;}if(t.closest('[data-all-close]'))closeAll();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.querySelector('#all.is-open'))closeAll();});
+  window.addEventListener('hashchange',function(){closeAll(true);});
   var queued=false,observer=new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;enhance();});});
   function enhance(){observer.disconnect();try{home();ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
   window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay,timeSelect:timeSelect};enhance();

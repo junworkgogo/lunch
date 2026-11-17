@@ -21,8 +21,11 @@
     var code = e && e.code;
     return ({'auth/user-cancelled':'你已取消登入，可隨時再試。','auth/cancelled-popup-request':'登入已取消，可隨時再試。','auth/popup-closed-by-user':'登入視窗已關閉，尚未登入。','auth/popup-blocked':'瀏覽器擋住登入視窗，請允許彈出視窗後重試。','auth/unauthorized-domain':'此網址尚未加入登入授權網域，請聯絡站長。','auth/operation-not-allowed':'此登入方式尚未由站長啟用。','auth/invalid-credential':'電子郵件或密碼不正確。','auth/email-already-in-use':'此電子郵件已註冊，請直接登入。','auth/weak-password':'請使用至少 8 個字元的密碼。','auth/too-many-requests':'嘗試次數過多，請稍後重試。','auth/network-request-failed':'網路連線失敗，請稍後重試。','PERMISSION_DENIED':'目前沒有讀取這些資料的權限。','permission_denied':'目前沒有讀取這些資料的權限。'})[code] || '操作未成功，請稍後重試；若持續發生，請聯絡站長確認登入設定與資料權限。';
   }
-  function shell(title, body, hint) {
-    return '<div class="page member-page"><div class="member-kicker">JUN胖達／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1><p>'+esc(hint || '查看餐點、訂單與個人資料。')+'</p></div><a class="member-back" href="#/">回團訂首頁 ↗</a></div>'+body+'</div>';
+  // 返回連結統一放在大標上方的小膠囊（2026-11-18）；back＝[網址, 文字]，沒給就回首頁。
+  var BACK_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  function shell(title, body, hint, back) {
+    back = back || ['#/', '回首頁'];
+    return '<div class="page member-page"><a class="backlink member-backlink" href="'+esc(back[0])+'">'+BACK_ICON+esc(back[1])+'</a><div class="member-kicker">JUN胖達／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1><p>'+esc(hint || '查看餐點、訂單與個人資料。')+'</p></div></div>'+body+'</div>';
   }
   function avatar(u, cls) { var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
   function notify(root, message) { var el = root.querySelector('[data-member-status]'); if (el) { el.textContent = message; el.hidden = false; } }
@@ -155,7 +158,7 @@
   }
   function orderView(root) {
     var alive = true, uid = verified.uid, groups = Object.create(null);
-    root.innerHTML = shell('我的訂單', '<div class="member-toolbar"><a href="#/members">← 個人資料</a><span>'+(demo() ? '本機示範 · 不會跨裝置同步' : '跨裝置同步 · 只顯示此帳號訂單')+'</span></div><div data-order-content class="member-loading" role="status">正在讀取你的訂單…</div>'+messageBox());
+    root.innerHTML = shell('我的訂單', '<div data-order-content class="member-loading" role="status">正在讀取你的訂單…</div>'+messageBox(), null, ['#/members', '回個人資料']);
     function groupData(gid) {
       if (!groups[gid]) groups[gid] = Promise.all([A.DB.get('groups/'+gid), A.DB.get('orders/'+gid)]).then(function(v) {
         if (!v[0]) throw new Error('GROUP_MISSING');
@@ -206,12 +209,13 @@
   }
   function collectionView(root,gid) {
     var alive=true; if (!path(gid)) { root.innerHTML=shell('找不到這個團購','<p>請從團購管理頁重新開啟。</p>'); return; }
-    root.innerHTML=shell('會員收款統計','<p role="status">正在核對團主權限…</p>');
+    var back=['#/g/'+gid+'/admin','回團購管理'];
+    root.innerHTML=shell('會員收款統計','<p role="status">正在核對團主權限…</p>',null,back);
     A.DB.get('groups/'+gid).then(function(g) { if (!g || g.ownerUserId !== verified.uid && !verified.admin) throw new Error('OWNER'); return Promise.all([Promise.resolve(g), A.DB.get('orders/'+gid), A.DB.get('paid/'+gid)]); }).then(function(v) {
       if (!alive) return; var g=v[0],orders=v[1] || {},paid=v[2] || {},members={},sum=0,received=0,settled=typeof A.settlement === 'function' ? A.settlement(orders,g) : null;
       Object.keys(orders).forEach(function(id) { var o=orders[id]; if (!o || o.cancelled) return; var key=o.userId || 'legacy:'+id; if(!members[key])members[key]={name:o.name || '未填名字',uid:o.userId,amount:0,received:0,count:0}; var m=members[key]; m.count++; Object.values(o.items || {}).forEach(function(it,i) { var bill=settled && settled.orders && settled.orders[id]; var n = bill && bill.lineDues && bill.lineDues[i] != null ? Number(bill.lineDues[i]) : (typeof A.lineTotal === 'function' ? A.lineTotal(it) : Number(it.price || 0)*Number(it.qty || 0)); m.amount+=n;sum+=n;if(paid[id] && paid[id][i]) {m.received+=n;received+=n;} }); });
-      root.innerHTML=shell('會員收款統計','<div class="member-toolbar"><a href="#/g/'+esc(gid)+'/admin">← 回團購管理</a><span>'+esc(g.title)+'</span></div><div class="member-metrics"><div><span>應收</span><b>'+money(sum)+'</b></div><div><span>已收</span><b>'+money(received)+'</b></div><div><span>待收</span><b>'+money(sum-received)+'</b></div></div><div class="member-table-wrap"><table class="member-table"><thead><tr><th>會員 / 訂購人</th><th>訂單數</th><th>應收</th><th>已收</th><th>待收</th></tr></thead><tbody>'+Object.keys(members).map(function(k) { var m=members[k]; return '<tr><td>'+esc(m.name)+'<small>'+(m.uid ? '會員訂單' : '舊版匿名訂單 · 未認領')+'</small></td><td>'+m.count+'</td><td>'+money(m.amount)+'</td><td>'+money(m.received)+'</td><td>'+money(m.amount-m.received)+'</td></tr>'; }).join('')+'</tbody></table></div><p class="member-fine">依專屬會員識別彙整；同名帳號不會合併。收款狀態請於團購管理更新。</p>');
-    }).catch(function(e) { if(alive) root.innerHTML=shell('無法開啟收款統計','<div class="member-notice">'+(e.message === 'OWNER' ? '僅此團已驗證的團主可以查看。舊團不會自動由同名帳號接管。' : esc(errorText(e)))+'</div>'); });
+      root.innerHTML=shell('會員收款統計','<div class="member-toolbar"><span>'+esc(g.title)+'</span></div><div class="member-metrics"><div><span>應收</span><b>'+money(sum)+'</b></div><div><span>已收</span><b>'+money(received)+'</b></div><div><span>待收</span><b>'+money(sum-received)+'</b></div></div><div class="member-table-wrap"><table class="member-table"><thead><tr><th>會員 / 訂購人</th><th>訂單數</th><th>應收</th><th>已收</th><th>待收</th></tr></thead><tbody>'+Object.keys(members).map(function(k) { var m=members[k]; return '<tr><td>'+esc(m.name)+'<small>'+(m.uid ? '會員訂單' : '舊版匿名訂單 · 未認領')+'</small></td><td>'+m.count+'</td><td>'+money(m.amount)+'</td><td>'+money(m.received)+'</td><td>'+money(m.amount-m.received)+'</td></tr>'; }).join('')+'</tbody></table></div><p class="member-fine">依專屬會員識別彙整；同名帳號不會合併。收款狀態請於團購管理更新。</p>',null,back);
+    }).catch(function(e) { if(alive) root.innerHTML=shell('無法開啟收款統計','<div class="member-notice">'+(e.message === 'OWNER' ? '僅此團已驗證的團主可以查看。舊團不會自動由同名帳號接管。' : esc(errorText(e)))+'</div>',null,back); });
     return function(){alive=false;};
   }
   function guardRoute(_,parts,query,href) {
