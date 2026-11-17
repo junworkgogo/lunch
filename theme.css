@@ -130,13 +130,13 @@ input[data-time-select][hidden] { display: none !important; }
 .group-delete:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; background: #ececf0; }
 .group-delete:disabled { opacity: .4; cursor: wait; }
 
-.free-shipping{margin:14px 0;padding:14px 16px;border:1px solid #d7e5dc;border-radius:12px;background:#f5faf7;color:#214b35}
+.free-shipping{margin:14px 0;padding:14px 16px;border:1px solid #dce2ff;border-radius:12px;background:#f5f7ff;color:#243b80}
 .free-shipping p{margin:0 0 7px;line-height:1.6}
 .free-shipping p:first-child{display:flex;justify-content:space-between;gap:6px 16px;flex-wrap:wrap}
 .free-shipping p:first-child span{font-size:13px}
 .free-shipping .free-shipping-status{font-weight:700}
-.free-shipping progress{display:block;width:100%;height:8px;margin:8px 0 10px;accent-color:#328056}
-.free-shipping .hint{font-size:12px;margin-bottom:0;color:#5f7165}
-.free-shipping.reached{border-color:#a5cdb4;background:#eef8f1}
+.free-shipping progress{display:block;width:100%;height:8px;margin:8px 0 10px;accent-color:#2600ff}
+.free-shipping .hint{font-size:12px;margin-bottom:0;color:#5d6685}
+.free-shipping.reached{border-color:#b8c7ff;background:#edf2ff}
 .free-shipping-estimate{margin:0 0 14px;padding:10px 12px;border-radius:9px;background:#f4f5f7;color:#545c68;font-size:13px;line-height:1.65}
 .free-shipping-estimate[hidden]{display:none}
