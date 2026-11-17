@@ -109,3 +109,6 @@ body { font-size: 14px; line-height: 1.65; }
   .member-nav-logout { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+.member-editor select { width: 100%; min-height: 44px; padding: 12px; border: 1px solid #dfe2e9; border-radius: 8px; background: #fafbfc; color: #191b21; font: inherit; }
+.member-editor select:focus { outline: 2px solid var(--accent, #2600ff); outline-offset: 2px; }
