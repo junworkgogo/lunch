@@ -38,7 +38,10 @@
       ],
       "$gid": {
         ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('ownerUserId').val() === auth.uid) || (data.exists() && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')) || data.child('ownerUserId').val() === auth.uid) && newData.child('ownerUserId').val() === data.child('ownerUserId').val()))",
-        ".validate": "newData.hasChildren(['title','deadline','shop']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 80 && newData.child('deadline').isNumber() && newData.child('shop').hasChildren(['name'])"
+        ".validate": "newData.hasChildren(['title','deadline','shop']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 80 && newData.child('deadline').isNumber() && newData.child('shop').hasChildren(['name'])",
+        "freeShippingThreshold": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.val() % 1 === 0"
+        }
       }
     },
     "orders": {
