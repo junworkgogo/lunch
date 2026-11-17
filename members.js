@@ -15,7 +15,7 @@
   function safeNext(value) { return /^#\/(?!members\/login)[A-Za-z0-9_/?=&%+.#-]*$/.test(value || '') ? value : '#/members'; }
   function errorText(e) {
     var code = e && e.code;
-    return ({'auth/popup-closed-by-user':'登入視窗已關閉，尚未登入。','auth/popup-blocked':'瀏覽器擋住登入視窗，請允許彈出視窗後重試。','auth/unauthorized-domain':'此網址尚未加入登入授權網域，請聯絡站長。','auth/operation-not-allowed':'此登入方式尚未由站長啟用。','auth/invalid-credential':'電子郵件或密碼不正確。','auth/email-already-in-use':'此電子郵件已註冊，請直接登入。','auth/weak-password':'請使用至少 8 個字元的密碼。','auth/too-many-requests':'嘗試次數過多，請稍後重試。','auth/network-request-failed':'網路連線失敗，請稍後重試。','PERMISSION_DENIED':'目前沒有讀取這些資料的權限。','permission_denied':'目前沒有讀取這些資料的權限。'})[code] || '操作未成功，請稍後重試；若持續發生，請聯絡站長確認登入設定與資料權限。';
+    return ({'auth/user-cancelled':'你已取消登入，可隨時再試。','auth/cancelled-popup-request':'登入已取消，可隨時再試。','auth/popup-closed-by-user':'登入視窗已關閉，尚未登入。','auth/popup-blocked':'瀏覽器擋住登入視窗，請允許彈出視窗後重試。','auth/unauthorized-domain':'此網址尚未加入登入授權網域，請聯絡站長。','auth/operation-not-allowed':'此登入方式尚未由站長啟用。','auth/invalid-credential':'電子郵件或密碼不正確。','auth/email-already-in-use':'此電子郵件已註冊，請直接登入。','auth/weak-password':'請使用至少 8 個字元的密碼。','auth/too-many-requests':'嘗試次數過多，請稍後重試。','auth/network-request-failed':'網路連線失敗，請稍後重試。','PERMISSION_DENIED':'目前沒有讀取這些資料的權限。','permission_denied':'目前沒有讀取這些資料的權限。'})[code] || '操作未成功，請稍後重試；若持續發生，請聯絡站長確認登入設定與資料權限。';
   }
   function shell(title, body, hint) {
     return '<div class="page member-page"><div class="member-kicker">午餐團／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1><p>'+esc(hint || '查看餐點、訂單與個人資料。')+'</p></div><a class="member-back" href="#/">回團訂首頁 ↗</a></div>'+body+'</div>';
