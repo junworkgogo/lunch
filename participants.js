@@ -1,0 +1,64 @@
+/* 每團參加名單：以會員 UID 判斷資格與送單進度，不以同名合併。 */
+(function(){
+  'use strict';
+  var A=window.LunchApp;if(!A)return;
+  var own=Object.prototype.hasOwnProperty;
+  function uid(u){return String(u&&(u.uid||u.id)||'');}
+  function canJoin(g,u){return !!g&&(g.audience!=='selected'||!!(uid(u)&&g.participants&&own.call(g.participants,uid(u))&&g.participants[uid(u)]));}
+  function validProfile(p){return !!(p&&typeof p.name==='string'&&p.name.trim()&&p.name.length<=30&&typeof p.department==='string'&&p.department.length<=40);}
+  function clean(p){return {name:p.name,department:p.department||''};}
+  function progress(g,orders){
+    var roster=g&&g.participants||{},joined={},outside=[],done=[],waiting=[];
+    Object.keys(orders||{}).forEach(function(id){var o=orders[id];if(!o||o.cancelled)return;var items=Array.isArray(o.items)?o.items:Object.values(o.items||{});if(!items.some(function(it){return it&&Number(it.qty)>0;}))return;var key=String(o.userId||'');if(key)joined[key]=true;if(!key||!own.call(roster,key))outside.push({id:id,name:o.name||'舊版訂單',userId:key});});
+    Object.keys(roster).forEach(function(id){var entry={uid:id,name:String((roster[id]||{}).name||'會員'),department:String((roster[id]||{}).department||'')};(joined[id]?done:waiting).push(entry);});
+    function sort(a,b){return (a.department+a.name).localeCompare(b.department+b.name,'zh-Hant');}done.sort(sort);waiting.sort(sort);
+    return {done:done,waiting:waiting,outside:outside,total:done.length+waiting.length};
+  }
+  function esc(s){return A.esc(s);}
+  function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;}
+  function picker(mount,initial){
+    var alive=true,directory={},chosen=Object.assign({},initial&&initial.participants||{}),mode=initial&&initial.audience==='selected'?'selected':'all',loaded=false,error='',dirty=false;
+    mount.innerHTML='<fieldset class="audience-picker"><legend>誰可以參加這一團？</legend><div class="audience-modes"><label><input type="radio" name="audience-'+mount.id+'" value="all" '+(mode==='all'?'checked':'')+'>所有會員<span>登入後即可訂餐</span></label><label><input type="radio" name="audience-'+mount.id+'" value="selected" '+(mode==='selected'?'checked':'')+'>指定會員<span>只有名單內的會員可訂餐</span></label></div><div class="audience-options"'+(mode==='selected'?'':' hidden')+'><div class="audience-filters"><input type="search" placeholder="搜尋姓名或部門" aria-label="搜尋參加會員"><select aria-label="依部門篩選"><option value="">所有部門</option></select></div><div class="audience-tools"><span data-chosen-count role="status"></span><button type="button" class="text-button" data-audience-all>全選符合條件</button><button type="button" class="text-button" data-audience-clear>清除選取</button></div><div class="audience-members"></div><p class="hint audience-load" role="status">載入會員名單中…</p></div></fieldset>';
+    var options=mount.querySelector('.audience-options'),list=mount.querySelector('.audience-members'),search=mount.querySelector('input[type=search]'),dept=mount.querySelector('select'),status=mount.querySelector('.audience-load');
+    function filtered(){var term=search.value.trim().toLocaleLowerCase();return Object.keys(directory).filter(function(id){var p=directory[id];return validProfile(p)&&(!dept.value||p.department===dept.value)&&(!term||(p.name+' '+p.department).toLocaleLowerCase().includes(term));}).sort(function(a,b){return (directory[a].department+directory[a].name).localeCompare(directory[b].department+directory[b].name,'zh-Hant');});}
+    function draw(){if(!alive)return;var ids=filtered();list.innerHTML=ids.map(function(id){var p=directory[id];return '<label class="audience-person"><input type="checkbox" value="'+esc(id)+'" '+(own.call(chosen,id)?'checked':'')+'><span class="audience-avatar" aria-hidden="true">'+esc(Array.from(p.name)[0])+'</span><span><b>'+esc(p.name)+'</b><small>'+esc(p.department||'尚未設定部門')+'</small></span><span class="audience-tick" aria-hidden="true">✓</span></label>';}).join('');mount.querySelector('[data-chosen-count]').textContent='已選 '+Object.keys(chosen).length+' 人';status.textContent=error||(loaded?(ids.length?'尚未出現的會員，請對方先登入一次。':'沒有符合條件的會員。'):'載入會員名單中…');}
+    function drawDepartments(){var value=dept.value,departments=[...new Set(Object.values(directory).filter(validProfile).map(function(p){return p.department;}).filter(Boolean))].sort();dept.innerHTML='<option value="">所有部門</option>'+departments.map(function(d){return '<option>'+esc(d)+'</option>';}).join('');dept.value=departments.includes(value)?value:'';}
+    var off=A.DB.on('memberDirectory',function(v){if(!alive)return;directory=v||{};var u=A.getUser();if(uid(u)&&validProfile(u)&&!directory[uid(u)])directory[uid(u)]=clean(u);Object.keys(chosen).forEach(function(id){if(!directory[id])directory[id]=chosen[id];});loaded=true;drawDepartments();draw();});
+    // get() surfaces permission/network errors; on() remains the live source.
+    A.DB.get('memberDirectory').catch(function(){if(alive){error='會員名單暫時無法載入，請重新整理後重試。';draw();}});
+    function changeHandler(e){if(!alive)return;if(e.target.type==='radio'){mode=e.target.value;options.hidden=mode!=='selected';dirty=true;draw();}else if(e.target.type==='checkbox'){dirty=true;var id=e.target.value;if(e.target.checked&&validProfile(directory[id]))chosen[id]=clean(directory[id]);else delete chosen[id];draw();}else if(e.target===dept)draw();}mount.addEventListener('change',changeHandler);
+    search.addEventListener('input',draw);
+    mount.querySelector('[data-audience-all]').onclick=function(){dirty=true;filtered().forEach(function(id){chosen[id]=clean(directory[id]);});draw();};
+    mount.querySelector('[data-audience-clear]').onclick=function(){dirty=true;chosen={};draw();};
+    draw();
+    return {value:function(){if(mode==='selected'&&!loaded)throw new Error('會員名單載入中，請稍後再試。');if(mode==='selected'&&error)throw new Error(error);if(mode==='selected'&&Object.keys(chosen).length>500)throw new Error('單一團購最多選擇 500 位會員。');if(mode==='selected'&&!Object.keys(chosen).length)throw new Error('請至少選擇一位可參加的會員。');return {audience:mode,participants:mode==='selected'?Object.assign({},chosen):false};},dirty:function(){return dirty;},destroy:function(){alive=false;mount.removeEventListener('change',changeHandler);if(off)off();}};
+  }
+  function summaryHtml(g,orders){if(g.audience!=='selected')return '<section class="card participation-summary"><div><h2>訂餐進度</h2><p>本團開放所有會員；指定參加名單後，就能追蹤誰還沒訂餐。</p></div></section>';var s=progress(g,orders);return '<section class="card participation-summary"><div><h2>訂餐進度</h2><p>依有效訂單即時更新，取消後會回到未訂餐。</p></div><div class="participation-numbers"><span><b>'+s.done.length+'</b>已訂餐</span><span><b>'+s.waiting.length+'</b>未訂餐</span><span><b>'+s.total+'</b>參加人數</span></div></section>';}
+  function rosterSignature(g){return JSON.stringify({audience:g&&g.audience==='selected'?'selected':'all',participants:g&&g.audience==='selected'?Object.keys(g.participants||{}).sort().map(function(id){return [id,g.participants[id]];}):false});}
+  function management(mount,g,orders,gid){
+    var alive=true,current=g,currentOrders=orders,baseline=rosterSignature(g),saving=false,conflict=false;
+    mount.innerHTML='<div data-roster-status></div><section class="card roster-edit"><h2>設定參加名單</h2><p class="muted">更改名單不會刪除任何既有訂單。移出名單的會員無法再新增或修改餐點，仍可在截止前取消自己的訂單。</p><div id="adminAudience"></div><div class="actions"><button type="button" class="btn primary" data-save-audience>儲存參加名單</button><button type="button" class="btn" data-reload-audience>重新載入名單</button></div><p data-audience-status role="status" hidden></p></section>';
+    var choose=picker(mount.querySelector('#adminAudience'),g),message=mount.querySelector('[data-audience-status]');
+    function draw(){if(!alive)return;var target=mount.querySelector('[data-roster-status]');if(current.audience!=='selected'){target.innerHTML=summaryHtml(current,currentOrders);return;}var s=progress(current,currentOrders);
+      function people(items,done){return items.length?items.map(function(p){return '<li><span class="roster-check '+(done?'done':'')+'" aria-hidden="true">'+(done?'✓':'—')+'</span><span><b>'+esc(p.name)+'</b><small>'+esc(p.department)+'</small></span><span class="roster-state">'+(done?'已訂餐':'尚未訂餐')+'</span></li>';}).join(''):'<li class="muted">'+(done?'還沒有人送出訂單。':'所有參加會員都已訂餐。')+'</li>';}
+      target.innerHTML=summaryHtml(current,currentOrders)+'<div class="roster-columns"><section class="card"><div class="roster-title"><h2>尚未訂餐 <span>'+s.waiting.length+'</span></h2><button type="button" class="text-button" data-copy-waiting>複製名單</button></div><ul class="roster-list">'+people(s.waiting,false)+'</ul></section><section class="card"><h2>已訂餐 <span>'+s.done.length+'</span></h2><ul class="roster-list">'+people(s.done,true)+'</ul></section></div>'+(s.outside.length?'<p class="roster-outside">另有 '+s.outside.length+' 筆名單外既有訂單，仍保留在收錢與叫餐彙整，不計入名單完成數。</p>':'');
+      target.querySelector('[data-copy-waiting]').onclick=function(){var text=s.waiting.map(function(p){return p.name+(p.department?'（'+p.department+'）':'');}).join('\n');if(!text){A.toast('目前沒有未訂餐會員');return;}if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(function(){A.toast('已複製未訂餐名單');}).catch(function(){message.hidden=false;message.textContent=text;});else{message.hidden=false;message.textContent=text;}};
+    }
+    var saveButton=mount.querySelector('[data-save-audience]');
+    function resetPicker(group){choose.destroy();choose=picker(mount.querySelector('#adminAudience'),group);baseline=rosterSignature(group);conflict=false;saveButton.disabled=saving;}
+    mount.querySelector('[data-reload-audience]').onclick=function(){if(saving)return;resetPicker(current);message.hidden=true;};
+    saveButton.onclick=function(){var value;if(saving)return;if(conflict){message.hidden=false;message.textContent='其他人已更新參加名單，請按「重新載入名單」後再修改。';return;}try{value=choose.value();}catch(e){message.hidden=false;message.textContent=e.message;return;}saving=true;saveButton.disabled=true;var expected=baseline;
+      A.DB.transaction('groups/'+gid,function(latest){if(!latest||latest.deleted||rosterSignature(latest)!==expected)return;return Object.assign({},latest,value);}).then(function(saved){if(alive){current=saved;resetPicker(saved);message.hidden=false;message.textContent='參加名單已儲存。';}}).catch(function(e){if(alive){message.hidden=false;message.textContent=e&&e.message&&e.message.indexOf('名單已')>=0?e.message:'儲存未成功，請重新確認權限及網路後再試。';}}).finally(function(){saving=false;if(alive)saveButton.disabled=conflict;});
+    };
+    draw();return {update:function(group,os){var changed=rosterSignature(group)!==baseline;current=group;currentOrders=os;if(changed){if(saving||!choose.dirty())resetPicker(group);else{conflict=true;saveButton.disabled=true;message.hidden=false;message.textContent='其他人已更新參加名單，請按「重新載入名單」後再修改。';}}draw();},destroy:function(){alive=false;choose.destroy();}};
+  }
+
+  function syncDirectory(u){
+    if(!uid(u)||!validProfile(u))return;
+    var profiles={};profiles[uid(u)]=clean(u);
+    var load=u.admin?A.DB.get('members').then(function(m){Object.keys(m||{}).forEach(function(id){if(validProfile(m[id]))profiles[id]=clean(m[id]);});}):Promise.resolve();
+    return load.then(function(){return A.DB.get('memberDirectory');}).then(function(existing){var patch={};Object.keys(profiles).forEach(function(id){if(JSON.stringify(existing&&existing[id])!==JSON.stringify(profiles[id]))patch[id]=profiles[id];});return Object.keys(patch).length?A.DB.update('memberDirectory',patch):null;}).catch(function(){/* Profile/Auth remains usable; the picker reports unavailable directory reads. */});
+  }
+  window.LunchParticipants={canJoin:canJoin,progress:progress,picker:picker,summaryHtml:summaryHtml,management:management,syncDirectory:syncDirectory};
+  window.addEventListener('lunch:userchange',function(e){syncDirectory(e.detail);});
+})();

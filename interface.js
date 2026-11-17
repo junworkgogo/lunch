@@ -37,6 +37,11 @@
     panel.append(row,add,el('p','editor-note','選好時間後按「加入營業時段」，才會加入上方文字。原有與匯入的營業資訊會保留；修改或刪除既有時段，請直接編輯上方文字。跨午夜可將結束時間設為隔日較早時間。'),status);source.after(panel);
   }
   function times(){businessHours();app.querySelectorAll('input[type="time"]').forEach(timeSelect);}
+  function home(){
+    var hero=app.querySelector('.hero');if(!hero||hero.dataset.interfaceHome)return;hero.dataset.interfaceHome='true';
+    var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今日團購';if(p)p.textContent='選擇開放中的團購，登入後即可點餐。';
+    if(actions){var today=button('查看今日團購',function(){var active=app.querySelector('#act');if(active)active.closest('section').scrollIntoView({behavior:'smooth',block:'start'});});today.className='btn primary';var create=el('a','btn','開新團');create.href='#/new';actions.replaceChildren(today,create);}
+  }
   function simplify(name,shop){if(!shop)return name;var escaped=shop.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return name.replace(new RegExp('^'+escaped+'\\s*[-－—–:：/／]\\s*'),'')||name;}
   function ordering(){
     var shop=app.querySelector('.shop');
@@ -108,6 +113,6 @@
     ta.addEventListener('input',function(){if(!syncing)draw();});mode(false);
   }
   var queued=false,observer=new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;enhance();});});
-  function enhance(){observer.disconnect();try{ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
+  function enhance(){observer.disconnect();try{home();ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
   window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay,timeSelect:timeSelect};enhance();
 })();

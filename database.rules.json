@@ -31,7 +31,8 @@
         "avatarImage": {
           ".validate": "newData.isString() && newData.val().length <= 40000 && (newData.val() === '' || newData.val().matches(/^data:image\\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/))"
         }
-      }
+      },
+      ".read": "auth != null && (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw'))"
     },
     "groups": {
       ".read": "auth != null",
@@ -41,9 +42,27 @@
       ],
       "$gid": {
         ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('ownerUserId').val() === auth.uid) || (data.exists() && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || data.child('ownerUserId').val() === auth.uid) && newData.child('ownerUserId').val() === data.child('ownerUserId').val()))",
-        ".validate": "newData.hasChildren(['title','deadline','shop']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 80 && newData.child('deadline').isNumber() && newData.child('shop').hasChildren(['name'])",
+        ".validate": "newData.hasChildren(['title','deadline','shop']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 80 && newData.child('deadline').isNumber() && newData.child('shop').hasChildren(['name']) && (newData.child('audience').val() !== 'selected' || newData.child('participants').hasChildren())",
         "freeShippingThreshold": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.val() % 1 === 0"
+        },
+        "audience": {
+          ".validate": "newData.val() === 'all' || newData.val() === 'selected'"
+        },
+        "participants": {
+          ".validate": "(newData.val() === false || newData.hasChildren())",
+          "$uid": {
+            ".validate": "root.child('memberDirectory').child($uid).exists() && newData.hasChildren(['name','department'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30"
+            },
+            "department": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
         }
       }
     },
@@ -54,14 +73,14 @@
           "userId"
         ],
         "$oid": {
-          ".write": "auth != null && newData.exists() && (root.child('groups').child($gid).exists() && root.child('groups').child($gid).child('deleted').val() !== true && root.child('groups').child($gid).child('closed').val() !== true && root.child('groups').child($gid).child('deadline').val() > now) && ((!data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && data.child('cancelled').val() !== true && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.parent().parent().parent().child('paid').child($gid).child($oid).val() === false))",
+          ".write": "auth != null && newData.exists() && (root.child('groups').child($gid).exists() && root.child('groups').child($gid).child('deleted').val() !== true && root.child('groups').child($gid).child('closed').val() !== true && root.child('groups').child($gid).child('deadline').val() > now) && ((!data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && data.child('cancelled').val() !== true && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.parent().parent().parent().child('paid').child($gid).child($oid).val() === false)) && (root.child('groups').child($gid).child('audience').val() !== 'selected' || root.child('groups').child($gid).child('participants').child(auth.uid).exists())",
           ".validate": "newData.hasChildren(['name','items','createdAt','updatedAt']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 30 && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber() && newData.child('updatedAt').val() <= now + 120000 && (!data.exists() || (newData.child('userId').val() === data.child('userId').val() && newData.child('createdAt').val() === data.child('createdAt').val()))",
           "cancelled": {
-            ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.val() === true",
+            ".write": "((auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.val() === true) || (auth != null && data.parent().exists() && data.parent().child('userId').val() === auth.uid && data.parent().child('cancelled').val() !== true && (root.child('groups').child($gid).exists() && root.child('groups').child($gid).child('deleted').val() !== true && root.child('groups').child($gid).child('closed').val() !== true && root.child('groups').child($gid).child('deadline').val() > now) && newData.val() === true)",
             ".validate": "newData.isBoolean()"
           },
           "updatedAt": {
-            ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.isNumber() && newData.val() <= now + 120000"
+            ".write": "((auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.isNumber() && newData.val() <= now + 120000) || (auth != null && data.parent().exists() && data.parent().child('userId').val() === auth.uid && data.parent().child('cancelled').val() !== true && (root.child('groups').child($gid).exists() && root.child('groups').child($gid).child('deleted').val() !== true && root.child('groups').child($gid).child('closed').val() !== true && root.child('groups').child($gid).child('deadline').val() > now) && newData.isNumber() && newData.val() <= now + 120000)"
           },
           "items": {
             "$line": {
@@ -100,6 +119,22 @@
           "$line": {
             ".validate": "newData.isBoolean()"
           }
+        }
+      }
+    },
+    "memberDirectory": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && newData.exists() && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')))",
+        ".validate": "newData.hasChildren(['name','department']) && root.child('members').child($uid).exists() && newData.child('name').val() === root.child('members').child($uid).child('name').val() && newData.child('department').val() === root.child('members').child($uid).child('department').val()",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30"
+        },
+        "department": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     }
