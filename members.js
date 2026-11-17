@@ -49,9 +49,60 @@
   }
   function profileView(root) {
     var u = verified, firstSetup = !!u.needsProfile;
-    root.innerHTML = shell('我的帳號', '<div class="member-dashboard"><section class="member-profile">'+avatar(u, 'member-avatar-large')+'<p class="member-kicker">個人資料</p><h2>'+esc(u.name || '午餐夥伴')+'</h2><p>'+esc(u.department || '尚未設定部門')+'</p><span class="member-verified">'+(u.demo ? '本機示範會員，不是真實登入' : (u.admin ? '✓ 管理員' : '✓ 帳號已驗證'))+'</span><p class="member-fine">'+esc(auth && auth.currentUser && auth.currentUser.email || '')+'</p><div class="actions"><a class="btn primary" href="#/members/orders">我的訂單 ↗</a><button class="btn" type="button" data-logout>登出</button></div></section><form class="member-editor" data-profile><h2>個人資料</h2><p class="member-muted">名字方便團主核對，會員識別使用專屬帳號。</p><fieldset class="member-avatars"><legend>選擇個人頭像</legend>'+avatars.map(function(a,i) { return '<label><input type="radio" name="avatar" value="'+i+'" '+(Number(u.avatar || 0) === i ? 'checked' : '')+'><span class="member-avatar tone-'+i+'" aria-label="頭像 '+(i+1)+'">'+a+'</span></label>'; }).join('')+'</fieldset><label>顯示名字<input name="displayName" required maxlength="30" autocomplete="name" value="'+esc(u.name)+'"></label><label>部門'+departmentSelect(u.department)+'</label><button class="btn primary" type="submit">儲存個人資料</button>'+messageBox()+'</form></div>');
-    root.querySelector('[data-logout]').onclick = function() { if(demo()){verified=null;A.setUser(null);go('#/members/login');}else auth.signOut().catch(function(e) { notify(root,errorText(e)); }); };
-    root.querySelector('[data-profile]').onsubmit = function(e) { e.preventDefault(); var f = e.currentTarget, name = f.displayName.value.trim(); if (!name || departments.indexOf(f.department.value)<0) return; var p = {name:name,department:f.department.value.trim(),avatar:Number(f.avatar.value),updatedAt:A.now()}; var b = f.querySelector('button'); b.disabled = true; A.DB.update('members/'+u.uid,p).then(function() { Object.assign(verified,p,{needsProfile:false}); A.setUser(verified); A.toast('個人資料已儲存'); if(firstSetup)go('#/'); }).catch(function(er) { notify(root,errorText(er)); }).finally(function() { b.disabled=false; }); };
+    root.innerHTML = shell('我的帳號',
+      '<div class="member-dashboard"><section class="member-profile">'+
+      '<button type="button" class="member-avatar-edit" data-edit-avatar aria-label="修改自己的頭貼"><span data-profile-avatar>'+avatar(u, 'member-avatar-large')+'</span><span class="member-avatar-edit-caption">更換頭貼 ✎</span></button>'+
+      '<p class="member-kicker">個人資料</p><h2 data-profile-name>'+esc(u.name || '午餐夥伴')+'</h2>'+
+      '<button type="button" class="member-edit-name" data-edit-name>修改姓名 ✎</button>'+
+      '<p>'+esc(u.department || '尚未設定部門')+'</p><span class="member-verified">'+(u.demo ? '本機示範會員，不是真實登入' : (u.admin ? '✓ 管理員' : '✓ 帳號已驗證'))+'</span>'+
+      '<p class="member-fine">'+esc(auth && auth.currentUser && auth.currentUser.email || '')+'</p>'+
+      '<div class="actions"><a class="btn primary" href="#/members/orders">我的訂單 ↗</a><button class="btn" type="button" data-logout>登出</button></div></section>'+
+      '<form class="member-editor" data-profile id="profileEdit"><h2>修改頭貼與姓名</h2>'+
+      '<p class="member-muted">可以隨時修改自己的頭貼與顯示姓名。儲存後更新會員資料，不會影響既有訂單。</p>'+
+      '<fieldset class="member-avatars" data-avatar-choices><legend>選擇頭貼</legend>'+
+      avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(Number(u.avatar || 0)===i ? 'checked' : '')+'><span class="member-avatar tone-'+i+'" aria-label="頭貼 '+(i+1)+'">'+a+'</span></label>';}).join('')+
+      '</fieldset><label>顯示姓名<input name="displayName" required maxlength="30" autocomplete="name" value="'+esc(u.name)+'"></label>'+
+      '<label>部門'+departmentSelect(u.department)+'</label>'+
+      '<p class="member-muted member-unsaved" data-unsaved hidden>上方為預覽，尚未儲存</p>'+
+      '<button class="btn primary" type="submit">儲存修改</button>'+messageBox()+'</form></div>');
+    var form = root.querySelector('[data-profile]');
+    root.querySelector('[data-logout]').onclick = function() { if(demo()){verified=null;A.setUser(null);go('#/members/login');}else auth.signOut().catch(function(e){notify(root,errorText(e));}); };
+    root.querySelector('[data-edit-avatar]').onclick = function() {
+      var target=form.querySelector('[data-avatar-choices]');
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+      var selected=target.querySelector('input[name="avatar"]:checked');
+      if(selected)selected.focus();
+    };
+    root.querySelector('[data-edit-name]').onclick = function() {
+      var input=form.elements.displayName;
+      input.scrollIntoView({behavior:'smooth',block:'center'});
+      input.focus();
+      input.select();
+    };
+    function previewChanges(){
+      var selected=form.querySelector('input[name="avatar"]:checked');
+      var index=selected ? Number(selected.value) : 0;
+      root.querySelector('[data-profile-avatar]').innerHTML=avatar({avatar:index},'member-avatar-large');
+      root.querySelector('[data-profile-name]').textContent=form.elements.displayName.value.trim()||'午餐夥伴';
+      root.querySelector('[data-unsaved]').hidden=false;
+    }
+    form.addEventListener('change',previewChanges);
+    form.elements.displayName.addEventListener('input',previewChanges);
+    form.onsubmit = function(e) {
+      e.preventDefault();
+      if(!form.reportValidity())return;
+      var name=form.elements.displayName.value.trim();
+      var selected=form.querySelector('input[name="avatar"]:checked');
+      if(!name||!selected||departments.indexOf(form.elements.department.value)<0)return;
+      var p={name:name,department:form.elements.department.value.trim(),avatar:Number(selected.value),updatedAt:A.now()};
+      var b=form.querySelector('button[type="submit"]');b.disabled=true;
+      A.DB.update('members/'+u.uid,p).then(function(){
+        Object.assign(verified,p,{needsProfile:false});
+        A.setUser(verified);
+        A.toast('頭貼與姓名已更新');
+        if(firstSetup)go('#/');
+      }).catch(function(er){notify(root,errorText(er));}).finally(function(){b.disabled=false;});
+    };
   }
   function orderView(root) {
     var alive = true, uid = verified.uid, groups = Object.create(null);
