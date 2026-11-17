@@ -470,7 +470,7 @@ a{color:#394150}
 </style>
 <link rel="stylesheet" href="interface.css?v=20261117c">
 <link rel="stylesheet" href="members.css?v=20261117c">
-<link rel="stylesheet" href="theme.css?v=20261117c">
+<link rel="stylesheet" href="theme.css?v=20261117d">
 <script src="members-config.js?v=20261117c"></script>
 <script src="opencc.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117c"></script>
@@ -846,7 +846,7 @@ function pageShops(root){
   function draw(shops){
     var ids=Object.keys(shops||{}).filter(function(k){return !shops[k].deleted;}).sort(function(a,b){return (shops[b].updatedAt||0)-(shops[a].updatedAt||0);});
     root.querySelector('#list').innerHTML=ids.length?ids.map(function(k){var s=shops[k];
-      return '<article class="card gcard"><h3>'+esc(s.name)+'</h3><ul class="info" style="margin:0">'+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'<li>'+I('list2')+'<span>'+countItems(s.menuText)+' 個品項</span></li></ul><div class="actions"><a class="btn primary" href="#/new?shop='+esc(k)+'">用這家開團</a><a class="btn" href="#/shops/'+esc(k)+'">編輯</a></div></article>';}).join(''):'<div style="grid-column:1/-1">'+emptyBox('還沒有店家。','<br><a class="btn primary" href="#/shops/new">新增店家</a>')+'</div>';
+      return '<article class="card gcard"><h3>'+esc(s.name)+'</h3><ul class="info" style="margin:0">'+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'<li>'+I('list2')+'<span>'+countItems(s.menuText)+' 個品項</span></li></ul><div class="actions"><a class="btn primary" href="#/new?shop='+esc(k)+'">用這家開團</a>'+(!secureMode()||adminUser()?'<a class="btn" href="#/shops/'+esc(k)+'">編輯</a>':'')+'</div></article>';}).join(''):'<div style="grid-column:1/-1">'+emptyBox('還沒有店家。','<br><a class="btn primary" href="#/shops/new">新增店家</a>')+'</div>';
   }
   return DB.on('shops',draw);
 }
@@ -1178,7 +1178,7 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
 }
 
 function pageShopEdit(root,id){
-  if(secureMode()&&!adminUser()){root.innerHTML='<div class="page">'+emptyBox('僅管理員可以新增或編輯店家。')+'</div>';return;}
+  if(secureMode()&&id!=='new'&&!adminUser()){root.innerHTML='<div class="page">'+emptyBox('僅管理員可以編輯或刪除既有店家。')+'</div>';return;}
   var isNew=id==='new',sid=isNew?DB.newId():id,cur=null,loaded=false,timer;
   root.innerHTML='<div class="page"><p class="muted">載入中…</p></div>';
   function build(){
@@ -1730,6 +1730,6 @@ if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
 <script src="interface.js?v=20261117c"></script>
-<script src="members.js?v=20261117c"></script>
+<script src="members.js?v=20261117d"></script>
 </body>
 </html>
