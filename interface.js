@@ -1,0 +1,86 @@
+(function(){
+  'use strict';
+  var app=document.getElementById('app');if(!app)return;
+  function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+  function button(text,fn){var b=el('button','btn sm',text);b.type='button';if(fn)b.addEventListener('click',fn);return b;}
+  function numericDisplay(value){return String(value).replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xfee0);});}
+  function parse(text){var api=window.LunchApp||window.__lunch;return api&&api.parseMenu?api.parseMenu(text):null;}
+  function home(){
+    var hero=app.querySelector('.hero');if(!hero||hero.dataset.interfaceHome)return;hero.dataset.interfaceHome='true';
+    var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今日團購';if(p)p.textContent='選擇開放中的團購，登入後即可點餐。';
+    if(actions){var today=button('查看今日團購',function(){var active=app.querySelector('#act');if(active)active.closest('section').scrollIntoView({behavior:'smooth',block:'start'});});today.className='btn primary';var create=el('a','btn','開新團');create.href='#/new';actions.replaceChildren(today,create);}
+  }
+  function simplify(name,shop){if(!shop)return name;var escaped=shop.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return name.replace(new RegExp('^'+escaped+'\\s*[-－—–:：/／]\\s*'),'')||name;}
+  function ordering(){
+    var shop=app.querySelector('.shop');
+    if(shop&&shop.tagName!=='DETAILS'){
+      var details=el('details','shop'),summary=el('summary',null,'店家資訊'),body=el('div','shop-details');
+      while(shop.firstChild)body.appendChild(shop.firstChild);
+      var heading=body.querySelector('h2');if(heading)heading.remove();details.append(summary,body);shop.replaceWith(details);shop=details;
+    }
+    var menu=app.querySelector('.menu'),menuList=app.querySelector('#menu');if(!menu||!menuList)return;
+    var promos=app.querySelector('.promos');if(promos&&!promos.querySelector('.promo-price-note')){var note=el('p','promo-price-note editor-note','優惠僅供參考，尚未折抵金額');promos.append(note);}
+    var sum=app.querySelector('#cart .sum');if(promos&&sum&&!app.querySelector('#cart .promo-price-note'))sum.after(el('p','promo-price-note editor-note','優惠僅供參考，尚未折抵金額'));
+    var shopName=shop&&shop.querySelector('.sname');shopName=shopName?shopName.textContent.trim():'';
+    app.querySelectorAll('#tabs .tab').forEach(function(tab){var text=simplify(tab.textContent,shopName);if(tab.textContent!==text)tab.textContent=text;});
+    menuList.querySelectorAll('.cat h2').forEach(function(h){var first=h.firstChild;if(first&&first.nodeType===3){var text=simplify(first.nodeValue,shopName);if(first.nodeValue!==text)first.nodeValue=text;}});
+    if(!menu.querySelector('.menu-search')){
+      var search=el('div','menu-search'),input=el('input'),clear=button('清除'),empty=el('p','search-empty','找不到符合的餐點，試試其他關鍵字。');input.type='search';input.placeholder='搜尋餐點';input.setAttribute('aria-label','搜尋餐點');empty.hidden=true;empty.setAttribute('role','status');
+      function filter(){var q=input.value.trim().toLocaleLowerCase(),count=0;menuList.querySelectorAll('.cat').forEach(function(cat){var visible=0;cat.querySelectorAll('.item').forEach(function(item){var name=item.querySelector('.iname');var match=!q||(name?name.textContent:item.textContent).toLocaleLowerCase().includes(q);item.hidden=!match;if(match)visible++;});cat.hidden=!visible;count+=visible;});empty.hidden=count>0;clear.hidden=!input.value;}
+      input.addEventListener('input',filter);clear.addEventListener('click',function(){input.value='';filter();input.focus();});
+      var tabs=app.querySelector('#tabs');if(tabs)tabs.addEventListener('click',function(e){if(e.target.closest('.tab')&&input.value){input.value='';filter();}},true);
+      clear.hidden=true;search.append(input,clear);menu.prepend(search);menuList.after(empty);
+    }
+  }
+  function settings(){
+    var solds=app.querySelector('#solds'),share=app.querySelector('#body .share');
+    if(solds&&share){var card=solds.closest('.card');if(card&&card.previousElementSibling!==share)card.before(share);var h=card.querySelector('h2'),p=card.querySelector('p');if(h&&h.textContent!=='餐點供應狀態')h.textContent='餐點供應狀態';if(p&&p.textContent!=='切換為已售完後，同事將無法再加入這項餐點。')p.textContent='切換為已售完後，同事將無法再加入這項餐點。';}
+    app.querySelectorAll('[data-sold]').forEach(function(b){var lab=b.querySelector('.lab'),text=b.getAttribute('aria-checked')==='true'?'已售完':'供應中';if(lab&&lab.textContent!==text)lab.textContent=text;});
+    app.querySelectorAll('.soldtag').forEach(function(t){if(t.textContent!=='已售完')t.textContent='已售完';});
+  }
+  // Keep the original source lines. Only fields explicitly changed by the user are rewritten.
+  // Category option lines and item option lines are never reserialized or dropped.
+  function sourceModel(text){
+    var lines=text.split(/\r?\n/),cats=[],cat=null,item=null;
+    lines.forEach(function(raw,i){var s=raw.trim(),m=/^[{｛](.*?)[}｝]$/.exec(s);if(m){cat={name:m[1],line:i,items:[],options:[]};cats.push(cat);item=null;return;}if(!s)return;
+      if(/^(?:[ \t　]{2,}|\t|[ \t　]*-[ \t　]+)/.test(raw)){if(item)item.options.push(raw);else if(cat)cat.options.push(raw);return;}
+      var parts=s.split(/[,，﹐､]/);if(parts.length<2)return;if(!cat){cat={name:'其他',line:-1,items:[],options:[]};cats.push(cat);}var sold=parts[parts.length-1].trim()==='停售';if(sold)parts.pop();var base=parts[1].trim(),normal=parts.length===2&&/^[$＄]?[0-9０-９]+元?$/.test(base);
+      item={line:i,name:parts[0].trim(),parts:parts,normal:normal,price:base.replace(/[^0-9０-９]/g,''),sold:sold,options:[]};cat.items.push(item);
+    });return {lines:lines,cats:cats};
+  }
+  function editor(){
+    var ta=app.querySelector('#sm');if(!ta||ta.dataset.visualEditor)return;ta.dataset.visualEditor='true';
+    var field=ta.closest('.fld'),toolbar=el('div','editor-toolbar'),panel=el('div','menu-editor'),visual=button('可視化編輯'),raw=button('進階原始格式'),undo=button('復原上一步'),history=[],syncing=false;
+    visual.setAttribute('aria-pressed','true');raw.setAttribute('aria-pressed','false');undo.disabled=true;
+    var guide=el('p','editor-note','分類與餐點可直接編輯。原有尺寸、甜度及加價選項會完整保留；要調整選項，請切換「進階原始格式」。');toolbar.append(visual,raw,undo);ta.before(toolbar,panel);ta.hidden=true;
+    var instructions=Array.from(field.children).filter(function(e){return e!==toolbar&&e!==panel&&e!==ta&&e.id!=='smE'&&e.tagName!=='LABEL';});
+    function mode(isRaw){ta.hidden=!isRaw;panel.hidden=isRaw;visual.setAttribute('aria-pressed',String(!isRaw));raw.setAttribute('aria-pressed',String(isRaw));instructions.forEach(function(e){e.hidden=!isRaw;});if(!isRaw)draw();}
+    visual.addEventListener('click',function(){mode(false);});raw.addEventListener('click',function(){mode(true);ta.focus();});
+    function commit(value){if(value===ta.value)return;history.push(ta.value);if(history.length>30)history.shift();undo.disabled=false;syncing=true;ta.value=value;ta.dispatchEvent(new Event('input',{bubbles:true}));syncing=false;draw();}
+    undo.addEventListener('click',function(){if(!history.length)return;syncing=true;ta.value=history.pop();ta.dispatchEvent(new Event('input',{bubbles:true}));syncing=false;undo.disabled=!history.length;draw();});
+    function updateItem(model,it,key,value){var parts=it.parts.slice();if(key==='name')parts[0]=value;else if(key==='price')parts[1]=value;var sold=key==='sold'?value:it.sold;model.lines[it.line]=parts.join(', ')+(sold?', 停售':'');commit(model.lines.join('\n'));}
+    function input(value,label,change,type){var wrap=el('label',null,label),x=el('input');x.type=type||'text';x.value=type==='number'?numericDisplay(value):value;x.setAttribute('aria-label',label);if(type==='number'){x.min='0';x.step='1';}x.addEventListener('change',function(){if(!x.checkValidity()||!x.value.trim()){x.reportValidity();return;}change(x.value);});wrap.append(x);return wrap;}
+    function draw(){
+      panel.replaceChildren(guide);var model=sourceModel(ta.value),validation=parse(ta.value);
+      if(validation&&validation.errors.length)panel.append(el('p','editor-error','原始菜單有 '+validation.errors.length+' 處格式待修正，請切換進階原始格式查看下方提示。未識別的原文仍會保留。'));
+      model.cats.forEach(function(cat){
+        var section=el('section','editor-cat'),head=el('div','editor-cat-head');head.append(input(cat.name,'分類名稱',function(v){if(/[{}｛｝\r\n]/.test(v))return;if(cat.line<0)model.lines.unshift('{'+v+'}');else model.lines[cat.line]='{'+v+'}';commit(model.lines.join('\n'));}));
+        head.append(button('刪除分類',function(){var next=model.cats[model.cats.indexOf(cat)+1],start=cat.line<0?0:cat.line;model.lines.splice(start,(next?next.line:model.lines.length)-start);commit(model.lines.join('\n'));}));section.append(head);
+        if(cat.options.length)section.append(el('p','editor-cat-options','共用選項（保留）\n'+cat.options.join('\n')));
+        cat.items.forEach(function(it){var row=el('div','editor-item');row.append(input(it.name,'餐點名稱',function(v){if(/[,，{}\r\n]/.test(v))return;updateItem(model,it,'name',v);}));
+          if(it.normal)row.append(input(it.price,'價格',function(v){updateItem(model,it,'price',v);},'number'));else{
+            var variants=el('div','editor-variants');it.parts.slice(1).forEach(function(part,vi){var match=/^(.*?)\s+[$＄]?([0-9０-９]+)元?$/.exec(part.trim());if(!match){variants.append(el('p','editor-note',part));return;}variants.append(input(match[2],match[1]+'價格',function(v){var parts=it.parts.slice();parts[vi+1]=match[1]+' '+v;model.lines[it.line]=parts.join(', ')+(it.sold?', 停售':'');commit(model.lines.join('\n'));},'number'));});row.append(variants);
+          }
+          var status=el('label','editor-status'),check=el('input');check.type='checkbox';check.checked=it.sold;status.append(check,document.createTextNode(it.sold?'已售完':'供應中'));check.addEventListener('change',function(){updateItem(model,it,'sold',check.checked);});row.append(status,button('刪除',function(){var end=it.line+1;while(end<model.lines.length&&(!model.lines[end].trim()||/^(?:[ \t　]{2,}|\t|[ \t　]*-[ \t　]+)/.test(model.lines[end])))end++;model.lines.splice(it.line,end-it.line);commit(model.lines.join('\n'));}));
+          if(it.options.length)row.append(el('p','editor-options','規格選項（保留）\n'+it.options.join('\n')));section.append(row);
+        });
+        section.append(button('＋ 新增餐點',function(){var next=model.cats[model.cats.indexOf(cat)+1],at=next?next.line:model.lines.length;model.lines.splice(at,0,'新餐點, 0');commit(model.lines.join('\n'));}));panel.append(section);
+      });
+      panel.append(button('＋ 新增分類',function(){commit(ta.value+(ta.value?'\n':'')+'{新分類}\n');}));
+    }
+    ta.addEventListener('input',function(){if(!syncing)draw();});mode(false);
+  }
+  var queued=false,observer=new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;enhance();});});
+  function enhance(){observer.disconnect();try{home();ordering();settings();editor();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
+  window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay};enhance();
+})();
