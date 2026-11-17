@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JUN胖達</title>
-<link rel="icon" type="image/png" href="assets/jun-mascot.png?v=20261117glass1">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/jun-blue-smile-64.png?v=20261117smile">
+<link rel="icon" type="image/svg+xml" href="jun-blue-smile.svg?v=20261117smile">
+<link rel="apple-touch-icon" href="assets/jun-blue-smile-180.png?v=20261117smile">
 <link rel="preload" as="image" href="assets/jun-mascot.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -480,10 +482,10 @@ a{color:#394150}
 </style>
 <link rel="stylesheet" href="interface.css?v=20261117pos1">
 <link rel="stylesheet" href="members.css?v=20261117pos1">
-<link rel="stylesheet" href="theme.css?v=20261117pos1">
+<link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261117glass1">
+<link rel="stylesheet" href="glass.css?v=20261117smile">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
@@ -1378,7 +1380,7 @@ function pageGroup(root,gid){
     '<div class="side"><section class="shop"><h2>店家資訊</h2><p class="sname">'+esc(s.name)+'</p><ul class="info">'+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.phone?'<li>'+I('phone')+'<a href="tel:'+esc(String(s.phone).replace(/[^\d+]/g,''))+'">'+esc(s.phone)+'</a></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'</ul>'+mapHtml(s.address)+'</section>'+
     '<section class="cart" id="cart" aria-label="購物車"><div class="cart-body"><div class="cart-pad"><h2>你的訂單</h2><div class="editing" id="editing" hidden><span>正在修改「<b id="editWho"></b>」的訂單</span><button type="button" class="btn sm" id="editCancel">不改了</button></div><div class="closedmsg" id="closedMsg" hidden>這個團已截止，不能再點餐或修改。</div><ul class="lines" id="lines"></ul><div class="sum"><span>已點 <b id="n">0</b> 份　合計</span><b id="total">$0</b></div><div id="freeShippingEstimate" class="free-shipping-estimate" aria-live="polite" hidden></div><div class="field"><label for="uname">你的名字</label><input id="uname" type="text" autocomplete="off" maxlength="20" placeholder="請輸入名字" aria-describedby="nameErr"><p class="err" id="nameErr" role="alert" hidden>請輸入你的名字</p></div><p class="err" id="cartErr" role="alert" hidden style="margin-bottom:10px">還沒有點任何餐點</p><button type="button" class="submit" id="submit">送出訂單</button></div></div><button type="button" class="cart-bar" id="bar" aria-expanded="false" aria-controls="cart"><span>已點 <b id="nBar">0</b> 份</span><span>合計 <b id="totBar">$0</b></span>'+I('chev',20).replace('<svg ','<svg class="chev" ')+'</button></section></div>'+
     '<section class="menu"><nav class="tabs" id="tabs" aria-label="菜單分類">'+tabs+'</nav><div id="menu">'+html+'</div></section>'+
-    '<details class="all" id="all"><summary><span>大家點了什麼（<span id="allN">0</span> 人）</span>'+I('chev',20).replace('<svg ','<svg class="chev" ')+'</summary><div class="olist" id="allL"></div></details></div>';
+    '<section class="all" id="all"><h2 class="all-head">大家點了什麼（<span id="allN">0</span> 人）</h2><div class="olist" id="allL"></div></section></div>';
     $('#uname').value=currentUser?currentUser.name||currentUser.displayName||'':LS.get(K.name,'');if(currentUser){if(window.LunchTraditional)$('#uname').value=window.LunchTraditional($('#uname').value);$('#uname').readOnly=true;$('#uname').closest('.field').hidden=true;}
     wire();
   }
@@ -1861,7 +1863,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
 <script src="menu-vision.js?v=20261117a"></script>
-<script src="interface.js?v=20261117pos1"></script>
+<script src="interface.js?v=20261117smile"></script>
 <script src="mascot.js?v=20261117glass1"></script>
 <script src="participants.js?v=20261117pos1"></script>
 <script src="members.js?v=20261117glass1"></script>

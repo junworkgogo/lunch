@@ -45,8 +45,9 @@
   function simplify(name,shop){if(!shop)return name;var escaped=shop.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return name.replace(new RegExp('^'+escaped+'\\s*[-－—–:：/／]\\s*'),'')||name;}
   function ordering(){
     var shop=app.querySelector('.shop');
-    if(shop&&shop.tagName!=='DETAILS'){
-      var details=el('details','shop'),summary=el('summary',null,'店家資訊'),body=el('div','shop-details');
+    // 店家資訊一律展開、不提供收合（使用者 2026-11-17 指定）。
+    if(shop&&!shop.classList.contains('shop-open')){
+      var details=el('section','shop shop-open'),summary=el('h2','shop-head','店家資訊'),body=el('div','shop-details');
       while(shop.firstChild)body.appendChild(shop.firstChild);
       var heading=body.querySelector('h2');if(heading)heading.remove();details.append(summary,body);shop.replaceWith(details);shop=details;
     }
