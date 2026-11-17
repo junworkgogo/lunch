@@ -5,13 +5,13 @@
     "shops": {
       ".read": "auth != null",
       "$shop": {
-        ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('deleted').val() !== true) || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')))"
+        ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('deleted').val() !== true) || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')))"
       }
     },
     "members": {
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')))",
-        ".write": "auth != null && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw'))) && newData.exists()",
+        ".read": "auth != null && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')))",
+        ".write": "auth != null && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw'))) && newData.exists()",
         ".validate": "newData.hasChildren(['name','department','avatar','updatedAt'])",
         "name": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30"
@@ -27,6 +27,9 @@
         },
         "$other": {
           ".validate": false
+        },
+        "avatarImage": {
+          ".validate": "newData.isString() && newData.val().length <= 40000 && (newData.val() === '' || newData.val().matches(/^data:image\\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/))"
         }
       }
     },
@@ -37,7 +40,7 @@
         "deadline"
       ],
       "$gid": {
-        ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('ownerUserId').val() === auth.uid) || (data.exists() && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')) || data.child('ownerUserId').val() === auth.uid) && newData.child('ownerUserId').val() === data.child('ownerUserId').val()))",
+        ".write": "auth != null && newData.exists() && ((!data.exists() && newData.child('ownerUserId').val() === auth.uid) || (data.exists() && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || data.child('ownerUserId').val() === auth.uid) && newData.child('ownerUserId').val() === data.child('ownerUserId').val()))",
         ".validate": "newData.hasChildren(['title','deadline','shop']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 80 && newData.child('deadline').isNumber() && newData.child('shop').hasChildren(['name'])",
         "freeShippingThreshold": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.val() % 1 === 0"
@@ -54,11 +57,11 @@
           ".write": "auth != null && newData.exists() && (root.child('groups').child($gid).exists() && root.child('groups').child($gid).child('deleted').val() !== true && root.child('groups').child($gid).child('closed').val() !== true && root.child('groups').child($gid).child('deadline').val() > now) && ((!data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && data.child('cancelled').val() !== true && data.child('userId').val() === auth.uid && newData.child('userId').val() === data.child('userId').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.parent().parent().parent().child('paid').child($gid).child($oid).val() === false))",
           ".validate": "newData.hasChildren(['name','items','createdAt','updatedAt']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 30 && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber() && newData.child('updatedAt').val() <= now + 120000 && (!data.exists() || (newData.child('userId').val() === data.child('userId').val() && newData.child('createdAt').val() === data.child('createdAt').val()))",
           "cancelled": {
-            ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.val() === true",
+            ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.val() === true",
             ".validate": "newData.isBoolean()"
           },
           "updatedAt": {
-            ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.isNumber() && newData.val() <= now + 120000"
+            ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && data.parent().exists() && newData.isNumber() && newData.val() <= now + 120000"
           },
           "items": {
             "$line": {
@@ -70,10 +73,10 @@
     },
     "userOrders": {
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')))",
+        ".read": "auth != null && (auth.uid === $uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')))",
         "$gid": {
           "$oid": {
-            ".write": "auth != null && newData.exists() && (auth.uid === $uid || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid) || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw'))) && newData.parent().parent().parent().parent().child('orders').child($gid).child($oid).child('userId').val() === $uid",
+            ".write": "auth != null && newData.exists() && (auth.uid === $uid || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid) || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw'))) && newData.parent().parent().parent().parent().child('orders').child($gid).child($oid).child('userId').val() === $uid",
             ".validate": "newData.hasChildren(['cancelled']) && newData.child('cancelled').isBoolean() && newData.child('cancelled').val() === (newData.parent().parent().parent().parent().child('orders').child($gid).child($oid).child('cancelled').val() === true)",
             "cancelled": {
               ".validate": "newData.isBoolean()"
@@ -87,11 +90,11 @@
     },
     "paid": {
       "$gid": {
-        ".read": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid)))",
-        ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && newData.exists()",
+        ".read": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid)))",
+        ".write": "(auth != null && ((auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))) && newData.exists()",
         ".validate": "newData.val() === false || newData.hasChildren()",
         "$oid": {
-          ".read": "auth != null && (root.child('orders').child($gid).child($oid).child('userId').val() === auth.uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))",
+          ".read": "auth != null && (root.child('orders').child($gid).child($oid).child('userId').val() === auth.uid || (auth.token.email_verified === true && (auth.token.email === 'junworkgogo@gmail.com' || auth.token.email === 'jun@adholic.com.tw' || auth.token.email === 'ruuu@adholic.com.tw')) || (root.child('groups').child($gid).child('ownerUserId').val() === auth.uid))",
           ".write": "auth != null && root.child('orders').child($gid).child($oid).child('userId').val() === auth.uid && (root.child('groups').child($gid).exists() && root.child('groups').child($gid).child('deleted').val() !== true && root.child('groups').child($gid).child('closed').val() !== true && root.child('groups').child($gid).child('deadline').val() > now) && newData.val() === false",
           ".validate": "newData.val() === false || newData.hasChildren()",
           "$line": {
