@@ -32,17 +32,19 @@ async function fetchT(url, opt) {
   const ac = new AbortController();
   const t = setTimeout(function () { ac.abort(); }, opt.timeout || 8000);
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       headers: { 'User-Agent': UA, 'Accept': opt.accept || 'application/json', 'Accept-Language': 'zh-TW,zh;q=0.9' },
       redirect: opt.redirect || 'follow',
       signal: ac.signal
     });
+    if (opt.body) return { status: response.status, text: await response.text() };
+    return response;
   } finally { clearTimeout(t); }
 }
 
 async function upstreamJson(url, timeout) {
-  const r = await fetchT(url, { timeout: timeout });
-  const text = await r.text();
+  const r = await fetchT(url, { timeout: timeout, body: true });
+  const text = r.text;
   try { return { status: r.status, json: JSON.parse(text) }; }
   catch (e) { return { status: 502, json: { error: 'upstream-not-json', upstreamStatus: r.status } }; }
 }
