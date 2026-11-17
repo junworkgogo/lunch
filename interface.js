@@ -5,6 +5,38 @@
   function button(text,fn){var b=el('button','btn sm',text);b.type='button';if(fn)b.addEventListener('click',fn);return b;}
   function numericDisplay(value){return String(value).replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xfee0);});}
   function parse(text){var api=window.LunchApp||window.__lunch;return api&&api.parseMenu?api.parseMenu(text):null;}
+  function padTime(n){return String(n).padStart(2,'0');}
+  // The original input remains the source read by existing save handlers.
+  function timeSelect(source){
+    if(source.dataset.timeSelect)return;source.dataset.timeSelect='true';
+    var label=app.querySelector('label[for="'+source.id+'"]'),name=label?label.textContent.trim():(source.getAttribute('aria-label')||'時間');
+    var group=el('div','time-select'),hour=el('select'),minute=el('select'),committing=false;
+    group.setAttribute('role','group');group.setAttribute('aria-label',name);
+    hour.id=source.id+'-hour';minute.id=source.id+'-minute';
+    hour.setAttribute('aria-label',name+'：時');minute.setAttribute('aria-label',name+'：分');
+    function options(select,count,unit){var blank=el('option',null,unit);blank.value='';select.append(blank);for(var i=0;i<count;i++){var o=el('option',null,padTime(i)+' '+unit);o.value=padTime(i);select.append(o);}}
+    options(hour,24,'時');options(minute,60,'分');
+    function sync(){if(committing)return;var parts=/^(\d{2}):(\d{2})$/.exec(source.value);hour.value=parts?parts[1]:'';minute.value=parts?parts[2]:'';hour.disabled=minute.disabled=source.disabled;}
+    function change(){committing=true;source.value=hour.value!==''&&minute.value!==''?hour.value+':'+minute.value:'';source.dispatchEvent(new Event('input',{bubbles:true}));source.dispatchEvent(new Event('change',{bubbles:true}));committing=false;}
+    hour.addEventListener('change',change);minute.addEventListener('change',change);
+    source.addEventListener('input',sync);source.addEventListener('change',sync);
+    // Programmatic .value changes do not emit DOM events; keep both selects in sync.
+    var value=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+    if(value&&value.get&&value.set)Object.defineProperty(source,'value',{configurable:true,get:function(){return value.get.call(this);},set:function(v){value.set.call(this,v);sync();}});
+    group.append(hour,el('span','time-colon','：'),minute);source.after(group);source.hidden=true;
+    if(label)label.htmlFor=hour.id;sync();
+    if(source.form)source.form.addEventListener('reset',function(){setTimeout(sync,0);});
+  }
+  function businessHours(){
+    var source=app.querySelector('#sh');if(!source||source.dataset.hoursPicker)return;source.dataset.hoursPicker='true';
+    var panel=el('div','hours-picker'),row=el('div','hours-range');
+    function endpoint(id,title,value){var wrap=el('div','hours-endpoint'),label=el('label',null,title),input=el('input');label.htmlFor=id;input.id=id;input.type='time';input.value=value;wrap.append(label,input);row.append(wrap);return input;}
+    var start=endpoint('hours-start','開始時間','09:00'),end=endpoint('hours-end','結束時間','18:00');
+    var status=el('p','editor-note');status.setAttribute('role','status');
+    var add=button('加入營業時段',function(){if(!start.value||!end.value){status.textContent='請選好開始與結束的時、分。';return;}var period=start.value+'–'+end.value;source.value=source.value+(source.value.trim()?'；':'')+period;source.dispatchEvent(new Event('input',{bubbles:true}));source.dispatchEvent(new Event('change',{bubbles:true}));status.textContent='已加入 '+period+'。請按「儲存店家」保存。';});
+    panel.append(row,add,el('p','editor-note','選好時間後按「加入營業時段」，才會加入上方文字。原有與匯入的營業資訊會保留；修改或刪除既有時段，請直接編輯上方文字。跨午夜可將結束時間設為隔日較早時間。'),status);source.after(panel);
+  }
+  function times(){businessHours();app.querySelectorAll('input[type="time"]').forEach(timeSelect);}
   function home(){
     var hero=app.querySelector('.hero');if(!hero||hero.dataset.interfaceHome)return;hero.dataset.interfaceHome='true';
     var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今日團購';if(p)p.textContent='選擇開放中的團購，登入後即可點餐。';
@@ -81,6 +113,6 @@
     ta.addEventListener('input',function(){if(!syncing)draw();});mode(false);
   }
   var queued=false,observer=new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;enhance();});});
-  function enhance(){observer.disconnect();try{home();ordering();settings();editor();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
-  window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay};enhance();
+  function enhance(){observer.disconnect();try{home();ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
+  window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay,timeSelect:timeSelect};enhance();
 })();
