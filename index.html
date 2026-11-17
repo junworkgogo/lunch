@@ -606,7 +606,7 @@ var FbDB=(function(){
     on:function(p,cb,opt){var dead=false,off=null;init().then(function(db){if(dead)return;var ref=db.ref(p);if(opt&&opt.orderBy)ref=ref.orderByChild(opt.orderBy);if(opt&&opt.startAt!=null)ref=ref.startAt(opt.startAt);if(opt&&opt.limit)ref=ref.limitToLast(opt.limit);var h=ref.on('value',function(s){if(!dead)cb(s.val());},function(e){toast('資料讀取失敗，請確認登入狀態後重試。',true);});off=function(){ref.off('value',h);};}).catch(function(e){toast('資料服務載入失敗，請稍後重試。',true);});return function(){dead=true;if(off)off();};},
     get:function(p){return init().then(function(db){return db.ref(p).once('value');}).then(function(s){return s.val();});},
     set:function(p,v){try{needVal(v,p);}catch(e){return Promise.reject(e);}return init().then(function(db){return db.ref(p).set(cleanJSON(v));});},
-    update:function(p,o){try{Object.keys(o).forEach(function(k){needVal(o[k],p+'/'+k);});}catch(e){return Promise.reject(e);}return init().then(function(db){return db.ref(p).update(cleanJSON(o));});}
+    update:function(p,o){try{Object.keys(o).forEach(function(k){needVal(o[k],p+'/'+k);});}catch(e){return Promise.reject(e);}return init().then(function(db){return db.ref(p || '/').update(cleanJSON(o));});}
   };
 })();
 
