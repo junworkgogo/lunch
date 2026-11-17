@@ -1332,7 +1332,7 @@ function pageNew(root,q){
 /* ---------- 點餐頁 ---------- */
 function pageGroup(root,gid){
   var group=null,orders={},got=false,built=false,lastClosed=null,editingId=null,submitting=false,retryOrderId=null,pageAlive=true;
-  var menu=[],itemIdx={},cart=[],closePicker=null,menuEl,linesEl;
+  var menu=[],itemIdx={},cart=[],closePicker=null,closeSuccessDialog=null,menuEl,linesEl;
   root.innerHTML='<div class="page"><p class="muted">載入中…</p></div>';
   var $=function(s){return root.querySelector(s);};
   function mounted(){return pageAlive&&built&&group&&!group.deleted&&root.isConnected!==false&&!!$('#submit');}
@@ -1405,6 +1405,49 @@ function pageGroup(root,gid){
     toast('已載入訂單，改好後按「更新訂單」');
   }
   function itemsHtml(o){return '<ul>'+arr(o.items).map(function(it){return '<li><span>'+esc(lineLabel(it))+' ×'+it.qty+(it.note?'<span class="lnote">備註：'+esc(it.note)+'</span>':'')+'</span><span>'+money(lineTotal(it))+'</span></li>';}).join('')+'</ul>';}
+
+  function showOrderSuccessDialog(wasEdit, orderName, quantity, total){
+    if(closeSuccessDialog)closeSuccessDialog();
+    var previousFocus=document.activeElement, previousOverflow=document.body.style.overflow;
+    var overlay=document.createElement('div');
+    overlay.className='order-success-overlay';
+    overlay.innerHTML='<section class="order-success-dialog" role="dialog" aria-modal="true" aria-labelledby="orderSuccessTitle" aria-describedby="orderSuccessDesc">'+
+      '<div class="order-success-icon" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle class="order-success-circle" cx="32" cy="32" r="25"></circle><path class="order-success-tick" d="M19 33l9 9 18-20"></path></svg></div>'+
+      '<p class="order-success-kicker">JUN胖達 · 送出確認</p>'+
+      '<h2 id="orderSuccessTitle">'+(wasEdit?'訂單已更新！':'訂單已送出！')+'</h2>'+
+      '<p id="orderSuccessDesc" class="order-success-desc">已成功儲存至系統，你可以放心查看下方訂單。</p>'+
+      '<div class="order-success-receipt"><span>訂購人</span><strong>'+esc(orderName)+'</strong><span>餐點份數</span><strong>'+quantity+' 份</strong><span>餐點金額</span><strong>'+money(total)+'</strong></div>'+
+      '<p class="order-success-notice">'+(wasEdit?'更新完成，付款標記可能需要重新核對。':'這代表訂單已送出，尚不代表完成付款。')+'</p>'+
+      '<div class="order-success-actions"><button type="button" class="btn primary" data-success-view>查看我的訂單</button><button type="button" class="btn" data-success-close>完成</button></div>'+
+      '</section>';
+    function close(){
+      if(!overlay.parentNode)return;
+      document.removeEventListener('keydown',onKey);
+      overlay.parentNode.removeChild(overlay);
+      document.body.style.overflow=previousOverflow;
+      closeSuccessDialog=null;
+      if(previousFocus&&document.contains(previousFocus)&&typeof previousFocus.focus==='function')previousFocus.focus();
+    }
+    function onKey(e){
+      if(e.key==='Escape'){e.preventDefault();close();return;}
+      if(e.key!=='Tab')return;
+      var first=overlay.querySelector('[data-success-view]'),last=overlay.querySelector('[data-success-close]');
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    }
+    overlay.querySelector('[data-success-view]').addEventListener('click',function(){
+      close();
+      var mine=$('#mine');
+      if(mine&&!mine.hidden)mine.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+    overlay.querySelector('[data-success-close]').addEventListener('click',close);
+    overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+    closeSuccessDialog=close;
+    document.body.appendChild(overlay);
+    document.body.style.overflow='hidden';
+    document.addEventListener('keydown',onKey);
+    overlay.querySelector('[data-success-view]').focus();
+  }
   function canManageGroup(){
     return !!(group&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||(group.ownerUserId&&userId()===group.ownerUserId)));
   }
@@ -1424,7 +1467,7 @@ function pageGroup(root,gid){
     var mineIds=myOrders(gid).slice();if(userId())Object.keys(orders).forEach(function(k){if(orders[k].userId===userId()&&mineIds.indexOf(k)<0)mineIds.push(k);});
     var mine=mineIds.map(function(k){var o=orders[k];if(o){o.id=k;}return o;}).filter(function(o){return o&&mayEditOrder(gid,o.id,o);});
     $('#mine').hidden=!mine.length;
-    $('#mineL').innerHTML=mine.map(function(o){return '<div class="ob"><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'<div class="actions"><button type="button" class="btn sm" data-edit="'+esc(o.id)+'"'+(dis?' disabled':'')+'>修改</button><button type="button" class="btn sm danger" data-cancel="'+esc(o.id)+'"'+(dis?' disabled':'')+'>取消</button></div></div>';}).join('');
+    $('#mineL').innerHTML=mine.map(function(o){return '<div class="ob"><div class="order-sent-badge"><span class="order-sent-check" aria-hidden="true">'+I('check',16)+'</span><span>已成功送出</span><small>尚不代表已付款</small></div><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'<div class="actions"><button type="button" class="btn sm" data-edit="'+esc(o.id)+'"'+(dis?' disabled':'')+'>修改</button><button type="button" class="btn sm danger" data-cancel="'+esc(o.id)+'"'+(dis?' disabled':'')+'>取消</button></div></div>';}).join('');
     $('#allN').textContent=live.length;
     $('#allL').innerHTML=live.length?live.map(function(o){return '<div class="ob"><div class="oh"><span>'+esc(o.name)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'</div>';}).join(''):'<p class="muted">還沒有人點餐</p>';
   }
@@ -1543,8 +1586,12 @@ function pageGroup(root,gid){
         if(!saved)return;
         addMyOrder(gid,oid);retryOrderId=null;
         LS.set(K.name,name);
-        if(mounted()){setEditing(null);resetCart();cartEl.classList.toggle('open',false);bar.setAttribute('aria-expanded','false');}
-        toast(wasEdit?'訂單已更新':'訂單已送出，謝謝！');
+        if(mounted()){
+          orders[oid]=Object.assign({},orders[oid]||{},values);
+          setEditing(null);resetCart();cartEl.classList.toggle('open',false);bar.setAttribute('aria-expanded','false');
+          refresh();
+          showOrderSuccessDialog(wasEdit,name,items.reduce(function(sum,it){return sum+(Number(it.qty)||0);},0),total);
+        }
       }).catch(fail).finally(function(){submitting=false;if(mounted())refresh();});
     });
     tabsEl.addEventListener('click',function(e){var b=e.target.closest('.tab');if(!b)return;$('#cat-'+b.getAttribute('data-t')).scrollIntoView({behavior:'smooth',block:'start'});});
@@ -1569,7 +1616,7 @@ function pageGroup(root,gid){
     refresh();
   }
   var offs=[DB.on('groups/'+gid,function(v){group=v;got=true;onData();}),DB.on('orders/'+gid,function(v){orders=v||{};onData();})];
-  return function(){pageAlive=false;offs.forEach(function(f){f();});clearInterval(tm);if(scrollOff)scrollOff();if(closePicker)closePicker();};
+  return function(){pageAlive=false;offs.forEach(function(f){f();});clearInterval(tm);if(scrollOff)scrollOff();if(closePicker)closePicker();if(closeSuccessDialog)closeSuccessDialog();};
 }
 
 /* ---------- 管理頁 ---------- */
