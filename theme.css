@@ -135,7 +135,7 @@ input[data-time-select][hidden] { display: none !important; }
 .free-shipping p:first-child{display:flex;justify-content:space-between;gap:6px 16px;flex-wrap:wrap}
 .free-shipping p:first-child span{font-size:13px}
 .free-shipping .free-shipping-status{font-weight:700}
-.free-shipping progress{display:block;width:100%;height:8px;margin:8px 0 10px;accent-color:#9296a1}
+.free-shipping progress{display:block;width:100%;height:8px;margin:8px 0 10px;accent-color:#2600ff}
 .free-shipping .hint{font-size:12px;margin-bottom:0;color:#6b6e78}
 .free-shipping.reached{border-color:#d5d7dd;background:#f0f1f3}
 .free-shipping-estimate{margin:0 0 14px;padding:10px 12px;border-radius:9px;background:#f4f5f7;color:#545c68;font-size:13px;line-height:1.65}
