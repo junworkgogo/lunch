@@ -50,7 +50,7 @@ function ocrToMenu(text){
   var lines=String(text||'').split(/\r?\n/),out=[],category='',items=0,unknown=[],seen={};
   var section=/^(便當|飯類|麵類|湯類|小菜|主食|飲料|茶類|咖啡|果汁|點心|甜點|早餐|套餐|單點|炸物|鍋物|蔬食|沙拉|人氣推薦|熱銷推薦|招牌|其他|餐點|飲品)(?:系列|區)?$/;
   lines.forEach(function(raw){
-    var line=raw.replace(/[|｜]/g,' ').replace(/[＄]/g,'$').replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);}).replace(/[，]/g,',').replace(/\s+/g,' ').trim();
+    var line=raw.replace(/[|｜]/g,' ').replace(/[＄]/g,'$').replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);}).replace(/[，]/g,',').replace(/\s+/g,' ').trim().replace(/([一-龥])\s+(?=[一-龥])/g,'$1').replace(/(\d)\s*[.,]\s*0{1,2}(?=\s*元?\s*$)/,'$1');
     if(!line||line.length>100)return;
     line=line.replace(/^[●•◦▪■★☆\-–—]+\s*/,'').trim();
     if(!line)return;

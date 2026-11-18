@@ -1202,7 +1202,8 @@ function menuTextFrom(cats){
   var lines=[];
   cats.forEach(function(c){
     var items=arr(c.items).filter(Boolean);if(!items.length)return;
-    lines.push('{'+(mtName(c.c)||'其他')+'}');
+    var cn=mtName(c.c);if(/^_*(undefined|null)_*$/i.test(cn||''))cn='';
+    lines.push('{'+(cn||'其他')+'}');
     var common={},sigs=[];
     if(items.length>=2)arr(items[0].g).forEach(function(g){var s=impGroupLine(g);if(items.every(function(it){return arr(it.g).some(function(h){return impGroupLine(h)===s;});})){common[s]=1;sigs.push(s);}});
     sigs.forEach(function(s){lines.push('  '+s);});
@@ -1988,7 +1989,7 @@ if(!FIREBASE_CONFIG)ensureSeed();
 if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
-<script src="menu-vision.js?v=20261118dept"></script>
+<script src="menu-vision.js?v=20261118ocr"></script>
 <script src="interface.js?v=20261118hop4"></script>
 <script src="participants.js?v=20261118dept"></script>
 <script src="pay.js?v=20261118dept"></script>
