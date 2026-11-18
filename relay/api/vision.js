@@ -1,5 +1,7 @@
 /* JUN胖達／AI 菜單圖片辨識，Vercel relay/api/vision.js
- * Server env: OPENAI_API_KEY (required), OPENAI_VISION_MODEL (optional).
+ * Server env（2026-11-19 起 Gemini 優先）：
+ *   GEMINI_API_KEY（有設就用 Gemini 讀圖）、GEMINI_VISION_MODEL（選填，預設 gemini-3.6-flash）
+ *   OPENAI_API_KEY、OPENAI_VISION_MODEL（沒設 Gemini 金鑰、或 Gemini 全部失敗時才用；兩者共用 55 秒總時限）
  * Admin access checked with Firebase Identity Toolkit; image bytes held in memory only.
  */
 'use strict';
@@ -7,6 +9,23 @@ const ORIGIN='https://junworkgogo.github.io';
 const FIREBASE_KEY='AIzaSyCLzpiNkFesQYvTiS9e9Jh4fMVRr6riQ74'; // Firebase client config, not secret
 const PROJECT_ID='lunch-8ebca';
 const ADMINS=new Set(['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw']);
+const TOTAL_MS=55000;
+const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/';
+const GEMINI_FALLBACKS=['gemini-flash-latest','gemini-flash-lite-latest'];
+const PROMPT='你是台灣餐廳菜單資料擷取助手。只根據照片上實際看得見的字與價格辨識菜單，不得猜測或補造品名、價格、選項，不要把地址、電話、營業時間或折扣當作餐點。以繁體中文輸出 JSON 物件，格式 {"categories":[{"name":"分類名稱","items":[{"name":"品名","price":80,"soldOut":false,"options":[{"name":"尺寸","required":true,"choices":[{"name":"小份","add":0},{"name":"大份","add":20}]}]}]}],"warnings":["無法辨識的品項或價格"]}。分類沒有標示時用「其他」。price 只允許確定的整數新台幣，價格不清楚就略過該品項並放 warnings。規格或加料只有照片明確列出選項及加價時才填 options；不要猜測共同選項。多個完整價格：將最便宜價格寫 price，options 各選項 add 為與最低價之差；不要把原價誤作折扣價。多張圖重複品項要去重。保持菜單原始分類、名稱順序。不要 markdown。';
+const SCHEMA={type:'OBJECT',properties:{
+ categories:{type:'ARRAY',items:{type:'OBJECT',properties:{
+  name:{type:'STRING'},
+  items:{type:'ARRAY',items:{type:'OBJECT',properties:{
+   name:{type:'STRING'},price:{type:'INTEGER'},soldOut:{type:'BOOLEAN'},
+   options:{type:'ARRAY',items:{type:'OBJECT',properties:{
+    name:{type:'STRING'},required:{type:'BOOLEAN'},
+    choices:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},add:{type:'INTEGER'}},required:['name','add']}}
+   },required:['name','choices']}}
+  },required:['name','price']}}
+ },required:['name','items']}},
+ warnings:{type:'ARRAY',items:{type:'STRING'}}
+},required:['categories']};
 function response(res,status,json){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(json));}
 function cors(req,res){
  const origin=String(req.headers.origin||'');
@@ -26,11 +45,82 @@ async function verifyAdmin(token){
  const json=await r.json(),user=json.users&&json.users[0];
  return !!(user&&user.localId&&user.emailVerified===true&&ADMINS.has(String(user.email||'').toLowerCase()));
 }
+// Gemini：照片直接放進 inlineData；不支援的設定（thinking／高解析／schema）被 400 退回時拿掉重送
+function geminiPayload(images,opt){
+ const gen={temperature:0,maxOutputTokens:16384,responseMimeType:'application/json'};
+ if(opt.schema)gen.responseSchema=SCHEMA;
+ if(opt.thinking)gen.thinkingConfig={thinkingLevel:'LOW'};
+ if(opt.hires)gen.mediaResolution='MEDIA_RESOLUTION_HIGH';
+ return {contents:[{role:'user',parts:[{text:PROMPT}].concat(images.map(u=>({inlineData:{mimeType:'image/jpeg',data:u.slice(u.indexOf(',')+1)}})))}],generationConfig:gen};
+}
+function geminiJson(data){
+ const parts=(data&&data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts)||[];
+ const text=parts.filter(p=>p&&!p.thought&&typeof p.text==='string').map(p=>p.text).join('').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+ const parsed=JSON.parse(text||'{}');
+ return parsed&&Array.isArray(parsed.categories)?parsed:null;
+}
+async function callGemini(images,key,deadline){
+ const models=[...new Set([String(process.env.GEMINI_VISION_MODEL||'gemini-3.6-flash').trim()].concat(GEMINI_FALLBACKS))];
+ let quota=false;
+ for(const model of models){
+  const opt={schema:true,thinking:true,hires:true};
+  for(let attempt=0;attempt<4;attempt++){
+   const remain=deadline-Date.now();
+   if(remain<4000)return {fail:quota?'quota':'timeout'};
+   let r,data=null;
+   try{
+    r=await fetch(GEMINI_URL+encodeURIComponent(model)+':generateContent',{
+     method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
+     body:JSON.stringify(geminiPayload(images,opt)),signal:AbortSignal.timeout(remain-1000)
+    });
+    try{data=await r.json();}catch(e){data=null;}
+   }catch(e){return {fail:quota?'quota':'timeout'};}
+   if(r.status===200){
+    let parsed=null;try{parsed=geminiJson(data);}catch(e){parsed=null;}
+    if(parsed)return {parsed,model};
+    console.error('gemini vision bad json',model);break;
+   }
+   const msg=String((data&&data.error&&data.error.message)||'').toLowerCase();
+   if(r.status===429){quota=true;break;}
+   if(/api key|api_key|permission_denied|unregistered callers/.test(msg)||r.status===401||r.status===403)return {fail:'key'};
+   if(r.status===400){
+    if(opt.thinking&&/thinking/.test(msg)){opt.thinking=false;continue;}
+    if(opt.hires&&/media.?resolution/.test(msg)){opt.hires=false;continue;}
+    if(opt.schema&&/schema|response_mime|responsemime/.test(msg)){opt.schema=false;continue;}
+   }
+   console.error('gemini vision fail',model,r.status);break;
+  }
+ }
+ return {fail:quota?'quota':'other'};
+}
+const GEMINI_FAIL={
+ quota:[429,'Gemini 免費額度暫時用完，已可改用 OCR'],
+ key:[502,'Gemini 金鑰無效或沒有權限，請檢查 Vercel 的 GEMINI_API_KEY'],
+ timeout:[504,'AI 辨識逾時，請少放幾張照片再試，已可改用 OCR'],
+ other:[502,'AI 服務暫時無法辨識，已可改用 OCR']
+};
+async function callOpenAI(images,key,deadline){
+ const remain=deadline-Date.now();
+ if(remain<4000)return {status:504,message:'AI 辨識逾時，請少放幾張照片再試，已可改用 OCR'};
+ const payload={model:process.env.OPENAI_VISION_MODEL||'gpt-4o-mini',temperature:0,max_tokens:6000,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:PROMPT},...images.map(url=>({type:'image_url',image_url:{url,detail:'high'}}))]}]};
+ const upstream=await fetch('https://api.openai.com/v1/chat/completions',{
+  method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+  body:JSON.stringify(payload),signal:AbortSignal.timeout(remain-1000)
+ });
+ if(!upstream.ok)return {status:502,message:'AI 服務暫時無法辨識，已可改用 OCR'};
+ const result=await upstream.json();
+ const content=result.choices&&result.choices[0]&&result.choices[0].message&&result.choices[0].message.content;
+ const parsed=JSON.parse(content||'{}');
+ if(!Array.isArray(parsed.categories))return {status:502,message:'AI 結果格式不符，請重試'};
+ return {parsed};
+}
 module.exports=async function(req,res){
  if(!cors(req,res)){response(res,403,{message:'網域不允許'});return;}
  if(req.method==='OPTIONS'){res.statusCode=204;res.end();return;}
  if(req.method!=='POST'){response(res,405,{message:'只支援 POST'});return;}
- if(!process.env.OPENAI_API_KEY){response(res,503,{message:'AI 服務尚未設定，已可改用 OCR'});return;}
+ const geminiKey=String(process.env.GEMINI_API_KEY||'').trim(),openaiKey=process.env.OPENAI_API_KEY;
+ if(!geminiKey&&!openaiKey){response(res,503,{message:'AI 服務尚未設定，已可改用 OCR'});return;}
+ const deadline=Date.now()+TOTAL_MS;
  const bearer=/^Bearer\s+(.+)$/i.exec(String(req.headers.authorization||''));
  try{
   if(!bearer||!await verifyAdmin(bearer[1])){response(res,403,{message:'只有已驗證管理員能使用雲端 AI 辨識'});return;}
@@ -40,17 +130,13 @@ module.exports=async function(req,res){
   if(!Array.isArray(images)||images.length<1||images.length>5||images.some(x=>typeof x!=='string'||x.length>3500000||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x))){
    response(res,400,{message:'請上傳 1–5 張有效的菜單照片'});return;
   }
-  const prompt='你是台灣餐廳菜單資料擷取助手。只根據照片上實際看得見的字與價格辨識菜單，不得猜測或補造品名、價格、選項，不要把地址、電話、營業時間或折扣當作餐點。以繁體中文輸出 JSON 物件，格式 {"categories":[{"name":"分類名稱","items":[{"name":"品名","price":80,"soldOut":false,"options":[{"name":"尺寸","required":true,"choices":[{"name":"小份","add":0},{"name":"大份","add":20}]}]}]}],"warnings":["無法辨識的品項或價格"]}。分類沒有標示時用「其他」。price 只允許確定的整數新台幣，價格不清楚就略過該品項並放 warnings。規格或加料只有照片明確列出選項及加價時才填 options；不要猜測共同選項。多個完整價格：將最便宜價格寫 price，options 各選項 add 為與最低價之差；不要把原價誤作折扣價。多張圖重複品項要去重。保持菜單原始分類、名稱順序。不要 markdown。';
-  const payload={model:process.env.OPENAI_VISION_MODEL||'gpt-4o-mini',temperature:0,max_tokens:6000,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:prompt},...images.map(url=>({type:'image_url',image_url:{url,detail:'high'}}))]}]};
-  const upstream=await fetch('https://api.openai.com/v1/chat/completions',{
-   method:'POST',headers:{'Authorization':'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},
-   body:JSON.stringify(payload),signal:AbortSignal.timeout(55000)
-  });
-  if(!upstream.ok){response(res,502,{message:'AI 服務暫時無法辨識，已可改用 OCR'});return;}
-  const result=await upstream.json();
-  const content=result.choices&&result.choices[0]&&result.choices[0].message&&result.choices[0].message.content;
-  const parsed=JSON.parse(content||'{}');
-  if(!Array.isArray(parsed.categories)){response(res,502,{message:'AI 結果格式不符，請重試'});return;}
-  response(res,200,{categories:parsed.categories,warnings:parsed.warnings||[]});
+  if(geminiKey){
+   const g=await callGemini(images,geminiKey,deadline);
+   if(g.parsed){response(res,200,{categories:g.parsed.categories,warnings:g.parsed.warnings||[],engine:'Gemini',model:g.model});return;}
+   if(!openaiKey){const f=GEMINI_FAIL[g.fail]||GEMINI_FAIL.other;response(res,f[0],{message:f[1]});return;}
+  }
+  const o=await callOpenAI(images,openaiKey,deadline);
+  if(!o.parsed){response(res,o.status,{message:o.message});return;}
+  response(res,200,{categories:o.parsed.categories,warnings:o.parsed.warnings||[],engine:'GPT'});
  }catch(e){response(res,500,{message:'圖片辨識遇到問題，請稍後重試或使用 OCR'});}
 };
