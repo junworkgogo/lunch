@@ -250,8 +250,8 @@ iframe.map{filter:grayscale(1) contrast(1.06)}
 .fld-ship .fld-opt{color:#6b6e78;font-weight:500}
 
 /* 2026-11-18 標頭「JUN胖達」右邊的貓咪線稿（使用者提供的圖，去背成透明 PNG，顏色同標題字） */
-.brandlink .brand-cat{display:block;height:34px;width:auto;flex-shrink:0}
-@media(max-width:600px){.brandlink .brand-cat{height:28px}}
+.brandlink .brand-cat{display:block;height:20px;width:auto;flex-shrink:0;align-self:center}
+@media(max-width:600px){.brandlink .brand-cat{height:18px}}
 
 /* 2026-11-18 文字小動態「逐字跳動」（使用者選 A）；拆字在 interface.js 檔尾 */
 .hop-c{display:inline-block}
