@@ -91,7 +91,7 @@ function safeResult(json){
   var text=out.join('\n'),parsed=parse(text);
   if(!parsed||!parsed.count)throw new Error('圖片中沒有辨識到可用的餐點與價格，請換清晰照片');
   if(parsed.errors.length)throw new Error('AI 結果包含不支援的菜單格式，請改用文字辨識');
-  return {text:text,count:parsed.count,source:'AI',warnings:Array.isArray(json.warnings)?json.warnings.slice(0,8):[]};
+  return {text:text,count:parsed.count,source:/^(Gemini|GPT)$/.test(json.engine)?json.engine:'AI',warnings:Array.isArray(json.warnings)?json.warnings.slice(0,8):[]};
 }
 async function callAI(images){
   if(!window.firebase||!firebase.auth||!firebase.auth().currentUser)throw new Error('尚未登入');
@@ -113,7 +113,7 @@ async function callOCR(images,onProgress){
   all.forEach(function(r){if(r.count){var s=r.text;if(last&&s.indexOf('{'+last+'}')===0)s=s.replace(/^\{[^}]+\}\n/,'');merged.push(s);var cats=s.match(/\{([^}]+)\}/g);if(cats&&cats.length)last=cats[cats.length-1].slice(1,-1);}warnings=warnings.concat(r.warnings||[]);});
   var text=merged.join('\n');var p=parse(text);
   if(!p||!p.count)throw new Error('沒有辨識到完整的「品名＋價格」，請換清晰、正面拍攝的圖片，或改用手動編輯');
-  return {text:text,count:p.count,source:'OCR',warnings:warnings.slice(0,6)};
+  return {text:text,count:p.count,source:'免費文字辨識',ocr:true,warnings:warnings.slice(0,6)};
 }
 function mount(form){
   if(form.dataset.menuVisionReady)return;
@@ -121,11 +121,11 @@ function mount(form){
   form.dataset.menuVisionReady='1';
   var target=sm.closest('.fld'),box=document.createElement('div');
   box.className='menu-vision';
-  box.innerHTML='<h3>✦ AI 圖片辨識菜單</h3>'+
+  box.innerHTML='<h3>✦ 圖片辨識菜單</h3>'+
     '<p class="mv-sub">上傳店家菜單照片，辨識餐點名稱、分類、價格及選項。支援最多 5 張照片，辨識後可檢查與修改，不會直接覆蓋已儲存資料。</p>'+
     '<div class="mv-choose"><label for="mvFile" class="btn">＋ 上傳菜單照片</label><span class="mv-hint">JPG / PNG / WebP，每張 12 MB 以下</span><input class="mv-file" id="mvFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic" multiple></div>'+
     '<div class="mv-photos" data-mv-photos hidden></div>'+
-    '<div class="mv-actions"><button type="button" class="btn primary" data-mv-run disabled>✦ 開始 AI 辨識</button><button type="button" class="btn" data-mv-clear disabled>清空照片</button></div>'+
+    '<div class="mv-actions"><button type="button" class="btn primary" data-mv-run disabled>✦ 開始辨識</button><button type="button" class="btn" data-mv-clear disabled>清空照片</button></div>'+
     '<div data-mv-status class="mv-progress" role="status" aria-live="polite">選擇菜單照片即可開始</div>'+
     '<div class="mv-result" data-mv-result hidden><h4 data-mv-title>辨識結果</h4><div class="mv-list" data-mv-preview></div><p class="mv-warnings" data-mv-warning></p><div class="mv-actions"><button type="button" class="btn primary" data-mv-apply>✓ 帶入菜單欄位</button><button type="button" class="btn" data-mv-dismiss>取消</button></div><p class="mv-hint">帶入後可繼續修改，只有按下原本的「儲存店家」才會更新資料庫</p></div>';
   target.parentNode.insertBefore(box,target);
@@ -145,7 +145,7 @@ function mount(form){
       try{status(box,'正在處理第 '+(i+1)+' / '+selected.length+' 張照片…');var data=await fileToData(selected[i]);if(!alive(box))return;items.push({name:selected[i].name,data:data});}
       catch(e){status(box,e.message,true);}
     }
-    working=false;update();if(items.length)status(box,'已選取 '+items.length+' 張照片，按「開始 AI 辨識」');
+    working=false;update();if(items.length)status(box,'已選取 '+items.length+' 張照片，按「開始辨識」');
   });
   photos.addEventListener('click',function(e){
     var b=e.target.closest('[data-mv-del]');if(!b||working)return;
@@ -160,22 +160,22 @@ function mount(form){
   });
   run.addEventListener('click',async function(){
     if(working||!items.length)return;
-    working=true;update();result.hidden=true;status(box,'正在使用 AI 辨識 '+items.length+' 張菜單…');
+    working=true;update();result.hidden=true;status(box,'正在使用 AI 辨識 '+items.length+' 張菜單，約需 10–40 秒…');
     var images=items.map(function(it){return it.data;});
     try{
       var data;
       try{data=await callAI(images);}
       catch(err){
         if(!alive(box))return;
-        status(box,'AI 未完成（'+String(err.message||'服務不可用').slice(0,60)+'），改用圖片文字辨識…');
-        data=await callOCR(images,function(p){if(alive(box))status(box,'OCR 文字辨識中 '+p+'%…');});
+        status(box,'AI 沒有完成（'+String(err.message||'服務不可用').slice(0,60)+'），改用免費文字辨識，準確度較低…');
+        data=await callOCR(images,function(p){if(alive(box))status(box,'免費文字辨識中 '+p+'%（AI 沒有接上，準確度較低）…');});
       }
       if(!alive(box))return;
       recognized=data;
-      $(box,'[data-mv-title]').textContent='✓ '+data.source+' 辨識完成，共 '+data.count+' 個品項';
+      $(box,'[data-mv-title]').textContent='✓ '+data.source+' 辨識完成，共 '+data.count+' 個品項'+(data.ocr?'（AI 沒有接上，準確度較低）':'');
       $(box,'[data-mv-preview]').textContent=data.text;
       var warnings=(data.warnings||[]).map(function(w){return typeof w==='string'?w:String(w&&w.message||'');}).filter(Boolean);
-      $(box,'[data-mv-warning]').textContent=warnings.length?'請再確認不清楚的文字／價格：'+warnings.join('、'):'請確認餐點與價格是否與原圖相符，特別是規格及加價';
+      $(box,'[data-mv-warning]').textContent=(data.ocr?'免費文字辨識常有錯字，請逐項對照原圖。':'')+(warnings.length?'請再確認不清楚的文字／價格：'+warnings.join('、'):'請確認餐點與價格是否與原圖相符，特別是規格及加價');
       result.hidden=false;
       status(box,'已辨識 '+data.count+' 個品項，請檢查下方結果再帶入');
     }catch(e){if(alive(box))status(box,'辨識失敗：'+(e.message||'請換較清晰的照片'),true);}
