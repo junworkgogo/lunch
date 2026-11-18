@@ -260,3 +260,9 @@ a.btn.primary[href="#/new"] .hop-c{animation:hopLoop 3.2s ease-in-out infinite;a
 @keyframes hopLoop{0%,30%,100%{transform:none}10%{transform:translateY(-.25em)}20%{transform:none}}
 @keyframes hopOnce{0%,100%{transform:none}45%{transform:translateY(-.25em)}}
 @media(prefers-reduced-motion:reduce){.hop-c{animation:none!important}}
+
+/* 11/18 點餐小卡變矮：選項灰字只留特殊條件後，拿掉固定的最小高度；同一列卡片等高，價格與＋固定在底部 */
+.item{display:flex;flex-direction:column}
+.item>.row{flex:1;min-height:0;grid-template-rows:auto 40px;align-content:space-between}
+.itemhit{min-height:0}
+@media(max-width:600px){.item>.row{grid-template-rows:auto 36px}}

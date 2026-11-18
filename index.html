@@ -485,7 +485,7 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261118cat-align">
+<link rel="stylesheet" href="glass.css?v=20261118card">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
@@ -820,6 +820,8 @@ function freeShippingHtml(g,os,admin){
   var v=freeShippingStats(g,os);if(!v)return '';
   return '<div class="free-shipping'+(!v.remaining?' reached':'')+'"><p><strong>滿 '+money(v.threshold)+' 免運</strong><span>已送出餐點 '+money(v.submitted)+'</span></p><p class="free-shipping-status">'+(v.remaining?'還差 '+money(v.remaining)+' 達免運門檻':'已達免運門檻')+'</p><progress max="'+v.threshold+'" value="'+Math.min(v.submitted,v.threshold)+'" aria-label="已送出訂單的免運門檻進度"></progress><p class="hint">'+(admin?'請團主核對店家免運條件與運費設定；此提示不會自動變更運費或應收款。':'依已送出餐點原價統計，不含運費與折扣；實際運費由團主核對。')+'</p></div>';
 }
+// 點餐小卡只顯示特殊條件（使用者 11/18）：群組名有「限／固定／只」（「限選2」這類選幾項的限制除外），或必選且只有一個選項（例：溫度只有熱）；其餘點進去再選
+function specialNote(it){return arr(it&&it.g).map(function(g){var o=arr(g&&g.o),one=o.length===1?String(o[0].n||''):'',n=String(g&&g.n||'');if(/限選|限擇|限\s*\d|最多|至多/.test(n))return '';if(/限|固定|只/.test(n))return one&&n.indexOf(one)<0?n+'：'+one:n;return g.req&&one?n+'：'+one:'';}).filter(Boolean).join('、');}
 function lineLabel(it){var o=lineOpts(it);return it.item+(o.length?'（'+o.map(function(x){return x.choice;}).join('、')+'）':'');}
 /* Integer settlement: deterministic largest-remainder allocation, cents are not used. */
 function wholeMoney(v){var n=Number(v);if(!Number.isSafeInteger(n)||n<0)throw new Error('金額必須是安全範圍內的非負整數');return n;}
@@ -1454,7 +1456,7 @@ function pageGroup(root,gid){
       html+='<section class="cat" id="cat-'+ci+'"><h2>'+esc(cat.c)+'<small>'+cat.items.length+' 項</small></h2><div class="items">';
       cat.items.forEach(function(it,ii){
         var ik=ci+'-'+ii;itemIdx[ik]={ci:ci,cat:cat.c,it:it};
-        html+='<div class="item" data-ik="'+ik+'"><div class="row"><button type="button" class="itemhit" data-open="'+ik+'"><span class="iname">'+esc(it.n)+'</span><span class="item-count" hidden></span><span class="badge off soldtag">停售</span>'+(it.g.length?'<span class="gnames">'+esc(it.g.map(function(g){return g.n;}).join('、'))+'</span>':'')+'</button><span class="price">$'+it.p+'</span><button type="button" class="q-btn plus" data-add="'+ik+'" aria-label="加入 '+esc(it.n)+'">'+I('plus')+'</button></div></div>';
+        html+='<div class="item" data-ik="'+ik+'"><div class="row"><button type="button" class="itemhit" data-open="'+ik+'"><span class="iname">'+esc(it.n)+'</span><span class="item-count" hidden></span><span class="badge off soldtag">停售</span>'+(specialNote(it)?'<span class="gnames">'+esc(specialNote(it))+'</span>':'')+'</button><span class="price">$'+it.p+'</span><button type="button" class="q-btn plus" data-add="'+ik+'" aria-label="加入 '+esc(it.n)+'">'+I('plus')+'</button></div></div>';
       });
       html+='</div></section>';
     });
