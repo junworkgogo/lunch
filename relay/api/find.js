@@ -14,6 +14,7 @@ const ALLOW_ORIGINS = [/^https:\/\/junworkgogo\.github\.io$/, /^http:\/\/(localh
 const DBD = 'https://dinbendon.net/mvc/api/';
 const NIDIN = 'https://loctw-service-api.nidin.shop/shopper/v2/';
 const ARCGIS = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates';
+const menuSources = require('../lib/menu-sources');
 // 可以跟著轉址走的 Google 網域（避免被拿來連到任意網站）
 const GOOGLE_HOST = /^(?:maps\.app\.goo\.gl|goo\.gl|g\.co|(?:www\.|maps\.)?google\.com(?:\.tw)?|(?:www\.)?google\.com\.hk)$/i;
 
@@ -278,8 +279,17 @@ module.exports = async function (req, res) {
   const op = String(q.op || '');
   let out = null, cache = 'no-store';
   try {
-    if (op === 'lookup') {
+    if (op === 'menu-search') {
       const t = textOf(q.q);
+      if (!t) out = { status: 400, json: { error: 'bad-q' } };
+      else { out = { status: 200, json: await menuSources.discover(t) }; cache = out.json.list && out.json.list.length && !(out.json.warnings || []).some(function(w){return /暫時|忙碌/.test(w);}) ? 'private, max-age=600' : 'no-store'; }
+    } else if (op === 'menu-read') {
+      const url = String(q.url || '').trim();
+      if (!url || url.length > 2000) out = { status: 400, json: { error: 'bad-url' } };
+      else { out = { status: 200, json: await menuSources.readMenu(url) }; cache = out.json.cats && out.json.cats.length ? 'private, max-age=600' : 'no-store'; }
+    } else if (op === 'lookup') {
+      const raw = String(q.q || '').trim();
+      const t = textOf(raw) || (raw.length <= 2000 && isGoogleUrl(raw) ? raw : null);
       if (!t) out = { status: 400, json: { error: 'bad-q' } };
       else {
         out = await lookup(t);

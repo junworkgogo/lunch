@@ -473,6 +473,7 @@ a{color:#394150}
 .imp-best{background:#394150;color:#fff}
 .imp-list .btn{flex:none}
 .imp-d{white-space:nowrap}
+.imp-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.imp-links a{font-size:13px;min-height:36px;display:inline-flex;align-items:center;overflow-wrap:anywhere}.imp-note{margin:8px 0 0;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.imp-source-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.imp-source-actions a{font-size:12px;min-height:36px;display:inline-flex;align-items:center}.imp-warnings{margin:8px 0;font-size:12px;color:#675b4e}.imp-list li{flex-wrap:wrap}.imp-list .imp-m{flex:1;min-width:120px}
 .group-card-link{position:relative}
 .group-card-title{color:inherit;text-decoration:none}
 .group-card-title::after{content:"";position:absolute;inset:0;border-radius:inherit}
@@ -994,37 +995,41 @@ function impDist(a1,o1,a2,o2){var R=6371000,r=Math.PI/180,dA=(a2-a1)*r,dO=(o2-o1
 function impDistText(m){if(m==null)return '';if(m<1000)return '約 '+Math.max(10,Math.round(m/10)*10)+' 公尺';return '約 '+(m/1000).toFixed(1)+' 公里';}
 function impHours(a,b){var f=function(s){var m=/^(\d{1,2}):(\d{2})/.exec(String(s||''));return m?p2(m[1])+':'+m[2]:'';};a=f(a);b=f(b);return a&&b&&a!==b?a+'–'+b:'';}
 /* 找店：地圖連結／地址／店名 → 兩邊附近或同名的店 */
-function impFind(q){
+function impFindLegacy(q){
   var isLink=/^https?:\/\//i.test(q);
   return relayGet({op:'lookup',q:q}).then(function(L){
     if(L.error==='not-google-maps-link')throw impErr('這個網址不是 地圖連結。請貼 地圖的分享連結、地址或店名');
     if(L.error&&L.error!=='link-without-place')throw impErr('讀不到這個位置，請換成貼地址或店名試試');
-    var hasLL=L.lat!=null&&L.lng!=null,jobs=[],out=[];
+    var hasLL=L.lat!=null&&L.lng!=null,jobs=[],out=[],warnings=[];
+    function unavailable(src){var t=src+'暫時無法查詢';if(warnings.indexOf(t)<0)warnings.push(t);}
     // 店名：連結或地圖認得的店名優先；打的字像地址就不拿來比店名（改用門牌比對）
     // 「台中老虎城 六堆」這種：中繼站用「老虎城」定位（how=place-part），剩下的「六堆」才是店名
     var part=L.how==='place-part',addrKey=isLink?'':impAddrKey(q),name=L.name||(part?(L.rest||null):(isLink||addrKey?null:q));
     if(hasLL){
       jobs.push(relayGet({op:'dbd-map',lat:L.lat,lng:L.lng}).then(function(j){
+        if(j&&j.error)unavailable('訂便當');
         arr(j&&j.data).forEach(function(s){if(s&&s.id)out.push({src:'dbd',id:s.id,name:s.name,address:s.address||'',dist:(s.lat!=null&&s.lng!=null)?impDist(L.lat,L.lng,s.lat,s.lng):null});});
-      },function(){}));
+      },function(){unavailable('訂便當');}));
       jobs.push(relayGet({op:'nidin-near',lat:L.lat,lng:L.lng}).then(function(j){
+        if(j&&j.error)unavailable('你訂');
         arr(j&&j.list).forEach(function(s){
           if(!s||!s.id)return;
           var nm=String(s.name||''),br=String(s.brand_name||'');
           out.push({src:'nidin',id:s.id,name:(br&&nm.indexOf(br)<0?br+' ':'')+nm,address:(s.address||'')+(s.address_remark?' '+s.address_remark:''),phone:s.tel||'',hours:impHours(s.start_time,s.end_time),dist:s.distance!=null?Number(s.distance):null});
         });
-      },function(){}));
+      },function(){unavailable('你訂');}));
     }
     var term=L.name||(isLink?L.text:(part?L.rest:q)); // 只打商場名（沒有店名）就不用名字搜
     term=String(term||'').replace(/[（(][^）)]*[）)]/g,' ').trim().slice(0,40);
     if(impKey(term).length>=2)jobs.push(relayGet({op:'dbd-search',term:term}).then(function(j){ // 一個字 dinbendon 會回 400
+      if(j&&j.error)unavailable('訂便當');
       arr(j&&j.data).forEach(function(s){
         if(!s||!s.id)return;
         var sum=String(s.highlightedSummary||'').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
         if(s.name&&sum.indexOf(s.name)===0)sum=sum.slice(s.name.length).trim();
         out.push({src:'dbd',id:s.id,name:s.name,address:sum.slice(0,60),dist:null,byName:true});
       });
-    },function(){}));
+    },function(){unavailable('訂便當');}));
     if(!jobs.length)throw impErr('讀不到這個位置，請換成貼地址或店名試試');
     return Promise.all(jobs).then(function(){
       var seen={},list=[];
@@ -1044,7 +1049,7 @@ function impFind(q){
       });
       list=list.slice(0,8);
       if(list.length&&list[0].sim>=0.6)list[0].best=true;
-      return {where:L,list:list};
+      return {where:L,list:list,warnings:warnings};
     });
   });
 }
@@ -1209,6 +1214,11 @@ function menuTextFrom(cats){
   return lines.join('\n');
 }
 function impLoad(c){
+  if(c.src!=='dbd'&&c.src!=='nidin')return (c.shop?Promise.resolve(c.shop):relayGet({op:'menu-read',url:c.url||c.id})).then(function(s){
+    if(!s||s.error)throw impErr('這個來源目前無法讀取，請改貼公開的店家菜單連結');
+    if(!impSafeUrl(s.url)){var rejected=impErr('這個網址無法安全開啟，請改貼公開的店家菜單連結');rejected.unsafeUrl=true;throw rejected;}
+    s.cats=arr(s.cats);s.name=s.name||c.name;s.src=c.src;s.url=impSafeUrl(s.url);return s;
+  });
   if(c.src==='dbd')return relayGet({op:'dbd-detail',id:c.id}).then(function(j){
     var d=j&&j.data&&j.data.detail;if(!d)throw impErr('菜單來源讀不到這家店的菜單');
     var s=dbdToShop(d);s.src='dinbendon';return s;
@@ -1218,28 +1228,53 @@ function impLoad(c){
     var s=nidinToShop(m);s.src='nidin';s.name=c.name;s.address=c.address;s.phone=c.phone;s.hours=c.hours;s.tags='';return s;
   });
 }
-var IMP_SRC={dbd:'菜單來源一',nidin:'菜單來源二'};
+var IMP_SRC={dbd:'訂便當',nidin:'你訂',ichef:'iCHEF',quickclick:'快一點',oddle:'Oddle',website:'店家網站'};
+function impSafeUrl(s){try{var u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';}catch(e){return '';}}
+function impIsMaps(s){try{return /^(?:maps\.app\.goo\.gl|goo\.gl|g\.co|(?:www\.|maps\.)?google\.com(?:\.tw)?|(?:www\.)?google\.com\.hk)$/i.test(new URL(s).hostname);}catch(e){return false;}}
+function impSourceOf(s){try{var h=new URL(s).hostname;return /(^|\.)ichefpos\.com$/.test(h)?'ichef':/(^|\.)quickclick\.cc$/.test(h)?'quickclick':/(^|\.)oddle\.me$/.test(h)?'oddle':'website';}catch(e){return 'website';}}
+function impQuery(q,L){
+  L=L||{};var t=L.name||L.rest||L.text||q;
+  if(/^https?:\/\//i.test(t)){try{var u=new URL(t),m=/\/maps\/(?:place|search)\/([^/@?]+)/.exec(u.pathname);t=m?decodeURIComponent(m[1].replace(/\+/g,' ')):(u.searchParams.get('query')||u.searchParams.get('q')||'');}catch(e){t='';}}
+  return String(t).trim().slice(0,100);
+}
+function impFind(q){
+  if(/^https?:\/\//i.test(q)&&!impIsMaps(q)){
+    var url=impSafeUrl(q);if(!url)return Promise.reject(impErr('請貼上 https 的店家菜單或點餐連結'));
+    return relayGet({op:'menu-read',url:url}).then(function(s){
+      if(!s||s.error||!impSafeUrl(s.url))throw impErr('這個連結無法使用；請貼公開的 HTTPS 店家菜單或點餐連結');
+      var src=impSourceOf(s.url);return {where:{},query:s.name||'',warnings:arr(s.warnings),list:[{src:src,id:url,url:impSafeUrl(s.url),name:s.name||'店家菜單',address:s.address||'',shop:s}]};
+    });
+  }
+  return impFindLegacy(q).catch(function(e){return {where:{},list:[],warnings:[e.message||'原有來源暫時無法查詢']};}).then(function(r){
+    var term=impQuery(q,r.where);r.query=term;r.warnings=arr(r.warnings);
+    if(term.length<2){r.warnings.push('地圖連結未提供可辨認的店名，請改貼店名或店家的點餐連結');return r;}
+    return relayGet({op:'menu-search',q:term}).then(function(j){
+      if(j.error){r.warnings.push('其他菜單來源暫時無法搜尋，請稍後重試或直接貼菜單連結');return r;}
+      r.warnings=r.warnings.concat(arr(j.warnings));var seen={};
+      arr(j.list).forEach(function(c){var url=impSafeUrl(c.url||c.id);if(!url||seen[url])return;seen[url]=1;c.url=url;c.id=url;c.src=IMP_SRC[c.src]?c.src:impSourceOf(url);c.dist=null;c.best=false;r.list.push(c);});return r;
+    },function(){r.warnings.push('其他菜單來源暫時無法搜尋，請直接貼店家的菜單連結');return r;});
+  });
+}
 function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
   var iq=root.querySelector('#iq'),ib=root.querySelector('#ib'),ir=root.querySelector('#ir'),seq=0,last=[],filled={};
   function live(my){return my===seq&&ir.isConnected;} // 換了頁或又按了一次 → 舊的結果不要再寫回畫面
   function msg(html,bad){ir.innerHTML='<p class="imp-msg'+(bad?' bad':'')+'">'+html+'</p>';}
   function listHtml(r){
-    var L=r.where||{},hasLL=L.lat!=null&&L.lng!=null,place=L.how==='place-part'&&L.place?String(L.place):'';
-    if(!r.list.length){
-      if(!hasLL)return '<p class="imp-msg">找不到這個位置，也沒有同名的店。可以改貼 地圖連結或完整地址；商場裡的店，商場名和店名中間空一格（例如「台中老虎城 六堆」）。也可能 外部菜單來源 沒有這家，請手動輸入菜單。</p>';
-      if(place)return '<p class="imp-msg">「'+esc(place)+'」附近'+(L.rest?'找不到「'+esc(L.rest)+'」':'找不到店')+'。外部菜單來源 可能沒有這家，請手動輸入菜單。</p>';
-      return '<p class="imp-msg">附近找不到名字相近的店。外部菜單來源 可能沒有這家，請手動輸入菜單。</p>';
-    }
-    return '<p class="imp-msg">'+(place?'在「'+esc(place)+'」附近找到 ':'找到 ')+r.list.length+' 家，點「帶入」選一家：</p><ul class="imp-list">'+r.list.map(function(c,i){
+    var L=r.where||{},place=L.how==='place-part'&&L.place?String(L.place):'';
+    var warnings=arr(r.warnings).length?'<p class="imp-warnings">'+arr(r.warnings).map(esc).join('；')+'</p>':'';
+    var term=r.query||'',searches=term?'<div class="imp-links">'+[['全部菜單','菜單'],['iCHEF','site:shop.ichefpos.com'],['快一點','site:quickclick.cc'],['Oddle','site:oddle.me']].map(function(s){return '<a href="https://www.google.com/search?q='+encodeURIComponent(term+' '+s[1])+'" target="_blank" rel="noopener noreferrer">搜尋'+s[0]+' ↗</a>';}).join('')+'</div>':'';
+    if(!r.list.length)return '<p class="imp-msg">目前沒有找到可確認的菜單，這不代表店家沒有營業。可改貼店家的官網、iCHEF、快一點或 Oddle 菜單連結。</p>'+warnings+searches;
+    return '<p class="imp-msg">'+(place?'在「'+esc(place)+'」附近找到 ':'找到 ')+r.list.length+' 筆店家／菜單來源，請確認店名與分店：</p>'+warnings+'<ul class="imp-list">'+r.list.map(function(c,i){
       var dt=impDistText(c.dist),sub=esc(c.address||'')+(dt?(c.address?'・':'')+'<span class="imp-d">'+dt+'</span>':'');
-      return '<li><div class="imp-m"><p class="imp-n"><span>'+esc(c.name)+'</span><span class="imp-src">'+IMP_SRC[c.src]+'</span>'+(c.best?'<span class="imp-best">最符合</span>':'')+'</p>'+(sub?'<p class="imp-a">'+sub+'</p>':'')+'</div><button type="button" class="btn sm" data-i="'+i+'" aria-label="帶入 '+esc(c.name)+'（'+IMP_SRC[c.src]+'）">帶入</button></li>';
-    }).join('')+'</ul>';
+      var url=impSafeUrl(c.url),external=c.src!=='dbd'&&c.src!=='nidin',label=external?'讀取菜單':'帶入';
+      return '<li><div class="imp-m"><p class="imp-n"><span>'+esc(c.name)+'</span><span class="imp-src">'+esc(IMP_SRC[c.src]||'店家網站')+'</span>'+(c.best?'<span class="imp-best">最符合</span>':'')+'</p>'+(sub?'<p class="imp-a">'+sub+'</p>':'')+(external?'<p class="imp-a">'+esc(url?new URL(url).hostname:'')+'・請核對店家與價格</p>':'')+'</div><div class="imp-source-actions">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">開啟來源 ↗</a>':'')+'<button type="button" class="btn sm" data-i="'+i+'" aria-label="'+label+' '+esc(c.name)+'（'+esc(IMP_SRC[c.src]||'店家網站')+'）">'+label+'</button></div></li>';
+    }).join('')+'</ul>'+searches+'<div id="imp-detail" aria-live="polite"></div>';
   }
-  function busy(on){ib.disabled=on;Array.prototype.forEach.call(ir.querySelectorAll('button'),function(b){b.disabled=on;});}
+  function busy(on){ib.disabled=on;Array.prototype.forEach.call(ir.querySelectorAll('button'),function(b){b.disabled=on||b.getAttribute('data-unsafe-url')==='true';});}
   function find(){
-    var q=iq.value.trim();
-    if(!q){msg('請先貼上 地圖連結、地址或店名',true);iq.focus();return;}
-    var my=++seq;busy(true);msg('正在找店…');
+    var q=iq.value.trim(),my=++seq;
+    if(!q){busy(false);msg('請先貼上地圖、菜單連結、地址或店名',true);iq.focus();return;}
+    busy(true);msg('正在查詢店家與多個菜單來源，請稍候…');
     impFind(q).then(function(r){if(!live(my))return;last=r.list;ir.innerHTML=listHtml(r);busy(false);},
       function(e){if(!live(my))return;busy(false);msg(esc(e&&e.imp?e.message:'找店時出了問題，請稍後再試'),true);});
   }
@@ -1252,7 +1287,12 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
     impLoad(c).then(function(s){
       if(!live(my))return;
       var text=menuTextFrom(s.cats),r=parseMenu(text);
-      if(!r.count)throw impErr('這家店在 '+IMP_SRC[c.src]+' 上沒有可用的品項');
+      if(!r.count){
+        if(c.src==='dbd'||c.src==='nidin'){busy(false);b.textContent='帶入';var emptyDetail=ir.querySelector('#imp-detail');if(emptyDetail)emptyDetail.innerHTML='<p class="imp-note">這家店在'+esc(IMP_SRC[c.src])+'目前沒有可帶入的品項，請改貼其他菜單連結；尚未更動目前菜單。</p>';return;}
+        var detail=ir.querySelector('#imp-detail'),links=[{url:s.url||c.url,name:'開啟店家菜單'}].concat(arr(s.links),arr(s.images).map(function(im){return {url:im.url,name:im.name||'開啟菜單圖片'};})),seen={};
+        var html='<p class="imp-note">已找到頁面，但目前無法自動帶入品項與價格。可以開啟下方連結查看菜單，再把餐點與價格填入菜單欄位；尚未更動目前菜單。</p>'+(arr(s.warnings).length?'<p class="imp-note">'+arr(s.warnings).map(esc).join('；')+'</p>':'')+'<div class="imp-links">'+links.map(function(l){var u=impSafeUrl(l.url);if(!u||seen[u])return '';seen[u]=1;return '<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(l.name||'開啟菜單')+' ↗</a>';}).join('')+'</div>';
+        busy(false);b.textContent='讀取菜單';if(detail)detail.innerHTML=html;else msg(html);return;
+      }
       // 欄位是空的、或內容還是上一次帶入的 → 換成這家的；使用者自己打過的（含編輯頁原本存好的）不動
       var F=[['#sn','店名',s.name||c.name],['#sa','地址',s.address],['#sp','電話',s.phone],['#sh','營業時間',s.hours],['#st','類型',s.tags]].filter(function(f){return root.querySelector(f[0]);});
       F.forEach(function(f){var el=root.querySelector(f[0]);f[2]=String(f[2]||'').slice(0,+el.getAttribute('maxlength')||200);f[3]=el.value.trim();f[4]=!f[3]||f[3]===filled[f[0]];});
@@ -1260,17 +1300,20 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
       var chg=F.filter(function(f){return f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];}),
           keep=F.filter(function(f){return !f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];});
       function apply(){
+        if(!live(my))return;
         F.forEach(fill);
         h.sm.value=text;h.pv();h.mp();
         busy(false);b.textContent='帶入';
-        msg('已帶入「'+esc(s.name||c.name)+'」'+r.cats.length+' 個分類、'+r.count+' 個品項（來源 '+IMP_SRC[c.src]+'）。'+(r.errors.length?'有 '+r.errors.length+' 行要手動修正（菜單框紅字）。':'')+'請看預覽，沒問題再按「儲存店家」。');
+        var sourceUrl=impSafeUrl(s.url||c.url);
+        msg('已帶入「'+esc(s.name||c.name)+'」'+r.cats.length+' 個分類、'+r.count+' 個品項（來源 '+IMP_SRC[c.src]+'）。'+(r.errors.length?'有 '+r.errors.length+' 行要手動修正（菜單框紅字）。':'')+(arr(s.warnings).length?'<br>提醒：'+arr(s.warnings).map(esc).join('；')+'<br>':'')+'請看預覽，沒問題再按「儲存店家」。'+(sourceUrl?'<br><a href="'+esc(sourceUrl)+'" target="_blank" rel="noopener noreferrer">核對原始菜單 ↗</a>':''));
         toast('已帶入 '+r.count+' 個品項，記得按「儲存店家」');
       }
       if(h.isDefaultMenu(h.sm.value))return apply();
       return ask({title:'取代目前的菜單？',body:'菜單框會換成「'+(s.name||c.name)+'」的 '+r.count+' 個品項'+(chg.length?'，'+chg.join('、')+'也會換成這家的':'')+(keep.length?'；'+keep.join('、')+'維持原本的，不會被改':'')+'。按「儲存店家」之前都不會存。',okText:'取代'}).then(function(ok){
+        if(!live(my))return;
         if(ok)apply();else{busy(false);b.textContent='帶入';}
       });
-    }).catch(function(e){if(!live(my))return;busy(false);b.textContent='帶入';msg(esc(e&&e.imp?e.message:'讀取菜單時出了問題，請稍後再試'),true);});
+    }).catch(function(e){if(!live(my))return;busy(false);var external=c.src!=='dbd'&&c.src!=='nidin';b.textContent=external?'讀取菜單':'帶入';if(e&&e.unsafeUrl){Array.prototype.forEach.call(ir.querySelectorAll('a'),function(a){if(a.getAttribute('href')===c.url)a.removeAttribute('href');});c.url='';c.id='';b.setAttribute('data-unsafe-url','true');b.disabled=true;b.textContent='無法使用';}var detail=ir.querySelector('#imp-detail'),message=esc(e&&e.imp?e.message:'讀取菜單時出了問題，請稍後再試');if(detail)detail.innerHTML='<p class="imp-msg bad">'+message+'</p>';else msg(message,true);});
   });
 }
 
@@ -1281,7 +1324,7 @@ function pageShopEdit(root,id){
   function build(){
     var s=cur||{name:'',address:'',phone:'',tags:'',hours:'',promos:'',menuText:DEFAULT_MENU};
     root.innerHTML='<div class="page"><section><a class="backlink" href="#/shops">'+I('back',15)+'回店家清單</a><h1 class="ph">'+(isNew?'新增店家':'編輯店家')+'</h1></section><div class="two"><section class="card"><form class="form" id="f" novalidate>'+
-    '<div class="fld imp" role="group" aria-labelledby="iqL"><label id="iqL" for="iq">從 地圖帶入（選填）</label><div class="imp-row"><input id="iq" maxlength="300" autocomplete="off" enterkeyhint="search" placeholder="貼上 地圖連結、地址或店名"><button type="button" class="btn" id="ib">找菜單</button></div><p class="hint">會到 外部菜單來源 找這家店，選一家就帶入店名、電話、地址和菜單；帶入後還是可以自己改。</p><div id="ir" aria-live="polite"></div></div>'+
+    '<div class="fld imp" role="group" aria-labelledby="iqL"><label id="iqL" for="iq">找店家菜單（選填）</label><div class="imp-row"><input id="iq" maxlength="2000" autocomplete="off" enterkeyhint="search" placeholder="貼上地圖、菜單連結或輸入店名"><button type="button" class="btn" id="ib">找菜單</button></div><p class="hint">搜尋訂便當、你訂、iCHEF、快一點、Oddle 與店家網站。也可直接貼菜單連結；可讀取的品項會先帶入預覽，無法讀取時可開啟原始菜單。請確認分店、價格與選項後再儲存。</p><div id="ir" aria-live="polite"></div></div>'+
     '<div class="fld"><label for="sn">店名（必填）</label><input id="sn" value="'+esc(s.name)+'" maxlength="40" autocomplete="off"><p class="err" id="snE" role="alert" hidden>請輸入店名</p></div>'+
     '<div class="fld"><label for="sa">地址</label><input id="sa" value="'+esc(s.address)+'" maxlength="100" autocomplete="off" placeholder="填了就會顯示 地圖"></div>'+
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
