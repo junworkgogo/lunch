@@ -1329,6 +1329,7 @@ function pageShopEdit(root,id){
     '<div class="fld"><label for="sa">地址</label><input id="sa" value="'+esc(s.address)+'" maxlength="100" autocomplete="off" placeholder="填了就會顯示 地圖"></div>'+
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
     '<div class="fld"><label for="sh">營業時間</label><input id="sh" value="'+esc(s.hours||'')+'" maxlength="60" placeholder="例如 10:30–18:30" autocomplete="off"></div>'+
+    freeShippingField('shopFreeShipping',s.freeShippingThreshold)+
     '<div class="fld"><label for="sx">優惠活動</label><textarea id="sx" style="min-height:84px;font-family:inherit" maxlength="400" placeholder="一行一則，例如&#10;滿1000打9折&#10;買5送1">'+esc(s.promos||'')+'</textarea><p class="hint">優惠只會顯示在點餐頁，不會自動算折扣。</p></div>'+
     '<div class="fld"><label for="sm">菜單（一行一個品項）</label><p class="hint">{分類名稱} 開新分類；品名, 價格；品名, 價格, 停售。縮排兩格（或行首「- 」）的行是選項：群組名*: 選項, 選項+加價（有 * 必選單選，沒有 * 可不選、可複選）。選項寫在分類下面、第一個品項前，整個分類共用。</p><div class="insrow"><button type="button" class="btn sm" id="ins1">插入：飲料（尺寸／甜度／冰塊）</button><button type="button" class="btn sm" id="ins2">插入：便當客製（飯少／飯多／不要蔥／要切）</button></div><textarea id="sm" spellcheck="false" aria-describedby="smE">'+esc(s.menuText)+'</textarea><ul class="errlist" id="smE" role="alert"></ul></div>'+
     '<p class="err" id="saveE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存店家</button>'+(isNew?'':'<button type="button" class="btn danger" id="del">刪除店家</button>')+'</div></form></section>'+
@@ -1354,7 +1355,9 @@ function pageShopEdit(root,id){
       root.querySelector('#snE').hidden=!!name;saveE.hidden=true;
       if(!name){root.querySelector('#sn').focus();return;}
       if(r.errors.length){saveE.textContent='菜單有 '+r.errors.length+' 行格式不對（紅字），請先修正再儲存';saveE.hidden=false;sm.focus();return;}
-      var stamp=now(),f={name:name,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value.trim(),promos:root.querySelector('#sx').value.trim(),menuText:sm.value,updatedAt:stamp};
+      var freeShippingThreshold=parseFreeShippingThreshold(root.querySelector('#shopFreeShipping').value);
+      if(!Number.isFinite(freeShippingThreshold)){saveE.textContent='免運門檻請填 0–1,000,000 的整數，或留白';saveE.hidden=false;root.querySelector('#shopFreeShipping').focus();return;}
+      var stamp=now(),f={name:name,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value.trim(),promos:root.querySelector('#sx').value.trim(),freeShippingThreshold:freeShippingThreshold,menuText:sm.value,updatedAt:stamp};
       var p=isNew?DB.set('shops/'+sid,Object.assign({createdAt:stamp},f)):DB.update('shops/'+sid,f);
       p.then(function(){toast('店家已儲存');location.hash='#/shops';}).catch(fail);
     });
@@ -1390,14 +1393,15 @@ function pageNew(root,q){
     '<div class="fld"><label for="gt">團名</label><input id="gt" maxlength="40" autocomplete="off"></div>'+
     '<div class="fld"><label for="go">負責人（必填）</label><input id="go" maxlength="20" autocomplete="off" placeholder="你的名字" value="'+esc(LS.get(K.owner,''))+'"><p class="err" id="goE" role="alert" hidden>請輸入負責人名字</p></div>'+
     '<div class="row2"><div class="fld"><label for="gd">截止日期</label><input id="gd" type="date" value="'+dateVal(dl.getTime())+'"></div><div class="fld"><label for="gm">截止時間</label><input id="gm" type="time" value="'+p2(dl.getHours())+':'+p2(dl.getMinutes())+'"></div></div>'+
-    freeShippingField('gfs','')+
+    freeShippingField('gfs',shops[sel].freeShippingThreshold)+
     '<div id="newAudience"></div>'+
     '<div class="fld"><label for="gp">管理密碼（選填）</label><input id="gp" type="password" inputmode="numeric" autocomplete="new-password" placeholder="4 位數字以上"><p class="hint">設了密碼，其他人要輸入才能進管理頁（收錢、叫餐）。</p></div>'+
     '<p class="err" id="fE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">建立並取得分享連結</button></div></form></section></div>';
     audiencePicker=window.LunchParticipants.picker(root.querySelector('#newAudience'),{});
     var gs=root.querySelector('#gs'),gt=root.querySelector('#gt');
     function syncTitle(){if(!titleTouched)gt.value=defTitle(shops[gs.value].name);}
-    syncTitle();gs.addEventListener('change',syncTitle);gt.addEventListener('input',function(){titleTouched=true;});
+    function syncShipping(){var threshold=parseFreeShippingThreshold(shops[gs.value].freeShippingThreshold);root.querySelector('#gfs').value=Number.isFinite(threshold)&&threshold>0?String(threshold):'';}
+    syncTitle();gs.addEventListener('change',function(){syncTitle();syncShipping();});gt.addEventListener('input',function(){titleTouched=true;});
     root.querySelector('#f').addEventListener('submit',function(e){
       e.preventDefault();
       var fE=root.querySelector('#fE');fE.hidden=true;
