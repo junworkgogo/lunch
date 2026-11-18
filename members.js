@@ -29,8 +29,30 @@
     return '<div class="page member-page"><a class="backlink member-backlink" href="'+esc(back[0])+'">'+BACK_ICON+esc(back[1])+'</a><div class="member-kicker">JUN胖達／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1><p>'+esc(hint || '查看餐點、訂單與個人資料。')+'</p></div></div>'+body+'</div>';
   }
   // User-provided default photos. User-uploaded avatarImage always takes precedence.
-  function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n];return key?'./assets/'+key+'.webp?v=20261118profile2':''; }
-  function avatar(u, cls) { var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"></span>';var preset=memberPhotoByName(u&&u.name);if(preset)return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+preset+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
+  function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n];return key?'./assets/'+key+'.webp?v=20261118orange3':''; }
+  // Only replace an older fluorescent-green uploaded image. Other user-selected photos remain untouched.
+  function recolorIfGreen(img) {
+    if(!img)return;
+    var preset=img.getAttribute('data-orange-avatar');
+    try {
+      if(preset && /^data:image\//.test(img.getAttribute('src')||'')) {
+        var c=document.createElement('canvas'),ctx=c.getContext('2d');
+        c.width=1;c.height=1;
+        if(ctx && img.naturalWidth>0 && img.naturalHeight>0) {
+          var sample=Math.max(1,Math.min(12,img.naturalWidth,img.naturalHeight));
+          ctx.drawImage(img,0,0,sample,sample,0,0,1,1);
+          var pix=ctx.getImageData(0,0,1,1).data;
+          if(pix[1]>185 && pix[1]>pix[0]*1.13 && pix[0]>90 && pix[2]<110) {
+            img.removeAttribute('onerror');
+            img.removeAttribute('onload');
+            img.src=preset;
+          }
+        }
+      }
+    } catch(ignore) {}
+    img.style.visibility='visible';
+  }
+  function avatar(u, cls) { var preset=memberPhotoByName(u&&u.name);var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"'+(preset?' data-orange-avatar="'+esc(preset)+'" style="visibility:hidden" onload="window.LunchMembers&&window.LunchMembers.recolorIfGreen(this)" onerror="this.src=this.getAttribute(\'data-orange-avatar\');this.style.visibility=\'visible\'"':'')+'></span>';if(preset)return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(preset)+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
   function notify(root, message) { var el = root.querySelector('[data-member-status]'); if (el) { el.textContent = message; el.hidden = false; } }
   function waitView(root) { root.innerHTML = '<div class="page member-page" aria-busy="true"></div>'; } // 2026-11-18 使用者要求拿掉 loading 畫面：確認登入時留白
   function finishSignIn(fn){var m=window.LunchMascot;if(m){m.show('準備好，一起吃頓好午餐。');return m.finish().then(fn);}fn();return Promise.resolve();}
@@ -317,7 +339,7 @@
     A=window.LunchApp; if(!A)return;
     A.registerRoute('members',render);
     if(typeof A.setRouteGuard==='function')A.setRouteGuard(guardRoute);
-    window.LunchMembers={guardRoute:guardRoute,getUser:user,isConfigured:configured,isSecure:secure,avatarHtml:avatar};
+    window.LunchMembers={guardRoute:guardRoute,getUser:user,isConfigured:configured,isSecure:secure,avatarHtml:avatar,recolorIfGreen:recolorIfGreen};
     window.addEventListener('lunch:userchange',updateNav);
     settled = !configured();
     updateNav();
