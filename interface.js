@@ -145,3 +145,31 @@
   function enhance(){observer.disconnect();try{home();ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
   window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay,timeSelect:timeSelect};enhance();
 })();
+
+/* 2026-11-18 文字小動態「逐字跳動」（使用者選 A）：「開新團」按鈕平常每隔幾秒逐字輕跳一次；上方選單滑鼠移過去時逐字跳一次。
+   做法：把這些按鈕裡「直接放的文字」拆成一個字一個 <span class="hop-c">，跳動全由 glass.css 控制。
+   只拆還沒拆過的文字，拆完就沒有可拆的文字，不會自己一直觸發。 */
+(function(){
+  'use strict';
+  var SEL='a.btn.primary[href="#/new"],.nav a.btn';
+  function wrap(a){
+    var kids=Array.prototype.slice.call(a.childNodes),i=0;
+    kids.forEach(function(n){
+      if(n.nodeType!==3||!/\S/.test(n.nodeValue))return;
+      // 整段字先包一層 hop-w：按鈕是 flex，字若直接當 flex 子項目，按鈕的 gap 會把每個字拉開
+      var f=document.createElement('span');f.className='hop-w';
+      Array.from(n.nodeValue).forEach(function(ch){
+        if(/\s/.test(ch)){f.appendChild(document.createTextNode(ch));return;}
+        var s=document.createElement('span');s.className='hop-c';s.style.setProperty('--i',i++);s.textContent=ch;f.appendChild(s);
+      });
+      a.replaceChild(f,n);
+    });
+    // 拆成一字一格後，有些讀屏軟體會一個字一個字唸；補上整段文字當名稱（只蓋自己補的，不動原本就有的 aria-label）
+    if(!a.hasAttribute('aria-label')||a.dataset.hopLabel){a.setAttribute('aria-label',a.textContent.replace(/\s+/g,' ').trim());a.dataset.hopLabel='1';}
+  }
+  function needs(a){return Array.prototype.some.call(a.childNodes,function(n){return n.nodeType===3&&/\S/.test(n.nodeValue);});}
+  function run(){try{document.querySelectorAll(SEL).forEach(function(a){if(needs(a))wrap(a);});}catch(e){}}
+  // 直接在觀察回呼裡跑（不用 requestAnimationFrame：分頁沒在畫面上時它會停住，按鈕就拆不到字）
+  new MutationObserver(run).observe(document.body,{childList:true,subtree:true,characterData:true});
+  run();
+})();

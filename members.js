@@ -214,7 +214,8 @@
     root.innerHTML = shell('我的訂單', '<div data-order-content class="member-loading" role="status">正在讀取你的訂單…</div>'+messageBox(), null, ['#/members', '回個人資料']);
     function groupData(gid) {
       if (!groups[gid]) groups[gid] = Promise.all([A.DB.get('groups/'+gid), A.DB.get('orders/'+gid)]).then(function(v) {
-        if (!v[0]) throw new Error('GROUP_MISSING');
+        // 2026-11-18 團和訂單都不在＝這團已被刪除，略過不顯示（不讓整頁讀取失敗）；只剩訂單沒有團才算資料有缺
+        if (!v[0]) { if (!v[1]) return null; throw new Error('GROUP_MISSING'); }
         return {group:v[0], orders:v[1] || {}, settled:A.settlement(v[1] || {},v[0])};
       });
       return groups[gid];
@@ -227,7 +228,7 @@
         var ids = Object.keys(index[gid] || {}).filter(function(oid) { return path(oid) && index[gid][oid]; });
         if (!ids.length) return;
         tasks.push(groupData(gid).then(function(data) {
-          if (!alive) return [];
+          if (!alive || !data) return [];
           return Promise.all(ids.map(function(oid) {
             var o = data.orders[oid];
             if (!o || o.userId !== uid) return null;

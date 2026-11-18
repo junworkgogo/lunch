@@ -484,13 +484,13 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261118dept">
+<link rel="stylesheet" href="glass.css?v=20261118hop">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
 <body>
 <div class="demo" id="demoBar" hidden>示範模式：資料只存在這台電腦</div>
-<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">團購首頁</a><a class="btn sm" href="#/history">歷史團購</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
+<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span><img class="brand-cat" src="assets/jun-cat-icon.png?v=20261118cat" alt="" width="34" height="40" aria-hidden="true"></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">團購首頁</a><a class="btn sm" href="#/history">歷史團購</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
 <main id="app"></main>
 <div id="toast" role="status" hidden></div>
 <script>
@@ -586,6 +586,10 @@ function ask(o){
 
 /* ---------- 資料轉接層 DB ---------- */
 function newId(){return Math.floor(now()).toString(36)+Math.random().toString(36).slice(2,8);}
+// 2026-11-18 正在刪除的團：刪除當下自己頁面的監聽會失去讀取權，不跳「資料讀取失敗」
+var DELETING_GROUPS=Object.create(null);
+function deletingPath(p){var m=/^(?:groups|orders|paid)\/([^\/]+)/.exec(String(p||''));return !!(m&&DELETING_GROUPS[m[1]]);}
+function okDelPath(p){return /^(groups|orders|paid)\/[^\/.#$\[\]]+$/.test(p)||/^userOrders\/[^\/.#$\[\]]+\/[^\/.#$\[\]]+$/.test(p);}
 function needVal(v,where){if(v===null||v===undefined)throw new Error('不可寫入空值（'+where+'）；本系統只做軟刪除');}
 function cleanJSON(v){return JSON.parse(JSON.stringify(v));}
 function segs(p){return String(p).split('/').filter(Boolean);}
@@ -596,7 +600,8 @@ var LocalDB=(function(){
   function load(){try{var v=JSON.parse(localStorage.getItem(KEY));return v&&typeof v==='object'?v:{};}catch(e){return {};}}
   function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){}if(bc)bc.postMessage(now());}
   function getAt(p){var o=data,s=segs(p);for(var i=0;i<s.length;i++){if(o==null||typeof o!=='object')return null;o=o[s[i]];}return o===undefined?null:o;}
-  function setAt(p,v){var s=segs(p);if(!s.length)throw new Error('不可覆寫整個資料庫');var o=data;for(var i=0;i<s.length-1;i++){if(o[s[i]]==null||typeof o[s[i]]!=='object')o[s[i]]={};o=o[s[i]];}o[s[s.length-1]]=cleanJSON(v);}
+  function delAt(p){var s=segs(p);var o=data;for(var i=0;i<s.length-1;i++){if(o[s[i]]==null||typeof o[s[i]]!=='object')return;o=o[s[i]];}delete o[s[s.length-1]];}
+function setAt(p,v){var s=segs(p);if(!s.length)throw new Error('不可覆寫整個資料庫');var o=data;for(var i=0;i<s.length-1;i++){if(o[s[i]]==null||typeof o[s[i]]!=='object')o[s[i]]={};o=o[s[i]];}o[s[s.length-1]]=cleanJSON(v);}
   function notify(){ls.slice().forEach(function(l){var v=getAt(l.p),j=JSON.stringify(v);if(l.first||j!==l.last){l.first=false;l.last=j;l.cb(v==null?null:cleanJSON(v));}});}
   function reload(){data=load();notify();}
   if(bc)bc.onmessage=reload;
@@ -606,7 +611,8 @@ var LocalDB=(function(){
     get:function(p){return Promise.resolve(getAt(p)==null?null:cleanJSON(getAt(p)));},
     transaction:function(p,change){try{data=load();var current=getAt(p),next=change(current==null?null:cleanJSON(current));if(next===undefined)return Promise.reject(new Error('名單已由其他人更新，請重新載入後再試。'));needVal(next,p);setAt(p,next);persist();notify();return Promise.resolve(cleanJSON(next));}catch(e){return Promise.reject(e);}},
     set:function(p,v){try{needVal(v,p);data=load();setAt(p,v);persist();notify();return Promise.resolve();}catch(e){return Promise.reject(e);}},
-    update:function(p,o){try{data=load();Object.keys(o).forEach(function(k){needVal(o[k],p+'/'+k);setAt(p+'/'+k,o[k]);});persist();notify();return Promise.resolve();}catch(e){return Promise.reject(e);}}
+    update:function(p,o){try{data=load();Object.keys(o).forEach(function(k){needVal(o[k],p+'/'+k);setAt(p+'/'+k,o[k]);});persist();notify();return Promise.resolve();}catch(e){return Promise.reject(e);}},
+    removePaths:function(ps){try{ps.forEach(function(p){if(!okDelPath(p))throw new Error('不可刪除這個位置（'+p+'）');});data=load();ps.forEach(delAt);persist();notify();return Promise.resolve();}catch(e){return Promise.reject(e);}}
   };
 })();
 
@@ -621,16 +627,34 @@ var FbDB=(function(){
   }
   return {
     init:init,
-    on:function(p,cb,opt){var dead=false,off=null;init().then(function(db){if(dead)return;var ref=db.ref(p);if(opt&&opt.orderBy)ref=ref.orderByChild(opt.orderBy);if(opt&&opt.startAt!=null)ref=ref.startAt(opt.startAt);if(opt&&opt.limit)ref=ref.limitToLast(opt.limit);var h=ref.on('value',function(s){if(!dead)cb(s.val());},function(e){toast('資料讀取失敗，請確認登入狀態後重試。',true);});off=function(){ref.off('value',h);};}).catch(function(e){toast('資料服務載入失敗，請稍後重試。',true);});return function(){dead=true;if(off)off();};},
+    on:function(p,cb,opt){var dead=false,off=null;init().then(function(db){if(dead)return;var ref=db.ref(p);if(opt&&opt.orderBy)ref=ref.orderByChild(opt.orderBy);if(opt&&opt.startAt!=null)ref=ref.startAt(opt.startAt);if(opt&&opt.limit)ref=ref.limitToLast(opt.limit);var h=ref.on('value',function(s){if(!dead)cb(s.val());},function(e){if(dead||deletingPath(p))return;toast('資料讀取失敗，請確認登入狀態後重試。',true);});off=function(){ref.off('value',h);};}).catch(function(e){toast('資料服務載入失敗，請稍後重試。',true);});return function(){dead=true;if(off)off();};},
     get:function(p){return init().then(function(db){return db.ref(p).once('value');}).then(function(s){return s.val();});},
     transaction:function(p,change){return init().then(function(db){return db.ref(p).transaction(function(current){var next=change(current);if(next===undefined)return;needVal(next,p);return cleanJSON(next);},undefined,false);}).then(function(result){if(!result.committed)throw new Error('名單已由其他人更新，請重新載入後再試。');return result.snapshot.val();});},
     set:function(p,v){try{needVal(v,p);}catch(e){return Promise.reject(e);}return init().then(function(db){return db.ref(p).set(cleanJSON(v));});},
-    update:function(p,o){try{Object.keys(o).forEach(function(k){needVal(o[k],p+'/'+k);});}catch(e){return Promise.reject(e);}return init().then(function(db){return db.ref(p || '/').update(cleanJSON(o));});}
+    update:function(p,o){try{Object.keys(o).forEach(function(k){needVal(o[k],p+'/'+k);});}catch(e){return Promise.reject(e);}return init().then(function(db){return db.ref(p || '/').update(cleanJSON(o));});},
+    removePaths:function(ps){var u={};try{ps.forEach(function(p){if(!okDelPath(p))throw new Error('不可刪除這個位置（'+p+'）');u[p]=null;});}catch(e){return Promise.reject(e);}return init().then(function(db){return db.ref('/').update(u);});}
   };
 })();
 
 var impl=FIREBASE_CONFIG?FbDB:LocalDB;
-var DB={on:impl.on,get:impl.get,set:impl.set,update:impl.update,transaction:impl.transaction,newId:newId};
+var DB={on:impl.on,get:impl.get,set:impl.set,update:impl.update,transaction:impl.transaction,removePaths:impl.removePaths,newId:newId};
+// 2026-11-18 刪除團購＝真的刪掉這個團、它的訂單、收錢紀錄與每人「我的訂單」索引（店家、會員資料不動）；一次寫入，全成功或全失敗
+function deleteGroupData(gid){
+  if(!gid||!/^[^\/.#$\[\]]+$/.test(gid))return Promise.reject(new Error('團購編號不正確'));
+  // 已經被別人（另一位管理員、另一個分頁）刪掉：直接當作刪除完成，不跳權限錯誤
+  return DB.get('groups/'+gid).then(function(g){
+    if(g==null)return;
+    DELETING_GROUPS[gid]=true;
+    return DB.get('orders/'+gid).then(function(os){
+      var ps=['groups/'+gid,'orders/'+gid,'paid/'+gid],seen={};
+      Object.keys(os||{}).forEach(function(oid){var u=os[oid]&&os[oid].userId;if(typeof u==='string'&&/^[^\/.#$\[\]]+$/.test(u)&&!seen[u]){seen[u]=1;ps.push('userOrders/'+u+'/'+gid);}});
+      return DB.removePaths(ps);
+    }).catch(function(e){
+      // 失敗時再看一次：團已經不在＝別人剛好先刪了，算成功；團還在＝真的失敗，照常報錯
+      return DB.get('groups/'+gid).then(function(still){if(still!=null){delete DELETING_GROUPS[gid];throw e;}},function(){delete DELETING_GROUPS[gid];throw e;});
+    });
+  });
+}
 function fail(e){
   console.error(e);
   var detail=String(e&&e.code||'')+' '+String(e&&e.message||''),message='操作未成功，請確認登入狀態與網路連線後重試。';
@@ -891,10 +915,10 @@ function pageHome(root,history){
     var b=e.target.closest('[data-delete-group]');if(!b)return;
     var id=b.getAttribute('data-delete-group'),g=groups[id];if(disposed||deleting[id]||!canRemove(g)||!groupClosed(g)||g.deleted)return;
     deleting[id]=true;b.disabled=true;
-    ask({title:'刪除這個團？',body:'「'+g.title+'」會從團購列表隱藏，原有連結也會無法開啟。',okText:'刪除',danger:true}).then(function(ok){
+    ask({title:'刪除這個團？',body:'「'+g.title+'」和這團的所有訂單、收錢紀錄會一起刪掉，刪除後無法復原。',okText:'刪除',danger:true}).then(function(ok){
       var latest=groups[id];if(!ok||disposed||!canRemove(latest)||latest.deleted)return;
       if(!groupClosed(latest)){toast('團購已重新開放，請從管理頁確認');return;}
-      return DB.update('groups/'+id,{deleted:true}).then(function(){toast('團已刪除');});
+      return deleteGroupData(id).then(function(){toast('團已刪除');});
     }).catch(fail).finally(function(){delete deleting[id];if(!disposed)draw();});
   });
   var more=null;if(history){more=document.createElement('button');more.type='button';more.className='btn';more.textContent='載入更多歷史團購';root.querySelector('#end').parentNode.appendChild(more);}
@@ -1811,7 +1835,7 @@ function pageAdmin(root,gid,q){
     });
   }
   function setHtml(){
-    return '<div class="card"><form class="form" id="sf" novalidate><p>目前狀態：<span class="stat" id="stat"></span></p><div class="setrow"><button type="button" class="btn" id="toggleClose"></button></div><hr class="sep" style="margin:2px 0"><div class="fld"><label for="stl">團名</label><input id="stl" maxlength="40" value="'+esc(group.title)+'" autocomplete="off"></div><div class="fld"><label for="sow">負責人</label><input id="sow" maxlength="20" value="'+esc(group.owner)+'" autocomplete="off"></div><div class="row2"><div class="fld"><label for="sdd">截止日期</label><input id="sdd" type="date" value="'+dateVal(group.deadline)+'"></div><div class="fld"><label for="sdt">截止時間</label><input id="sdt" type="time" value="'+fmtTime(group.deadline)+'"></div></div>'+freeShippingField('sfs',group.freeShippingThreshold)+'<p class="err" id="sE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存設定</button></div></form></div><div style="height:16px"></div><div class="card"><h2 style="font-size:18px;font-weight:900;margin-bottom:4px">停售品項</h2><p class="muted">打開開關＝停售。點餐頁會馬上變灰、不能再加入；已經放進別人購物車的，送出時會被擋下。</p><div id="solds">'+soldHtml()+'</div></div><div style="height:16px"></div>'+shareBlock(gid)+'<div style="height:16px"></div><div class="card"><h2 style="font-size:18px;font-weight:900;margin-bottom:4px">刪除這個團</h2><p class="muted">刪除後首頁和連結都看不到這個團。</p><div class="actions"><button type="button" class="btn danger" id="delG">刪除這個團</button></div></div>';
+    return '<div class="card"><form class="form" id="sf" novalidate><p>目前狀態：<span class="stat" id="stat"></span></p><div class="setrow"><button type="button" class="btn" id="toggleClose"></button></div><hr class="sep" style="margin:2px 0"><div class="fld"><label for="stl">團名</label><input id="stl" maxlength="40" value="'+esc(group.title)+'" autocomplete="off"></div><div class="fld"><label for="sow">負責人</label><input id="sow" maxlength="20" value="'+esc(group.owner)+'" autocomplete="off"></div><div class="row2"><div class="fld"><label for="sdd">截止日期</label><input id="sdd" type="date" value="'+dateVal(group.deadline)+'"></div><div class="fld"><label for="sdt">截止時間</label><input id="sdt" type="time" value="'+fmtTime(group.deadline)+'"></div></div>'+freeShippingField('sfs',group.freeShippingThreshold)+'<p class="err" id="sE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存設定</button></div></form></div><div style="height:16px"></div><div class="card"><h2 style="font-size:18px;font-weight:900;margin-bottom:4px">停售品項</h2><p class="muted">打開開關＝停售。點餐頁會馬上變灰、不能再加入；已經放進別人購物車的，送出時會被擋下。</p><div id="solds">'+soldHtml()+'</div></div><div style="height:16px"></div>'+shareBlock(gid)+'<div style="height:16px"></div><div class="card"><div class="actions" style="margin-top:0;padding-top:0"><button type="button" class="btn danger" id="delG">刪除這個團</button></div></div>';
   }
   function updStat(){
     var st=$('#stat');if(!st)return;st.textContent=statusText();
@@ -1850,8 +1874,8 @@ function pageAdmin(root,gid,q){
       return;
     }
     if(e.target.closest('#delG')){
-      ask({title:'刪除這個團？',body:'「'+group.title+'」會從首頁消失，同事的連結也會打不開。',okText:'刪除',danger:true}).then(function(ok){
-        if(ok&&adminMounted())DB.update('groups/'+gid,{deleted:true}).then(function(){toast('團已刪除');location.hash='#/';}).catch(fail);});
+      ask({title:'刪除這個團？',body:'「'+group.title+'」和這團的所有訂單、收錢紀錄會一起刪掉，刪除後無法復原。',okText:'刪除',danger:true}).then(function(ok){
+        if(ok&&adminMounted())deleteGroupData(gid).then(function(){toast('團已刪除');location.hash='#/';}).catch(fail);});
     }
   }
   function draw(){
@@ -1918,9 +1942,9 @@ if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
 <script src="menu-vision.js?v=20261118dept"></script>
-<script src="interface.js?v=20261118dept"></script>
+<script src="interface.js?v=20261118hop4"></script>
 <script src="participants.js?v=20261118dept"></script>
 <script src="pay.js?v=20261118dept"></script>
-<script src="members.js?v=20261118dept"></script>
+<script src="members.js?v=20261118del2"></script>
 </body>
 </html>
