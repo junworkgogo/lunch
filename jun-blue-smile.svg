@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="JUN 藍色笑臉">
-  <circle cx="32" cy="32" r="29.5" fill="#0000FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="JUN 橘色笑臉">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFA24F"/><stop offset="1" stop-color="#F26A10"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="29.5" fill="url(#g)"/>
   <circle cx="32" cy="32" r="23.3" fill="#FFFFFF"/>
-  <rect x="22" y="22.5" width="5.5" height="9.5" rx="2.75" fill="#0000FF"/>
-  <rect x="36.5" y="22.5" width="5.5" height="9.5" rx="2.75" fill="#0000FF"/>
-  <path d="M19.5 38 C23.5 45.7 28 48.5 32 48.5 C36 48.5 40.5 45.7 44.5 38" fill="none" stroke="#0000FF" stroke-width="5.3" stroke-linecap="round"/>
+  <rect x="22" y="22.5" width="5.5" height="9.5" rx="2.75" fill="#F26A10"/>
+  <rect x="36.5" y="22.5" width="5.5" height="9.5" rx="2.75" fill="#F26A10"/>
+  <path d="M19.5 38 C23.5 45.7 28 48.5 32 48.5 C36 48.5 40.5 45.7 44.5 38" fill="none" stroke="#F26A10" stroke-width="5.3" stroke-linecap="round"/>
 </svg>

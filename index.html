@@ -4,9 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JUN胖達</title>
-<link rel="icon" type="image/png" sizes="64x64" href="assets/jun-orange-smile-64.png?v=20261118orange">
-<link rel="icon" type="image/svg+xml" href="jun-orange-smile.svg?v=20261118orange">
-<link rel="apple-touch-icon" href="assets/jun-orange-smile-180.png?v=20261118orange">
+<meta name="theme-color" content="#F58220">
+<link rel="icon" type="image/svg+xml" href="./jun-orange-smile.svg?v=20261118orange2">
+<link rel="icon" type="image/png" sizes="64x64" href="./assets/jun-orange-smile-64.png?v=20261118orange2">
+<link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?v=20261118orange2">
+<link rel="apple-touch-icon" sizes="180x180" href="./assets/jun-orange-smile-180.png?v=20261118orange2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
@@ -866,7 +868,7 @@ function avatar(name){
 }
 // 2026-11-18 會員頭貼共用（收錢表格、首頁團購卡）：先讀 memberAvatars/<uid>（登入者可讀），管理員或本人再退回 members/<uid>，都沒有就用名字第一個字。
 var MAV={};
-function memberAvHtml(id,name){var v=id&&MAV[id],LM=window.LunchMembers;if(v&&typeof v==='object'&&LM&&LM.avatarHtml)return LM.avatarHtml(v,'mav');return avatar(name);}
+function memberAvHtml(id,name){var v=id&&MAV[id],LM=window.LunchMembers;if(LM&&LM.avatarHtml){if(v&&typeof v==='object')return LM.avatarHtml(Object.assign({name:name},v),'mav');if(/^(江|毛子|哥|eason|eason\s*[（(]哥[）)])$/i.test(String(name||'').trim()))return LM.avatarHtml({name:name},'mav');}return avatar(name);}
 function memberAvSlot(id,name,cls){if(id)loadMemberAv(id);return '<span class="'+(cls||'mav-slot')+'" data-av-uid="'+esc(id||'')+'" data-av-name="'+esc(name||'')+'">'+memberAvHtml(id,name)+'</span>';}
 function loadMemberAv(id){
   if(!id||MAV[id]!==undefined)return;MAV[id]=0;
@@ -1988,6 +1990,6 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="interface.js?v=20261118hop4"></script>
 <script src="participants.js?v=20261118dept"></script>
 <script src="pay.js?v=20261118dept"></script>
-<script src="members.js?v=20261118del2"></script>
+<script src="members.js?v=20261118profile1"></script>
 </body>
 </html>

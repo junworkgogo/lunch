@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-<title>JUN 笑臉</title>
-<rect width="64" height="64" rx="17" fill="#262C35"/>
-<circle cx="22" cy="22" r="4.3" fill="#F8FAFC"/>
-<circle cx="42" cy="22" r="4.3" fill="#F8FAFC"/>
-<path d="M17 32 C22 45 42 45 47 32" fill="none" stroke="#C6FF52" stroke-width="5" stroke-linecap="round"/>
-<text x="32" y="57" text-anchor="middle" fill="#F8FAFC" font-size="13" font-family="Arial,Helvetica,sans-serif" font-weight="900" letter-spacing="2">JUN</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="JUN 橘色笑臉">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFA24F"/><stop offset="1" stop-color="#F26A10"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="29.5" fill="url(#g)"/>
+  <circle cx="32" cy="32" r="23.3" fill="#FFFFFF"/>
+  <rect x="22" y="22.5" width="5.5" height="9.5" rx="2.75" fill="#F26A10"/>
+  <rect x="36.5" y="22.5" width="5.5" height="9.5" rx="2.75" fill="#F26A10"/>
+  <path d="M19.5 38 C23.5 45.7 28 48.5 32 48.5 C36 48.5 40.5 45.7 44.5 38" fill="none" stroke="#F26A10" stroke-width="5.3" stroke-linecap="round"/>
 </svg>
