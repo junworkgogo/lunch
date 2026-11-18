@@ -29,7 +29,7 @@
     return '<div class="page member-page"><a class="backlink member-backlink" href="'+esc(back[0])+'">'+BACK_ICON+esc(back[1])+'</a><div class="member-kicker">JUN胖達／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1><p>'+esc(hint || '查看餐點、訂單與個人資料。')+'</p></div></div>'+body+'</div>';
   }
   // User-provided default photos. User-uploaded avatarImage always takes precedence.
-  function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n];return key?'./assets/'+key+'.webp?v=20261118orange3':''; }
+  function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n];return key?'./assets/'+key+'.webp?v=20261118lightorange1':''; }
   // Only replace an older fluorescent-green uploaded image. Other user-selected photos remain untouched.
   // Recolor the logged-in Jun's existing fluorescent-green avatar without recreating the artwork.
   function isJunDoodle(name) { return /^jun(?:$|[\s(（]|胖達)/i.test(String(name||'').trim()); }
@@ -59,9 +59,9 @@
                 var pixels=ctx.getImageData(0,0,canvas.width,canvas.height),arr=pixels.data;
                 for(var k=0;k<arr.length;k+=4) {
                   var visible=Math.min(1,arr[k+1]/pix[1]);
-                  arr[k]=Math.round(245*visible);
-                  arr[k+1]=Math.round(130*visible);
-                  arr[k+2]=Math.round(32*visible);
+                  arr[k]=Math.round(255*visible);
+                  arr[k+1]=Math.round(193*visible);
+                  arr[k+2]=Math.round(138*visible);
                 }
                 ctx.putImageData(pixels,0,0);
                 img.src=canvas.toDataURL('image/png');
