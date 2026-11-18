@@ -31,28 +31,49 @@
   // User-provided default photos. User-uploaded avatarImage always takes precedence.
   function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n];return key?'./assets/'+key+'.webp?v=20261118orange3':''; }
   // Only replace an older fluorescent-green uploaded image. Other user-selected photos remain untouched.
+  // Recolor the logged-in Jun's existing fluorescent-green avatar without recreating the artwork.
+  function isJunDoodle(name) { return /^jun(?:$|[\s(（]|胖達)/i.test(String(name||'').trim()); }
+  // Presets use lossless source recolors; Jun's uploaded image can be recolored locally if not in the repo.
   function recolorIfGreen(img) {
     if(!img)return;
-    var preset=img.getAttribute('data-orange-avatar');
+    var preset=img.getAttribute('data-orange-avatar')||'';
     try {
-      if(preset && /^data:image\//.test(img.getAttribute('src')||'')) {
-        var c=document.createElement('canvas'),ctx=c.getContext('2d');
-        c.width=1;c.height=1;
-        if(ctx && img.naturalWidth>0 && img.naturalHeight>0) {
+      if(/^data:image\//.test(img.getAttribute('src')||'')) {
+        var sw=document.createElement('canvas'),sc=sw.getContext('2d');
+        sw.width=1;sw.height=1;
+        if(sc && img.naturalWidth>0 && img.naturalHeight>0) {
           var sample=Math.max(1,Math.min(12,img.naturalWidth,img.naturalHeight));
-          ctx.drawImage(img,0,0,sample,sample,0,0,1,1);
-          var pix=ctx.getImageData(0,0,1,1).data;
+          sc.drawImage(img,0,0,sample,sample,0,0,1,1);
+          var pix=sc.getImageData(0,0,1,1).data;
           if(pix[1]>185 && pix[1]>pix[0]*1.13 && pix[0]>90 && pix[2]<110) {
-            img.removeAttribute('onerror');
             img.removeAttribute('onload');
-            img.src=preset;
+            if(preset) {
+              img.src=preset;
+            } else if(img.hasAttribute('data-orange-jun')) {
+              var canvas=document.createElement('canvas'),scale=Math.min(1,512/img.naturalWidth);
+              canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+              canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+              var ctx=canvas.getContext('2d',{willReadFrequently:true});
+              if(ctx) {
+                ctx.drawImage(img,0,0,canvas.width,canvas.height);
+                var pixels=ctx.getImageData(0,0,canvas.width,canvas.height),arr=pixels.data;
+                for(var k=0;k<arr.length;k+=4) {
+                  var visible=Math.min(1,arr[k+1]/pix[1]);
+                  arr[k]=Math.round(245*visible);
+                  arr[k+1]=Math.round(130*visible);
+                  arr[k+2]=Math.round(32*visible);
+                }
+                ctx.putImageData(pixels,0,0);
+                img.src=canvas.toDataURL('image/png');
+              }
+            }
           }
         }
       }
     } catch(ignore) {}
     img.style.visibility='visible';
   }
-  function avatar(u, cls) { var preset=memberPhotoByName(u&&u.name);var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"'+(preset?' data-orange-avatar="'+esc(preset)+'" style="visibility:hidden" onload="window.LunchMembers&&window.LunchMembers.recolorIfGreen(this)" onerror="this.src=this.getAttribute(\'data-orange-avatar\');this.style.visibility=\'visible\'"':'')+'></span>';if(preset)return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(preset)+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
+  function avatar(u, cls) { var preset=memberPhotoByName(u&&u.name);var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"'+(preset||isJunDoodle(u&&u.name)?' data-orange-avatar="'+esc(preset)+'"'+(isJunDoodle(u&&u.name)?' data-orange-jun="1"':'')+' style="visibility:hidden" onload="window.LunchMembers&&window.LunchMembers.recolorIfGreen(this)" onerror="this.style.visibility=\'visible\'"':'')+'></span>';if(preset)return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(preset)+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
   function notify(root, message) { var el = root.querySelector('[data-member-status]'); if (el) { el.textContent = message; el.hidden = false; } }
   function waitView(root) { root.innerHTML = '<div class="page member-page" aria-busy="true"></div>'; } // 2026-11-18 使用者要求拿掉 loading 畫面：確認登入時留白
   function finishSignIn(fn){var m=window.LunchMascot;if(m){m.show('準備好，一起吃頓好午餐。');return m.finish().then(fn);}fn();return Promise.resolve();}
