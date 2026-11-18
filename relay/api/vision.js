@@ -2,6 +2,9 @@
  * Server env（2026-11-19 起 Gemini 優先）：
  *   GEMINI_API_KEY（有設就用 Gemini 讀圖）、GEMINI_VISION_MODEL（選填，預設 gemini-3.6-flash）
  *   OPENAI_API_KEY、OPENAI_VISION_MODEL（沒設 Gemini 金鑰、或 Gemini 全部失敗時才用；兩者共用 55 秒總時限）
+ * Gemini 只用免費額度。先請主模型；它失敗就馬上換下一個，超過 HEDGE_MS 還沒回就同時請下一個，
+ * 先拿到有效結果的就用、其餘中止（2026-11-19 實測：主模型回 503 後，第二個模型吃光剩餘時間，第三個沒輪到）。
+ * 每次呼叫都在 Vercel log 留「模型、狀態、毫秒」，方便量測。
  * Admin access checked with Firebase Identity Toolkit; image bytes held in memory only.
  */
 'use strict';
@@ -9,9 +12,11 @@ const ORIGIN='https://junworkgogo.github.io';
 const FIREBASE_KEY='AIzaSyCLzpiNkFesQYvTiS9e9Jh4fMVRr6riQ74'; // Firebase client config, not secret
 const PROJECT_ID='lunch-8ebca';
 const ADMINS=new Set(['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw']);
-const TOTAL_MS=55000;
+const TOTAL_MS=55000;   // 留在一分鐘內回應
+const HEDGE_MS=20000;   // 一個模型 20 秒還沒回，就同時請下一個
+const MIN_START_MS=6000; // 剩不到 6 秒就不再開新的呼叫
 const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/';
-const GEMINI_FALLBACKS=['gemini-flash-latest','gemini-flash-lite-latest'];
+const GEMINI_FALLBACKS=['gemini-3.5-flash-lite','gemini-flash-lite-latest','gemini-flash-latest'];
 const PROMPT='你是台灣餐廳菜單資料擷取助手。只根據照片上實際看得見的字與價格辨識菜單，不得猜測或補造品名、價格、選項，不要把地址、電話、營業時間或折扣當作餐點。以繁體中文輸出 JSON 物件，格式 {"categories":[{"name":"分類名稱","items":[{"name":"品名","price":80,"soldOut":false,"options":[{"name":"尺寸","required":true,"choices":[{"name":"小份","add":0},{"name":"大份","add":20}]}]}]}],"warnings":["無法辨識的品項或價格"]}。分類沒有標示時用「其他」。price 只允許確定的整數新台幣，價格不清楚就略過該品項並放 warnings。規格或加料只有照片明確列出選項及加價時才填 options；不要猜測共同選項。多個完整價格：將最便宜價格寫 price，options 各選項 add 為與最低價之差；不要把原價誤作折扣價。多張圖重複品項要去重。保持菜單原始分類、名稱順序。不要 markdown。';
 const SCHEMA={type:'OBJECT',properties:{
  categories:{type:'ARRAY',items:{type:'OBJECT',properties:{
@@ -49,7 +54,7 @@ async function verifyAdmin(token){
 function geminiPayload(images,opt){
  const gen={temperature:0,maxOutputTokens:16384,responseMimeType:'application/json'};
  if(opt.schema)gen.responseSchema=SCHEMA;
- if(opt.thinking)gen.thinkingConfig={thinkingLevel:'LOW'};
+ if(opt.thinking)gen.thinkingConfig={thinkingLevel:'MINIMAL'};
  if(opt.hires)gen.mediaResolution='MEDIA_RESOLUTION_HIGH';
  return {contents:[{role:'user',parts:[{text:PROMPT}].concat(images.map(u=>({inlineData:{mimeType:'image/jpeg',data:u.slice(u.indexOf(',')+1)}})))}],generationConfig:gen};
 }
@@ -59,39 +64,79 @@ function geminiJson(data){
  const parsed=JSON.parse(text||'{}');
  return parsed&&Array.isArray(parsed.categories)?parsed:null;
 }
-async function callGemini(images,key,deadline){
- const models=[...new Set([String(process.env.GEMINI_VISION_MODEL||'gemini-3.6-flash').trim()].concat(GEMINI_FALLBACKS))];
- let quota=false;
- for(const model of models){
-  const opt={schema:true,thinking:true,hires:true};
-  for(let attempt=0;attempt<4;attempt++){
-   const remain=deadline-Date.now();
-   if(remain<4000)return {fail:quota?'quota':'timeout'};
-   let r,data=null;
-   try{
-    r=await fetch(GEMINI_URL+encodeURIComponent(model)+':generateContent',{
-     method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
-     body:JSON.stringify(geminiPayload(images,opt)),signal:AbortSignal.timeout(remain-1000)
-    });
-    try{data=await r.json();}catch(e){data=null;}
-   }catch(e){return {fail:quota?'quota':'timeout'};}
-   if(r.status===200){
-    let parsed=null;try{parsed=geminiJson(data);}catch(e){parsed=null;}
-    if(parsed)return {parsed,model};
-    console.error('gemini vision bad json',model);break;
-   }
-   const msg=String((data&&data.error&&data.error.message)||'').toLowerCase();
-   if(r.status===429){quota=true;break;}
-   if(/api key|api_key|permission_denied|unregistered callers/.test(msg)||r.status===401||r.status===403)return {fail:'key'};
-   if(r.status===400){
-    if(opt.thinking&&/thinking/.test(msg)){opt.thinking=false;continue;}
-    if(opt.hires&&/media.?resolution/.test(msg)){opt.hires=false;continue;}
-    if(opt.schema&&/schema|response_mime|responsemime/.test(msg)){opt.schema=false;continue;}
-   }
-   console.error('gemini vision fail',model,r.status);break;
+function geminiNote(tried,model,status,t0,msg){
+ const ms=Date.now()-t0;
+ tried.push({model,status,ms});
+ console.log('gemini vision',model,status,ms+'ms',String(msg||'').slice(0,160));
+}
+// 單一模型：不支援的設定被 400 退回時拿掉重送；回 {parsed} 或 {fail}
+async function geminiModel(model,images,key,signal,tried){
+ const opt={schema:true,thinking:true,hires:true};
+ for(let attempt=0;attempt<4;attempt++){
+  const t0=Date.now();
+  let r,data=null;
+  try{
+   r=await fetch(GEMINI_URL+encodeURIComponent(model)+':generateContent',{
+    method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body:JSON.stringify(geminiPayload(images,opt)),signal
+   });
+   try{data=await r.json();}catch(e){data=null;}
+  }catch(e){geminiNote(tried,model,signal&&signal.aborted?'aborted':'network',t0);return {fail:'timeout'};}
+  const msg=String((data&&data.error&&data.error.message)||'');
+  geminiNote(tried,model,r.status,t0,r.status===200?'':msg);
+  if(r.status===200){
+   let parsed=null;try{parsed=geminiJson(data);}catch(e){parsed=null;}
+   if(parsed)return {parsed};
+   console.log('gemini vision bad json',model);return {fail:'other'};
   }
+  const low=msg.toLowerCase();
+  if(r.status===429)return {fail:'quota'};
+  if(/api key not valid|api_key_invalid|unregistered callers/.test(low)||r.status===401)return {fail:'key',global:true};
+  if(r.status===403||/api key|api_key|permission_denied/.test(low))return {fail:'key'};
+  if(r.status===400){
+   if(opt.thinking&&/thinking/.test(low)){opt.thinking=false;continue;}
+   if(opt.hires&&/media.?resolution/.test(low)){opt.hires=false;continue;}
+   if(opt.schema&&/schema|response_mime|responsemime/.test(low)){opt.schema=false;continue;}
+  }
+  return {fail:'other'};
  }
- return {fail:quota?'quota':'other'};
+ return {fail:'other'};
+}
+// 多個模型接力＋逾時加開：失敗立刻換下一個；HEDGE_MS 還沒回就同時請下一個（最多同時 2 個）
+function callGemini(images,key,deadline){
+ const models=[...new Set([String(process.env.GEMINI_VISION_MODEL||'gemini-3.6-flash').trim()].concat(GEMINI_FALLBACKS))];
+ const tried=[],ctrls=[];
+ return new Promise(resolve=>{
+  let next=0,running=0,done=false,quota=false,keyBad=false,hedgeTimer=null;
+  const failKind=()=>keyBad?'key':quota?'quota':'other';
+  const finish=v=>{
+   if(done)return;done=true;
+   clearTimeout(hedgeTimer);clearTimeout(deadTimer);
+   ctrls.forEach(c=>{try{c.abort();}catch(e){}});
+   v.tried=tried;resolve(v);
+  };
+  const deadTimer=setTimeout(()=>finish({fail:quota?'quota':'timeout'}),Math.max(0,deadline-Date.now()-500));
+  const launch=()=>{
+   if(done)return;
+   if(next>=models.length||deadline-Date.now()<MIN_START_MS){
+    if(running===0)finish({fail:next>=models.length?failKind():(quota?'quota':'timeout')});
+    return;
+   }
+   const model=models[next++];running++;
+   const c=new AbortController();ctrls.push(c);
+   clearTimeout(hedgeTimer);
+   hedgeTimer=setTimeout(()=>{if(running<2)launch();},HEDGE_MS);
+   geminiModel(model,images,key,c.signal,tried).then(res=>{
+    running--;
+    if(done)return;
+    if(res.parsed){finish({parsed:res.parsed,model});return;}
+    if(res.fail==='key'){keyBad=true;if(res.global){finish({fail:'key'});return;}}
+    if(res.fail==='quota')quota=true;
+    launch();
+   },()=>{running--;if(!done)launch();});
+  };
+  launch();
+ });
 }
 const GEMINI_FAIL={
  quota:[429,'Gemini 免費額度暫時用完，已可改用 OCR'],
@@ -132,8 +177,10 @@ module.exports=async function(req,res){
   }
   if(geminiKey){
    const g=await callGemini(images,geminiKey,deadline);
-   if(g.parsed){response(res,200,{categories:g.parsed.categories,warnings:g.parsed.warnings||[],engine:'Gemini',model:g.model});return;}
-   if(!openaiKey){const f=GEMINI_FAIL[g.fail]||GEMINI_FAIL.other;response(res,f[0],{message:f[1]});return;}
+   const tried=g.tried.map(t=>t.model+' '+t.status+' '+t.ms+'ms');
+   console.log('gemini vision result',g.parsed?'ok '+g.model:'fail '+g.fail,tried.join(' | '));
+   if(g.parsed){response(res,200,{categories:g.parsed.categories,warnings:g.parsed.warnings||[],engine:'Gemini',model:g.model,tried});return;}
+   if(!openaiKey){const f=GEMINI_FAIL[g.fail]||GEMINI_FAIL.other;response(res,f[0],{message:f[1],tried});return;}
   }
   const o=await callOpenAI(images,openaiKey,deadline);
   if(!o.parsed){response(res,o.status,{message:o.message});return;}
