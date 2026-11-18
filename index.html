@@ -866,7 +866,7 @@ function avatar(name){
 }
 // 2026-11-18 會員頭貼共用（收錢表格、首頁團購卡）：先讀 memberAvatars/<uid>（登入者可讀），管理員或本人再退回 members/<uid>，都沒有就用名字第一個字。
 var MAV={};
-function memberAvHtml(id,name){var v=id&&MAV[id],LM=window.LunchMembers;if(LM&&LM.avatarHtml){if(v&&typeof v==='object')return LM.avatarHtml(Object.assign({name:name},v),'mav');if(/^(江|毛子|哥|eason|eason\s*[（(]哥[）)])$/i.test(String(name||'').trim()))return LM.avatarHtml({name:name},'mav');}return avatar(name);}
+function memberAvHtml(id,name){var v=id&&MAV[id],LM=window.LunchMembers;if(LM&&LM.avatarHtml){if(v&&typeof v==='object')return LM.avatarHtml(Object.assign({name:name},v),'mav');if(/^(江|毛子|哥|eason(?:\s+liu)?|eason\s*[（(]哥[）)])$/i.test(String(name||'').trim()))return LM.avatarHtml({name:name},'mav');}return avatar(name);}
 function memberAvSlot(id,name,cls){if(id)loadMemberAv(id);return '<span class="'+(cls||'mav-slot')+'" data-av-uid="'+esc(id||'')+'" data-av-name="'+esc(name||'')+'">'+memberAvHtml(id,name)+'</span>';}
 function loadMemberAv(id){
   if(!id||MAV[id]!==undefined)return;MAV[id]=0;
@@ -1988,6 +1988,6 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="interface.js?v=20261118hop4"></script>
 <script src="participants.js?v=20261118dept"></script>
 <script src="pay.js?v=20261118dept"></script>
-<script src="members.js?v=20261118profile1"></script>
+<script src="members.js?v=20261118profile2"></script>
 </body>
 </html>
