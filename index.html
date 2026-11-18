@@ -485,13 +485,13 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261119a">
+<link rel="stylesheet" href="glass.css?v=20261119home2">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
 <body>
 <div class="demo" id="demoBar" hidden>示範模式：資料只存在這台電腦</div>
-<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span><img class="brand-cat" src="assets/jun-cat-vector.svg?v=20261119" alt="" width="34" height="40" aria-hidden="true"></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">首頁</a><a class="btn sm" href="#/history">往期</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
+<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span><img class="brand-cat" src="assets/jun-cat-vector.svg?v=20261119" alt="" width="34" height="40" aria-hidden="true"></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">首頁</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
 <main id="app"></main>
 <div id="toast" role="status" hidden></div>
 <script>
@@ -896,9 +896,7 @@ function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+
 
 /* ---------- 首頁 ---------- */
 function pageHome(root,history){
-  root.innerHTML=history
-    ? '<div class="page"><section><a class="backlink" href="#/">'+I('back',15)+'回首頁</a><h1 class="ph">往期</h1><p class="muted">已結束的團購，可查看訂單或進入管理。</p></section><section aria-label="已結束的團購"><div class="grid" id="end"></div></section></div>'
-    : '<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><div class="grid" id="act"></div></section></div>';
+  root.innerHTML='<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a></div></section><section class="home-groups"><nav class="home-switch" aria-label="團購狀態"><a href="#/"'+(!history?' aria-current="page"':'')+'>進行中</a><a href="#/?view=ended"'+(history?' aria-current="page"':'')+'>已結束</a></nav><div class="grid" id="'+(history?'end':'act')+'" aria-label="'+(history?'已結束':'進行中')+'的團購"></div></section></div>';
   var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false;
   function stats(gid){var l=liveOrders(orders[gid]);return {people:peopleCount(orders[gid]),qty:l.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0)};}
   function canRemove(g){return !!(g&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||g.ownerUserId&&g.ownerUserId===userId()));}
@@ -924,7 +922,7 @@ function pageHome(root,history){
       return deleteGroupData(id).then(function(){toast('團已刪除');});
     }).catch(fail).finally(function(){delete deleting[id];if(!disposed)draw();});
   });
-  var more=null;if(history){more=document.createElement('button');more.type='button';more.className='btn';more.textContent='載入更多往期';root.querySelector('#end').parentNode.appendChild(more);}
+  var more=null;if(history){more=document.createElement('button');more.type='button';more.className='btn';more.textContent='載入更多已結束團購';root.querySelector('#end').parentNode.appendChild(more);}
   function subscribeGroups(){
     if(groupOff)groupOff();
     groupOff=DB.on('groups',function(v){recentGroups=v||{};syncGroups();},{orderBy:'createdAt',limit:historyLimit});
@@ -1998,8 +1996,8 @@ function route(){
   try{
     if(routeGuard&&routeGuard(app,p,r.q,location.hash)===false)return;
     if(extraRoutes[p[0]||'home'])cleanup=extraRoutes[p[0]||'home'](app,p,r.q);
-    else if(!p.length)cleanup=pageHome(app);
-    else if(p[0]==='history'&&p.length===1)cleanup=pageHome(app,true);
+    else if(!p.length)cleanup=pageHome(app,r.q.view==='ended');
+    else if(p[0]==='history'&&p.length===1){location.replace('#/?view=ended');return;}
     else if(p[0]==='shops'&&p.length===1)cleanup=pageShops(app);
     else if(p[0]==='shops'&&p.length===2)cleanup=pageShopEdit(app,p[1]);
     else if(p[0]==='new')cleanup=pageNew(app,r.q);
@@ -2019,7 +2017,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="interface.js?v=20261119a"></script>
 <script src="participants.js?v=20261118dept"></script>
 <script src="pay.js?v=20261119a"></script>
-<script src="mascot.js?v=20261119"></script>
+<script src="mascot.js?v=20261119arm2"></script>
 <script src="members.js?v=20261119a"></script>
 </body>
 </html>
