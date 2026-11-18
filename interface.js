@@ -43,7 +43,7 @@
     var hero=app.querySelector('.hero');if(!hero||hero.dataset.interfaceHome)return;hero.dataset.interfaceHome='true';
     var h=hero.querySelector('h1'),p=hero.querySelector('p'),actions=hero.querySelector('.hero-actions');if(h)h.textContent='今天吃什麼？';if(p)p.textContent='點進開放中的團就能點餐，想自己揪團就按「開新團」';
     // 拿掉「查看今日團購」（就在本頁，使用者 2026-11-18 指定），只留「開新團」並改成主按鈕。
-    if(actions){var create=el('a','btn primary','開新團');create.href='#/new';actions.replaceChildren(create);}
+    if(actions){var create=el('a','btn primary','＋開新團');create.href='#/new';actions.replaceChildren(create);}
   }
   function simplify(name,shop){if(!shop)return name;var escaped=shop.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return name.replace(new RegExp('^'+escaped+'\\s*[-－—–:：/／]\\s*'),'')||name;}
   function ordering(){

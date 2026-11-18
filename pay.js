@@ -15,7 +15,7 @@
     var account=typeof v.account==='string'&&/^[0-9 -]{1,30}$/.test(v.account.trim())?v.account.trim():'';
     return {bank:bank,account:account,linePayQr:isQr(v.linePayQr)?v.linePayQr:''};
   }
-  function hasInfo(p){return !!(p&&(p.account||p.linePayQr));}
+  function hasInfo(p){return !!(p&&p.account);}
   function get(uid){
     if(!uid||!A||!A.DB)return Promise.resolve(null);
     if(!cache[uid])cache[uid]=A.DB.get('payInfo/'+uid).then(function(v){return v?clean(v):null;},function(e){delete cache[uid];throw e;});
@@ -64,6 +64,7 @@
   var closeOpen=null;
   // o：{ownerUid, ownerName, title, due, closed, avatarHtml, paidState('ok'|'part'|'none') 或 paidPath＋lineCount}
   function open(o){
+    if(o.receiverPath&&!o.receiverResolved){return A.DB.get(o.receiverPath).then(function(id){if(!id)return open(Object.assign({},o,{receiverResolved:true}));return A.DB.get('memberDirectory/'+id).then(function(p){return open(Object.assign({},o,{receiverResolved:true,ownerUid:id,ownerName:p&&p.name||'收款人',avatarHtml:A.memberAvSlot(id,p&&p.name||'收款人','pay-dlg-av')}));});}).catch(function(){A.toast('讀不到實際收款人，請稍後重試',true);});}
     if(closeOpen)closeOpen();
     var prevFocus=document.activeElement,prevOverflow=document.body.style.overflow;
     var ov=document.createElement('div');ov.className='pay-ov';
@@ -130,15 +131,11 @@
     if(!o.ownerUid){body.className='';body.innerHTML='<p class="pay-empty">這一團沒有記錄負責人的帳號，請直接找 '+esc(o.ownerName||'負責人')+' 付款。</p>';return;}
     get(o.ownerUid).then(function(p){
       if(!alive)return;body.className='';
-      if(!hasInfo(p)){body.innerHTML='<p class="pay-empty">'+esc(o.ownerName||'負責人')+' 還沒有設定收款資料，請直接找負責人付款。</p>';return;}
+      if(!hasInfo(p)){body.innerHTML='<p class="pay-empty">'+esc(o.ownerName||'負責人')+' 還沒有設定收款資料，請直接找這位收款人付款。</p>';return;}
       var h='';
       if(p.account)h+='<div class="pay-block"><h3>銀行轉帳</h3>'+
         (p.bank?'<div class="pay-row"><span>銀行</span><b>'+esc(p.bank)+'</b></div>':'')+
         '<div class="pay-row"><span>帳號</span><b class="pay-acct">'+esc(p.account)+'</b><button type="button" class="pay-copy" data-copy="'+esc(digits(p.account))+'" data-copy-what="帳號">複製</button></div></div>';
-      if(p.linePayQr)h+='<div class="pay-block"><h3>LINE Pay 收款碼</h3>'+
-        '<button type="button" class="pay-qr" data-qr-zoom aria-label="放大或縮小收款碼"><img src="'+p.linePayQr+'" alt="'+esc(o.ownerName||'負責人')+' 的 LINE Pay 收款碼"></button>'+
-        '<p class="pay-tip">點圖片可以放大；用手機看時可以先存下圖片。</p>'+
-        '<a class="btn sm pay-save" href="'+p.linePayQr+'" download="LINE-Pay-收款碼-'+esc(String(o.ownerName||'負責人').replace(/[\\/:*?"<>|]/g,''))+(p.linePayQr.indexOf('image/png')>0?'.png':'.jpg')+'">存下圖片</a></div>';
       body.innerHTML=h;
     }).catch(function(){
       if(!alive)return;body.className='';

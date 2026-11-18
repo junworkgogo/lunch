@@ -485,13 +485,13 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261118card">
+<link rel="stylesheet" href="glass.css?v=20261119a">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
 <body>
 <div class="demo" id="demoBar" hidden>示範模式：資料只存在這台電腦</div>
-<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span><img class="brand-cat" src="assets/jun-cat-icon.png?v=20261118cat" alt="" width="34" height="40" aria-hidden="true"></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">團購首頁</a><a class="btn sm" href="#/history">歷史團購</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
+<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span><img class="brand-cat" src="assets/jun-cat-vector.svg?v=20261119" alt="" width="34" height="40" aria-hidden="true"></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">首頁</a><a class="btn sm" href="#/history">往期</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
 <main id="app"></main>
 <div id="toast" role="status" hidden></div>
 <script>
@@ -897,8 +897,8 @@ function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+
 /* ---------- 首頁 ---------- */
 function pageHome(root,history){
   root.innerHTML=history
-    ? '<div class="page"><section><a class="backlink" href="#/">'+I('back',15)+'回首頁</a><h1 class="ph">歷史團購</h1><p class="muted">已結束的團購，可查看訂單或進入管理。</p></section><section aria-label="已結束的團購"><div class="grid" id="end"></div></section></div>'
-    : '<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><h2 class="sh">進行中的團</h2><div class="grid" id="act"></div></section></div>';
+    ? '<div class="page"><section><a class="backlink" href="#/">'+I('back',15)+'回首頁</a><h1 class="ph">往期</h1><p class="muted">已結束的團購，可查看訂單或進入管理。</p></section><section aria-label="已結束的團購"><div class="grid" id="end"></div></section></div>'
+    : '<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a><a class="btn" href="#/shops">'+I('store')+'店家</a></div></section><section><div class="grid" id="act"></div></section></div>';
   var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false;
   function stats(gid){var l=liveOrders(orders[gid]);return {people:peopleCount(orders[gid]),qty:l.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0)};}
   function canRemove(g){return !!(g&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||g.ownerUserId&&g.ownerUserId===userId()));}
@@ -910,7 +910,7 @@ function pageHome(root,history){
     var ids=Object.keys(groups).filter(function(k){return groups[k]&&!groups[k].deleted;});
     var act=ids.filter(function(k){return !groupClosed(groups[k]);}).sort(function(a,b){return groups[a].deadline-groups[b].deadline;});
     var end=ids.filter(function(k){return groupClosed(groups[k]);}).sort(function(a,b){return groups[b].deadline-groups[a].deadline;}).slice(0,historyLimit);
-    if(!history){root.querySelector('#act').innerHTML=act.length?act.map(function(k){return card(k,groups[k],false);}).join(''):'<div style="grid-column:1/-1">'+emptyBox('目前沒有進行中的團。','<br><a class="btn primary" href="#/new">'+I('plus')+'開新團</a>')+'</div>';
+    if(!history){root.querySelector('#act').innerHTML=act.length?act.map(function(k){return card(k,groups[k],false);}).join(''):'<p class="home-empty">(´;ω;`)沒有團</p>';
     }else root.querySelector('#end').innerHTML=end.length?end.map(function(k){return card(k,groups[k],true);}).join(''):'<div style="grid-column:1/-1">'+emptyBox('還沒有結束的團。')+'</div>';
   }
   var deleting={};
@@ -924,7 +924,7 @@ function pageHome(root,history){
       return deleteGroupData(id).then(function(){toast('團已刪除');});
     }).catch(fail).finally(function(){delete deleting[id];if(!disposed)draw();});
   });
-  var more=null;if(history){more=document.createElement('button');more.type='button';more.className='btn';more.textContent='載入更多歷史團購';root.querySelector('#end').parentNode.appendChild(more);}
+  var more=null;if(history){more=document.createElement('button');more.type='button';more.className='btn';more.textContent='載入更多往期';root.querySelector('#end').parentNode.appendChild(more);}
   function subscribeGroups(){
     if(groupOff)groupOff();
     groupOff=DB.on('groups',function(v){recentGroups=v||{};syncGroups();},{orderBy:'createdAt',limit:historyLimit});
@@ -941,14 +941,18 @@ function pageHome(root,history){
 }
 
 /* ---------- 店家清單 ---------- */
+function shopCategory(s){return s.category==='drink'||s.category==='meal'?s.category:(/飲料|飲品|咖啡|手搖|茶飲|果汁/.test(s.tags||'')?'drink':'meal');}
 function pageShops(root){
-  root.innerHTML='<div class="page"><section><h1 class="ph">店家</h1><p class="muted">先把店家和菜單存好，開團時選一下就能用。</p><div class="actions" style="margin-top:12px"><a class="btn primary" href="#/shops/new">'+I('plus')+'新增店家</a></div></section><section><div class="grid" id="list"></div></section></div>';
-  function draw(shops){
-    var ids=Object.keys(shops||{}).filter(function(k){return !shops[k].deleted;}).sort(function(a,b){return (shops[b].updatedAt||0)-(shops[a].updatedAt||0);});
+  var allShops={},category='all';
+  root.innerHTML='<div class="page"><section><h1 class="ph">店家</h1><p class="muted">先把店家和菜單存好，開團時選一下就能用。</p><div class="actions shop-actions" style="margin-top:12px"><a class="btn primary" data-add-shop href="#/shops/new">'+I('plus')+'新增店家</a><div class="shop-categories" role="group" aria-label="店家分類"><button type="button" data-shop-category="all" aria-pressed="true">ALL</button><button type="button" data-shop-category="meal" aria-pressed="false">餐點</button><button type="button" data-shop-category="drink" aria-pressed="false">飲品</button></div></div></section><section><div class="grid" id="list"></div></section></div>';
+  function draw(){
+    var shops=allShops,ids=Object.keys(shops).filter(function(k){return shops[k]&&!shops[k].deleted&&(category==='all'||shopCategory(shops[k])===category);}).sort(function(a,b){return (shops[b].updatedAt||0)-(shops[a].updatedAt||0);});
     root.querySelector('#list').innerHTML=ids.length?ids.map(function(k){var s=shops[k];
-      return '<article class="card gcard"><h3>'+esc(s.name)+'</h3><ul class="info" style="margin:0">'+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'<li>'+I('list2')+'<span>'+countItems(s.menuText)+' 個品項</span></li></ul><div class="actions"><a class="btn primary" href="#/new?shop='+esc(k)+'">用這家開團</a>'+(!secureMode()||adminUser()?'<a class="btn" href="#/shops/'+esc(k)+'">編輯</a>':'')+'</div></article>';}).join(''):'<div style="grid-column:1/-1">'+emptyBox('還沒有店家。','<br><a class="btn primary" href="#/shops/new">新增店家</a>')+'</div>';
+      return '<article class="card gcard"><span class="shop-category-label">'+(shopCategory(s)==='drink'?'飲品':'餐點')+'</span><h3>'+esc(s.name)+'</h3><ul class="info" style="margin:0">'+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'<li>'+I('list2')+'<span>'+countItems(s.menuText)+' 個品項</span></li></ul><div class="actions"><a class="btn primary" href="#/new?shop='+esc(k)+'">用這家開團</a>'+(!secureMode()||adminUser()?'<a class="btn" href="#/shops/'+esc(k)+'">編輯</a>':'')+'</div></article>';}).join(''):'<p class="home-empty">'+(category==='all'?'還沒有店家。':'這個分類還沒有店家。')+'</p>';
+    root.querySelector('[data-add-shop]').href='#/shops/new'+(category==='all'?'':'?category='+category);
   }
-  return DB.on('shops',draw);
+  root.querySelector('.shop-categories').addEventListener('click',function(e){var b=e.target.closest('[data-shop-category]');if(!b)return;category=b.getAttribute('data-shop-category');root.querySelectorAll('[data-shop-category]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});draw();});
+  return DB.on('shops',function(v){allShops=v||{};draw();});
 }
 P.list2='<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>';
 P.trash='<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
@@ -1265,7 +1269,7 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
   function listHtml(r){
     var L=r.where||{},place=L.how==='place-part'&&L.place?String(L.place):'';
     var warnings=arr(r.warnings).length?'<p class="imp-warnings">'+arr(r.warnings).map(esc).join('；')+'</p>':'';
-    var term=r.query||'',searches=term?'<div class="imp-links">'+[['全部菜單','菜單'],['iCHEF','site:shop.ichefpos.com'],['快一點','site:quickclick.cc'],['Oddle','site:oddle.me']].map(function(s){return '<a href="https://www.google.com/search?q='+encodeURIComponent(term+' '+s[1])+'" target="_blank" rel="noopener noreferrer">搜尋'+s[0]+' ↗</a>';}).join('')+'</div>':'';
+    var searches='';
     if(!r.list.length)return '<p class="imp-msg">目前沒有找到可確認的菜單，這不代表店家沒有營業。可改貼店家的官網、iCHEF、快一點或 Oddle 菜單連結。</p>'+warnings+searches;
     return '<p class="imp-msg">'+(place?'在「'+esc(place)+'」附近找到 ':'找到 ')+r.list.length+' 筆店家／菜單來源，請確認店名與分店：</p>'+warnings+'<ul class="imp-list">'+r.list.map(function(c,i){
       var dt=impDistText(c.dist),sub=esc(c.address||'')+(dt?(c.address?'・':'')+'<span class="imp-d">'+dt+'</span>':'');
@@ -1329,6 +1333,7 @@ function pageShopEdit(root,id){
     root.innerHTML='<div class="page"><section><a class="backlink" href="#/shops">'+I('back',15)+'回店家清單</a><h1 class="ph">'+(isNew?'新增店家':'編輯店家')+'</h1></section><div class="two"><section class="card"><form class="form" id="f" novalidate>'+
     '<div class="fld imp" role="group" aria-labelledby="iqL"><label id="iqL" for="iq">找店家菜單（選填）</label><div class="imp-row"><input id="iq" maxlength="2000" autocomplete="off" enterkeyhint="search" placeholder="貼上地圖、菜單連結或輸入店名"><button type="button" class="btn" id="ib">找菜單</button></div><div id="ir" aria-live="polite"></div></div>'+
     '<div class="fld"><label for="sn">店名（必填）</label><input id="sn" value="'+esc(s.name)+'" maxlength="40" autocomplete="off"><p class="err" id="snE" role="alert" hidden>請輸入店名</p></div>'+
+    '<div class="fld"><label for="shopCategory">店家分類</label><select id="shopCategory"><option value="meal"'+((s.category||(!isNew&&shopCategory(s))||parseHash().q.category)!=='drink'?' selected':'')+'>餐點</option><option value="drink"'+((s.category||(!isNew&&shopCategory(s))||parseHash().q.category)==='drink'?' selected':'')+'>飲品</option></select></div>'+
     '<div class="fld"><label for="sa">地址</label><input id="sa" value="'+esc(s.address)+'" maxlength="100" autocomplete="off" placeholder="填了就會顯示 地圖"></div>'+
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
     '<div class="fld"><label for="sh">營業時間</label><input id="sh" value="'+esc(s.hours||'')+'" maxlength="60" placeholder="例如 10:30–18:30" autocomplete="off"></div>'+
@@ -1360,7 +1365,7 @@ function pageShopEdit(root,id){
       if(r.errors.length){saveE.textContent='菜單有 '+r.errors.length+' 行格式不對（紅字），請先修正再儲存';saveE.hidden=false;sm.focus();return;}
       var freeShippingThreshold=parseFreeShippingThreshold(root.querySelector('#shopFreeShipping').value);
       if(!Number.isFinite(freeShippingThreshold)){saveE.textContent='免運門檻請填 0–1,000,000 的整數，或留白';saveE.hidden=false;root.querySelector('#shopFreeShipping').focus();return;}
-      var stamp=now(),f={name:name,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value.trim(),promos:root.querySelector('#sx').value.trim(),freeShippingThreshold:freeShippingThreshold,menuText:sm.value,updatedAt:stamp};
+      var stamp=now(),f={name:name,category:root.querySelector('#shopCategory').value,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value.trim(),promos:root.querySelector('#sx').value.trim(),freeShippingThreshold:freeShippingThreshold,menuText:sm.value,updatedAt:stamp};
       var p=isNew?DB.set('shops/'+sid,Object.assign({createdAt:stamp},f)):DB.update('shops/'+sid,f);
       p.then(function(){toast('店家已儲存');location.hash='#/shops';}).catch(fail);
     });
@@ -1583,11 +1588,11 @@ function pageGroup(root,gid){
     return !!(group&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||(group.ownerUserId&&userId()===group.ownerUserId)));
   }
   // 2026-11-18 付款按鈕：自己不是負責人、訂單沒取消、金額大於 0 才出現。
-  function canPay(o){return !!(o&&!o.cancelled&&group&&group.ownerUserId!==userId()&&orderTotal(o)>0&&window.LunchPay);}
+  function canPay(o){var receiver=o&&group&&((group.collectors&&group.collectors[o.id])||group.ownerUserId);return !!(o&&!o.cancelled&&receiver&&receiver!==userId()&&orderTotal(o)>0&&window.LunchPay);}
   function openPay(oid){
-    var o=orders[oid];if(!canPay(o))return;
+    var o=orders[oid];if(!canPay(Object.assign({id:oid},o)))return;
     var bill=settlement(orders,group).orders[oid];
-    window.LunchPay.open({ownerUid:group.ownerUserId||'',ownerName:group.owner,title:group.title,due:bill?bill.due:orderTotal(o),closed:groupClosed(group),paidPath:'paid/'+gid+'/'+oid,lineCount:arr(o.items).length,avatarHtml:memberAvSlot(group.ownerUserId,group.owner,'pay-dlg-av')});
+    window.LunchPay.open({ownerUid:group.ownerUserId||'',ownerName:group.owner,title:group.title,due:bill?bill.due:orderTotal(o),closed:groupClosed(group),receiverPath:'groups/'+gid+'/collectors/'+oid,paidPath:'paid/'+gid+'/'+oid,lineCount:arr(o.items).length,avatarHtml:memberAvSlot(group.ownerUserId,group.owner,'pay-dlg-av')});
   }
   function refresh(){
     var closed=groupClosed(group);lastClosed=closed;
@@ -1783,7 +1788,7 @@ function wireShare(scope,gid,title){
   if(sb)sb.addEventListener('click',function(){navigator.share({title:title,url:url}).catch(function(){});});
 }
 function pageAdmin(root,gid,q){
-  var group=null,orders={},paid={},got=false,tab=q.tab==='people'?'people':'pay',unlocked=false,mode=null,setBuilt=false,pageAlive=true,peopleController=null;
+  var group=null,orders={},paid={},got=false,tab=q.tab==='people'||q.tab==='set'?'set':'pay',unlocked=false,mode=null,setBuilt=false,pageAlive=true,peopleController=null,receivers={},receiverReady=false,bulkBusy=false;
   root.innerHTML='<div class="page"><p class="muted">載入中…</p></div>';
   var $=function(s){return root.querySelector(s);};
   function adminMounted(){return pageAlive&&group&&!group.deleted&&root.isConnected!==false;}
@@ -1811,16 +1816,16 @@ function pageAdmin(root,gid,q){
     mode='main';setBuilt=false;
     root.innerHTML='<div class="page"><section><a class="backlink" href="#/">'+I('back',15)+'回首頁</a><h1 class="ph">'+esc(group.title)+'</h1><ul class="meta"><li>'+I('store')+esc(group.shop.name)+'</li><li>'+I('user')+'負責人 '+esc(group.owner)+'</li></ul><div class="actions" style="margin-top:10px"><a class="btn sm" href="#/g/'+esc(gid)+'">看點餐頁</a></div></section>'+
     (q.new?'<section id="newShare">'+shareBlock(gid)+'</section>':'')+
-    '<div class="tabsx" role="tablist" id="tx"><button type="button" data-t="people">參加名單</button><button type="button" data-t="pay">收錢</button><button type="button" data-t="sum">叫餐彙整</button><button type="button" data-t="set">設定</button></div><div id="body"></div></div>';
+    '<div class="tabsx" role="tablist" id="tx"><button type="button" data-t="pay">收錢</button><button type="button" data-t="sum">叫餐彙整</button><button type="button" data-t="set">設定</button></div><div id="body"></div></div>';
     if(q.new)wireShare($('#newShare'),gid,group.title);
     $('#tx').addEventListener('click',function(e){var b=e.target.closest('button[data-t]');if(!b)return;tab=b.getAttribute('data-t');if(peopleController){peopleController.destroy();peopleController=null;}setBuilt=false;draw();});
-    $('#body').addEventListener('click',bodyClick);$('#body').addEventListener('submit',adjustmentSubmit);
+    $('#body').addEventListener('click',bodyClick);$('#body').addEventListener('submit',adjustmentSubmit);$('#body').addEventListener('change',function(e){var sel=e.target.closest('[data-receiver]');if(!sel)return;var id=sel.getAttribute('data-receiver'),uid=sel.value;if(!orders[id]||(!receivers[uid]&&uid!==group.ownerUserId))return;sel.disabled=true;DB.update('groups/'+gid+'/collectors',Object.fromEntries([[id,uid]])).catch(function(er){fail(er);if(adminMounted())draw();});});
   }
   function isPaid(oid,i){var p=paid[oid];return !!(p&&p[i]);}
   function lines(o){return arr(o.items);}
   function adjustmentHtml(){
     var a=group.adjustment||{},closed=groupClosed(group);
-    return '<section class="card"><h2>運費與折扣</h2><p class="muted">'+(closed?'以整數元分攤；儲存後重設本團收款標記。':'截止後才能設定運費與折扣。')+'</p><form id="adjustForm" class="form" novalidate><div class="row2"><div class="fld"><label for="adjustShipping">運費（元）</label><input id="adjustShipping" inputmode="numeric" value="'+esc(a.shipping||0)+'"'+(closed?'':' disabled')+'></div><div class="fld"><label for="adjustDiscount">折扣（元）</label><input id="adjustDiscount" inputmode="numeric" value="'+esc(a.discount||0)+'"'+(closed?'':' disabled')+'></div></div><div class="fld"><label for="adjustSplit">運費分攤方式</label><select id="adjustSplit"'+(closed?'':' disabled')+'><option value="equal"'+(a.split!=='proportional'?' selected':'')+'>按人數平均分攤</option><option value="proportional"'+(a.split==='proportional'?' selected':'')+'>按餐點金額比例分攤</option></select></div><p class="muted">折扣依各筆餐點原價比例分配；同一會員多筆訂單不會多收平均運費。</p><button class="btn primary" type="submit"'+(closed?'':' disabled')+'>儲存運費與折扣</button><p class="err" id="adjustError" role="alert" hidden></p></form></section>';
+    return '<section class="card finance-adjust"><h2>運費與折扣</h2>'+(!closed?'<p class="muted">截止後才能設定運費與折扣。</p>':'')+'<form id="adjustForm" class="form" novalidate><div class="row2"><div class="fld"><label for="adjustShipping">運費（元）</label><input id="adjustShipping" inputmode="numeric" value="'+esc(a.shipping||0)+'"'+(closed?'':' disabled')+'></div><div class="fld"><label for="adjustDiscount">折扣（元）</label><input id="adjustDiscount" inputmode="numeric" value="'+esc(a.discount||0)+'"'+(closed?'':' disabled')+'></div></div><div class="fld"><label for="adjustSplit">運費分攤方式</label><select id="adjustSplit"'+(closed?'':' disabled')+'><option value="equal"'+(a.split!=='proportional'?' selected':'')+'>按人數平均分攤</option><option value="proportional"'+(a.split==='proportional'?' selected':'')+'>按餐點金額比例分攤</option></select></div><button class="btn primary" type="submit"'+(closed?'':' disabled')+'>儲存運費與折扣</button><p class="err" id="adjustError" role="alert" hidden></p></form></section>';
   }
   function adjustmentSubmit(e){
     if(!e.target||e.target.id!=='adjustForm')return;e.preventDefault();if(!adminMounted()||!groupClosed(group)){toast('請先截止團購再設定',true);return;}
@@ -1831,18 +1836,37 @@ function pageAdmin(root,gid,q){
     if(!Object.keys(calc.orders).length&&(a.shipping||a.discount)){$('#adjustError').textContent='還沒有有效訂單，不能設定非零運費或折扣';$('#adjustError').hidden=false;return;}
     ask({title:'儲存並重設本團收款標記？',body:'將更新運費與折扣，並重設本團收款標記；已收的款項請重新核對。',okText:'儲存並重設',cancelText:'先不要'}).then(function(ok){if(!ok||!adminMounted())return;if(!groupClosed(group))throw new Error('團購已重新開放，請先截止');if(a.discount>settlement(orders,group).base)throw new Error('訂單金額已改變，請重新設定折扣');var patch={};patch['groups/'+gid+'/adjustment']=a;patch['paid/'+gid]=false;return DB.update('',patch).then(function(){toast('運費與折扣已儲存，收款標記已重設');});}).catch(fail);
   }
+  function receiverId(o){return group.collectors&&group.collectors[o.id]||group.ownerUserId||'';}
+  function receiverHtml(o,due){
+    var id=receiverId(o),options=Object.assign({},receivers);if(group.ownerUserId&&!options[group.ownerUserId])options[group.ownerUserId]={name:group.owner};
+    var name=options[id]&&options[id].name||'請選擇';
+    return '<div class="pc-receiver"><span>交給</span>'+memberAvSlot(id,name,'receiver-av')+'<select data-receiver="'+esc(o.id)+'" aria-label="'+esc(o.name)+' 的實際收款人"'+(!receiverReady?' disabled':'')+'><option value="">選擇收款人</option>'+Object.keys(options).map(function(uid){return '<option value="'+esc(uid)+'"'+(uid===id?' selected':'')+'>'+esc(options[uid].name)+'</option>';}).join('')+'</select><b>'+money(due)+'</b></div>';
+  }
+  function markAllPaid(){
+    if(bulkBusy||!adminMounted()||!allowed())return;
+    var ids=liveOrders(orders).map(function(o){return o.id;});if(!ids.length)return;
+    bulkBusy=true;
+    ask({title:'將本團全部標記為已付清？',body:'會將畫面上 '+ids.length+' 筆有效訂單標記為已收款，保留每筆選定的收款人。',okText:'全已付清',cancelText:'先不要'}).then(function(ok){
+      if(!ok||!adminMounted()||!allowed())return;
+      return Promise.all([DB.get('groups/'+gid),DB.get('orders/'+gid)]).then(function(v){
+        if(!adminMounted()||!v[0]||v[0].deleted)throw new Error('團購已不存在');
+        var patch={};ids.forEach(function(id){var o=v[1]&&v[1][id];if(!o||o.cancelled)return;lines(o).forEach(function(it,i){patch[id+'/'+i]=true;});});
+        if(Object.keys(patch).length)return DB.update('paid/'+gid,patch).then(function(){toast('已全部標記為付清');});
+      });
+    }).catch(fail).finally(function(){bulkBusy=false;if(adminMounted())draw();});
+  }
   function payHtml(){
     var live=liveOrders(orders),calc=settlement(orders,group),total=calc.due,got2=0;
     live.forEach(function(o){lines(o).forEach(function(it,i){var v=calc.orders[o.id]?calc.orders[o.id].lineDues[i]:0;if(isPaid(o.id,i))got2+=v;});});
-    var h='<div class="roster-overview">'+window.LunchParticipants.summaryHtml(group,orders)+'<button type="button" class="text-button" data-go-people>查看與設定參加名單 →</button></div>'+freeShippingHtml(group,orders,true)+adjustmentHtml()+'<div class="nums"><div class="num"><span>應收</span><b>'+money(total)+'</b></div><div class="num ok"><span>已收</span><b>'+money(got2)+'</b></div><div class="num bad"><span>未收</span><b>'+money(total-got2)+'</b></div></div>';
-    if(!live.length)return h+emptyBox('還沒有人點餐。');
+    var h='<div class="roster-overview">'+window.LunchParticipants.summaryHtml(group,orders)+'<button type="button" class="text-button" data-go-people>設定參加名單 →</button></div><div class="finance-pair">'+freeShippingHtml(group,orders,true)+adjustmentHtml()+'</div><div class="nums"><div class="num"><span>應收</span><b>'+money(total)+'</b></div><div class="num ok"><span>已收</span><b>'+money(got2)+'</b></div><div class="num bad"><span>未收</span><b>'+money(total-got2)+'</b></div></div>';
+    if(!live.length)return h+emptyBox('還沒有人點餐。');h+='<div class="collection-toolbar"><button type="button" class="btn primary" data-paid-all'+(bulkBusy?' disabled':'')+'>全已付清</button></div>';
     // 2026-11-18 收錢改成卡片：一人一張（頭貼＋名字＋應付｜品項｜收款＋刪除），細線；有運費或折扣才顯示算式。品項不能逐項打勾（使用者要求），只能整張切換；未收款淺灰底、已收款漸層底。
     return h+'<div class="paycards">'+live.map(function(o){
       var receipt=calc.orders[o.id]||{base:0,shipping:0,discount:0,due:0,lineDues:[]};var ls=lines(o),np=ls.filter(function(it,i){return isPaid(o.id,i);}).length;
       var st=np===0?'none':(np===ls.length?'ok':'part'),stT=st==='ok'?'已收款':(st==='part'?'部分':'未收款');
       var extra=receipt.shipping||receipt.discount?'<p class="pay-calc">原價 '+money(receipt.base)+(receipt.shipping?'＋運費 '+money(receipt.shipping):'')+(receipt.discount?'－折扣 '+money(receipt.discount):'')+'</p>':'';
       return '<article class="pay-card is-'+st+'"><div class="pc-head">'+memberAvSlot(o.userId,o.name,'pay-av')+'<span class="pc-name">'+esc(o.name)+'</span><span class="pc-due">'+money(receipt.due)+'</span></div><div class="pay-items'+(ls.length===1?' is-one':'')+'">'+ls.map(function(it,i){
-        return '<div class="pay-line"><span class="pay-t">'+esc(lineLabel(it))+' <span class="pay-q">×'+it.qty+'</span></span><span class="pay-lm">'+money(receipt.lineDues[i]||0)+'</span></div>';}).join('')+extra+'</div><div class="pc-foot"><button type="button" class="pay-pill is-'+st+'" data-all="'+esc(o.id)+'" aria-label="'+esc(o.name)+'：'+stT+'，點一下整個人切換已收／未收">'+(st==='ok'?I('check',13):'')+stT+'</button><button type="button" class="pay-trash" data-del="'+esc(o.id)+'" aria-label="刪除 '+esc(o.name)+' 的訂單" title="刪除這筆訂單">'+I('trash',16)+'</button></div></article>';
+        return '<div class="pay-line"><span class="pay-t">'+esc(lineLabel(it))+' <span class="pay-q">×'+it.qty+'</span></span><span class="pay-lm">'+money(receipt.lineDues[i]||0)+'</span></div>';}).join('')+extra+'</div>'+receiverHtml(o,receipt.due)+'<div class="pc-foot"><button type="button" class="pay-pill is-'+st+'" data-all="'+esc(o.id)+'" aria-label="'+esc(o.name)+'：'+stT+'，點一下整個人切換已收／未收">'+(st==='ok'?I('check',13):'')+stT+'</button><button type="button" class="pay-trash" data-del="'+esc(o.id)+'" aria-label="刪除 '+esc(o.name)+' 的訂單" title="刪除這筆訂單">'+I('trash',16)+'</button></div></article>';
     }).join('')+'</div>';
   }
   function aggregate(){
@@ -1893,7 +1917,8 @@ function pageAdmin(root,gid,q){
     tc.className='btn '+(groupClosed(group)?'primary':'danger');
   }
   function bodyClick(e){
-    if(e.target.closest('[data-go-people]')){tab='people';draw();return;}
+    if(e.target.closest('[data-go-people]')){tab='set';setBuilt=false;draw();return;}
+    if(e.target.closest('[data-paid-all]')){markAllPaid();return;}
     var all=e.target.closest('[data-all]');
     if(all){var id=all.getAttribute('data-all'),o=orders[id],ls=arr(o.items),allPaid=ls.every(function(it,i){return isPaid(id,i);}),obj={};ls.forEach(function(it,i){obj[i]=!allPaid;});DB.update('paid/'+gid+'/'+id,obj).catch(fail);return;}
     var del=e.target.closest('[data-del]');
@@ -1935,12 +1960,11 @@ function pageAdmin(root,gid,q){
     if(mode!=='main')frame();
     Array.prototype.forEach.call($('#tx').children,function(b){b.setAttribute('aria-current',String(b.getAttribute('data-t')===tab));b.setAttribute('role','tab');});
     var body=$('#body');
-    if(tab==='people'){if(!peopleController||!$('#peopleView')){if(peopleController)peopleController.destroy();body.innerHTML='<div id="peopleView"></div>';peopleController=window.LunchParticipants.management($('#peopleView'),group,orders,gid);}else peopleController.update(group,orders);}
-    else if(tab==='pay')body.innerHTML=payHtml();
+    if(tab==='pay')body.innerHTML=payHtml();
     else if(tab==='sum'){var fallback=!!($('#cpf')&&$('#cpf').firstChild),summary=aggregate();body.innerHTML=sumHtml(summary);if(fallback&&$('#cpf')){$('#cpf').innerHTML='<p class="muted">最新彙整文字（可全選複製）</p><textarea class="copyfallback" readonly></textarea>';$('#cpf textarea').value=sumText(summary);}}
     else{
       if(!setBuilt){
-        body.innerHTML=setHtml();setBuilt=true;wireShare(body,gid,group.title);
+        if(peopleController)peopleController.destroy();body.innerHTML='<div id="peopleView"></div>'+setHtml();peopleController=window.LunchParticipants.management($('#peopleView'),group,orders,gid);setBuilt=true;wireShare(body,gid,group.title);
         $('#sf').addEventListener('submit',function(e){
           e.preventDefault();var sE=$('#sE');sE.hidden=true;
           var title=$('#stl').value.trim(),owner=$('#sow').value.trim(),dl=parseDT($('#sdd').value,$('#sdt').value);
@@ -1952,10 +1976,10 @@ function pageAdmin(root,gid,q){
           DB.update('groups/'+gid,{title:title,owner:owner,deadline:dl,freeShippingThreshold:freeShippingThreshold}).then(function(){toast('設定已儲存');}).catch(fail);
         });
       }
-      updStat();updSold();
+      if(peopleController)peopleController.update(group,orders);updStat();updSold();
     }
   }
-  var offs=[DB.on('groups/'+gid,function(v){group=v;got=true;draw();}),DB.on('orders/'+gid,function(v){orders=v||{};if(mode==='main'&&tab!=='set')draw();}),DB.on('paid/'+gid,function(v){paid=v||{};if(mode==='main'&&tab==='pay')draw();})];
+  var offs=[DB.on('memberDirectory',function(v){receivers=v||{};receiverReady=true;if(mode==='main'&&tab==='pay')draw();}),DB.on('groups/'+gid,function(v){group=v;got=true;draw();}),DB.on('orders/'+gid,function(v){orders=v||{};if(mode==='main')draw();}),DB.on('paid/'+gid,function(v){paid=v||{};if(mode==='main'&&tab==='pay')draw();})];
   var tm=setInterval(function(){if(mode==='main'&&tab==='set')updStat();},1000);
   return function(){pageAlive=false;if(peopleController)peopleController.destroy();offs.forEach(function(f){f();});clearInterval(tm);};
 }
@@ -1992,9 +2016,10 @@ if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
 <script src="menu-vision.js?v=20261119gemini"></script>
-<script src="interface.js?v=20261118hop4"></script>
+<script src="interface.js?v=20261119a"></script>
 <script src="participants.js?v=20261118dept"></script>
-<script src="pay.js?v=20261118dept"></script>
-<script src="members.js?v=20261118lightorange1"></script>
+<script src="pay.js?v=20261119a"></script>
+<script src="mascot.js?v=20261119"></script>
+<script src="members.js?v=20261119a"></script>
 </body>
 </html>
