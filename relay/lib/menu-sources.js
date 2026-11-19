@@ -10,6 +10,11 @@ const REDIRECTS = 3;
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36';
 const MENU_LABEL = /菜單|價目表|餐點|點餐|訂餐|產品介紹|美味專區|\bmenu\b|\border online\b/i;
 const SEARCH_LABELS = { ichef: 'iCHEF', quickclick: '快一點', oddle: 'Oddle', website: '店家官網' };
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
+const SEARCH_MODEL = 'gemini-2.5-flash-lite';
+const DISCOVERY_MS = 15000;
+const SEARCH_RESERVE_MS = 5000;
+const REDIRECT_HOST = 'vertexaisearch.cloud.google.com';
 const SEARCH_CACHE = new Map();
 const SEARCH_INFLIGHT = new Map();
 
@@ -456,28 +461,111 @@ function shopKey(query) {
   return keyOf(query.split(/\s+/).filter(part => !location.test(part.replace(/臺/g, '台'))).join(' '));
 }
 
-function searchResults(body) {
-  const results = [];
-  for (const [, attrs, content] of body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)) {
-    if (!/(?:^|\s)l1(?:\s|$)/.test(attribute(attrs, 'class'))) continue;
-    const title = /<div\b[^>]*class="[^"]*\btitle\b[^"]*"[^>]*>([\s\S]*?)<\/div\s*>/i.exec(content);
-    const url = urlOf(attribute(attrs, 'href'));
-    const name = label(title?.[1]);
-    if (url && name) results.push({ url, name });
+// 店名搜尋改用 Gemini 2.5 Flash-Lite＋Google 搜尋（2026-11-19）：
+// 免費方案只有 2.5 Flash／Flash-Lite 能用搜尋（每天 500 次，兩者共用），3.x 免費方案不能用。
+// 原本抓 search.brave.com 的做法已停用：對方回驗證碼（429），robots.txt 也寫明不准抓 /search。
+// 只採用 Google 搜尋實際回傳的來源網址（groundingChunks），不採用模型自己寫出來的網址（可能是編的）。
+// 依 Google 規定，有用到搜尋結果就要把 searchEntryPoint 的「Google 搜尋建議」顯示給使用者，所以一起回傳 suggest。
+async function geminiSearch(query, deadline) {
+  const key = String(process.env.GEMINI_API_KEY || '').trim();
+  if (!key) throw Object.assign(new Error('沒有設定 Gemini 金鑰'), { code: 'nokey' });
+  const prompt = '請用 Google 搜尋台灣餐廳「' + query + '」的線上點餐或菜單網頁，' +
+    '分別找 iCHEF（shop.ichefpos.com）、快一點（order.quickclick.cc）、Oddle（oddle.me）與店家官網。' +
+    '只根據搜尋結果，用一句話說明找到哪些；找不到就說找不到，不要猜測。';
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), Math.max(1000, deadline - Date.now() - SEARCH_RESERVE_MS));
+  const started = Date.now();
+  let status = 'error';
+  let count = 0;
+  try {
+    const response = await fetch(GEMINI_URL + SEARCH_MODEL + ':generateContent', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: { temperature: 0, maxOutputTokens: 512 }
+      })
+    });
+    status = response.status;
+    const data = await response.json().catch(() => null);
+    if (response.status === 429) throw Object.assign(new Error('免費搜尋次數用完'), { code: 'quota' });
+    if (!response.ok) throw new Error('Gemini 搜尋回應 ' + response.status);
+    const meta = data?.candidates?.[0]?.groundingMetadata || {};
+    const chunks = values(meta.groundingChunks).map(chunk => chunk?.web)
+      .filter(web => web && typeof web.uri === 'string' && web.uri.length <= 2048).slice(0, 10);
+    count = chunks.length;
+    const html = meta.searchEntryPoint?.renderedContent;
+    return { chunks, suggest: typeof html === 'string' && html.length <= 30000 ? html : '' };
+  } finally {
+    clearTimeout(timer);
+    console.log('menu-search gemini', SEARCH_MODEL, status, (Date.now() - started) + 'ms', 'sources', count);
   }
-  return results;
 }
 
-async function search(term, deadline) {
-  const params = new URLSearchParams({ q: term, num: '10', hl: 'zh-TW', gl: 'tw', cc: 'tw' });
-  const { body } = await getPage('https://search.brave.com/search?' + params, url => url.hostname === 'search.brave.com', deadline);
-  const results = searchResults(body);
-  if (!results.length && !/no results found|couldn.t find any results|查無結果/i.test(body)) throw new Error('搜尋結果暫時無法讀取');
-  return results;
+// 搜尋來源是 vertexaisearch 的轉址連結，只走一步取得真正的網址（還沒讀內容，方便先過濾）
+async function groundedUrl(uri, deadline) {
+  const url = urlOf(uri);
+  if (!url) return null;
+  if (url.hostname !== REDIRECT_HOST) return url;
+  const result = await requestPage(url, deadline);
+  return result.redirect ? urlOf(result.redirect, url) : null;
 }
 
-async function runDiscovery(query, key) {
-  const deadline = Date.now() + LIMIT_MS;
+function skipWebsite(url) {
+  return platformHost(url.hostname) ||
+    /(?:^|\.)(?:facebook\.com|instagram\.com|google\.com(?:\.tw)?|ubereats\.com|foodpanda\.com\.tw|wikipedia\.org|youtube\.com|line\.me|threads\.com|threads\.net|pixnet\.net)$/.test(url.hostname);
+}
+
+async function iChefName(url, deadline) {
+  const publicId = /^\/store\/([\w-]{1,60})(?:\/ordering)?\/?$/.exec(url.pathname)?.[1];
+  if (!publicId) return '';
+  const path = '/api/graphql/online_restaurant';
+  const payload = {
+    operationName: 'restaurantInformationQuery',
+    query: 'query restaurantInformationQuery($publicId: String) { restaurant(publicId: $publicId) { onlineRestaurantInformation { name } } }',
+    variables: { publicId }
+  };
+  const data = await getJson('https://shop.ichefpos.com' + path + '?op=restaurantInformationQuery',
+    target => target.hostname === 'shop.ichefpos.com' && target.pathname === path, deadline, payload);
+  return label(data?.data?.restaurant?.onlineRestaurantInformation?.name);
+}
+
+// 讀候選網頁取得店名（用來確認是不是同一家店；iCHEF 網頁標題是空的，改問它的店家資料）
+async function pageInfo(url, deadline) {
+  const page = await getPage(url.href, undefined, deadline);
+  const src = source(page.url);
+  if (src === 'website' && skipWebsite(page.url)) return null;
+  const nodes = structured(page.body);
+  const shop = nodes.find(node => hasType(node, ['Restaurant', 'FoodEstablishment', 'CafeOrCoffeeShop', 'FastFoodRestaurant', 'LocalBusiness'])) ||
+    nodes.find(node => hasType(node, ['Organization']));
+  let name = label(shop?.name) || pageName(page.body);
+  if (!name && src === 'ichef') name = await iChefName(page.url, deadline).catch(() => '');
+  if (!name && src === 'quickclick') name = (await withinDeadline(readMenu(page.url.href), deadline).catch(() => null))?.name || '';
+  return name ? { url: page.url, name } : null;
+}
+
+async function search(query, deadline) {
+  const { chunks, suggest } = await geminiSearch(query, deadline);
+  const resolved = await Promise.all(chunks.map(chunk => groundedUrl(chunk.uri, deadline).catch(() => null)));
+  const seen = new Set();
+  const candidates = [];
+  for (const url of resolved) {
+    if (!url || seen.has(url.href) || candidates.length >= 6) continue;
+    seen.add(url.href);
+    if (source(url) === 'website' && skipWebsite(url)) continue;
+    candidates.push(url);
+  }
+  const pages = await Promise.all(candidates.map(url => pageInfo(url, deadline).catch(() => null)));
+  const results = pages.filter(Boolean);
+  console.log('menu-search grounded', resolved.filter(Boolean).map(url => url.hostname).join(',') || '-',
+    'named', results.map(item => source(item.url)).join(',') || '-');
+  return { results, suggest };
+}
+
+async function runDiscovery(query, key, useGemini) {
+  const deadline = Date.now() + DISCOVERY_MS;
   const warnings = [];
   const list = [];
   const seen = new Set();
@@ -494,26 +582,32 @@ async function runDiscovery(query, key) {
     }
   }
   let unavailable = false;
-  try {
-    collect(await search(query + ' 線上點餐 菜單', deadline));
-    const platforms = { ichef: 'shop.ichefpos.com', quickclick: 'order.quickclick.cc', oddle: 'oddle.me' };
-    const missing = Object.keys(platforms).filter(src => !list.some(item => item.src === src));
-    if (missing.length) {
-      const sites = missing.map(src => 'site:' + platforms[src]).join(' OR ');
-      collect(await search(query + ' (' + sites + ')', deadline), missing);
+  let quota = false;
+  let suggest = '';
+  if (!useGemini) unavailable = true;
+  else {
+    try {
+      const found = await search(query, deadline);
+      suggest = found.suggest;
+      collect(found.results);
+    } catch (error) {
+      unavailable = true;
+      quota = error?.code === 'quota';
     }
-  } catch { unavailable = true; }
+  }
   const missingLabels = Object.keys(SEARCH_LABELS).filter(src => !list.some(item => item.src === src)).map(src => SEARCH_LABELS[src]);
-  if (unavailable) warnings.push('公開搜尋暫時無法完整取得結果，可直接貼上店家菜單網址。');
+  if (quota) warnings.push('免費搜尋次數暫時用完，請稍後再試，或直接貼上店家菜單網址。');
+  else if (unavailable) warnings.push('公開搜尋暫時無法完整取得結果，可直接貼上店家菜單網址。');
   else if (missingLabels.length) warnings.push(missingLabels.join('、') + '未找到可確認的同名連結，可直接貼上店家菜單網址。');
-  return { output: { list, warnings }, unavailable };
+  return { output: { list, warnings, ...(suggest ? { suggest } : {}) }, unavailable };
 }
 
-async function discover(value) {
+async function discover(value, opts = {}) {
   const query = label(value, 100);
   const key = shopKey(query);
   if (key.length < 2) return { list: [], warnings: ['請輸入店名搜尋。'] };
-  const cacheKey = keyOf(query) + '|' + key;
+  const useGemini = opts.gemini === true;
+  const cacheKey = keyOf(query) + '|' + key + '|' + (useGemini ? 'g' : '-');
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) {
     SEARCH_CACHE.delete(cacheKey);
@@ -524,7 +618,7 @@ async function discover(value) {
   }
   if (SEARCH_INFLIGHT.has(cacheKey)) return SEARCH_INFLIGHT.get(cacheKey);
   if (SEARCH_INFLIGHT.size >= 8) return { list: [], warnings: ['公開搜尋目前忙碌，可直接貼上店家菜單網址。'] };
-  const pending = runDiscovery(query, key).then(({ output, unavailable }) => {
+  const pending = runDiscovery(query, key, useGemini).then(({ output, unavailable }) => {
     SEARCH_CACHE.set(cacheKey, { output, until: Date.now() + (unavailable ? 10000 : 600000) });
     if (SEARCH_CACHE.size > 50) SEARCH_CACHE.delete(SEARCH_CACHE.keys().next().value);
     return output;
