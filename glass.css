@@ -303,3 +303,14 @@ a.btn.primary[href="#/new"] .hop-c{animation:hopLoop 3.2s ease-in-out infinite;a
 .menu .items{gap:10px}.menu .item{padding:12px;border-radius:12px}.menu .item>.row{min-height:0;grid-template-columns:minmax(0,1fr) 32px;grid-template-rows:minmax(36px,auto) 32px;gap:6px}.menu .itemhit{min-height:0;gap:4px}.menu .item .iname{font-size:14px;font-weight:400;line-height:1.5;letter-spacing:0}.menu .item .price{font-size:17px;font-weight:500;line-height:32px;letter-spacing:-.2px}.menu .item>.row>.q-btn{width:32px;height:32px;min-height:32px;border-radius:9px}.menu .gnames{font-size:11px;font-weight:400}.menu .cat{margin-bottom:20px}.menu .cat h2{font-size:15px;font-weight:500;margin-bottom:10px}.menu .tab{font-size:12px;font-weight:400;min-height:34px;padding:7px 12px}.menu .menu-search input{min-height:40px;padding:9px 13px;font-size:13px;font-weight:400}
 @media(min-width:1280px){.menu .items{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:600px){.menu .items{gap:8px}.menu .item{padding:10px}.menu .item>.row{grid-template-columns:minmax(0,1fr) 34px;grid-template-rows:minmax(34px,auto) 34px;gap:5px}.menu .item>.row>.q-btn{width:34px;height:34px;min-height:34px}.menu .item .iname{font-size:13px}.menu .item .price{font-size:16px;line-height:34px}.menu .gnames{font-size:10px}}
+
+/* 2026-11-19: continuous shop-category slider. */
+@supports selector(:has(*)){
+.shop-categories{position:relative;isolation:isolate;display:inline-grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.shop-categories::before{content:"";position:absolute;z-index:0;top:4px;bottom:4px;left:4px;width:calc((100% - 14px)/3);border-radius:999px;background:#fff;box-shadow:0 2px 5px #0000000a;transform:translateX(0);transition:transform 280ms cubic-bezier(.22,.68,0,1);pointer-events:none}
+.shop-categories:has([data-shop-category="meal"][aria-pressed="true"])::before{transform:translateX(calc(100% + 3px))}
+.shop-categories:has([data-shop-category="drink"][aria-pressed="true"])::before{transform:translateX(calc(200% + 6px))}
+.shop-categories button{position:relative;z-index:1;transition:color 180ms ease}
+.shop-categories button[aria-pressed="true"]{background:transparent;box-shadow:none}
+@media(prefers-reduced-motion:reduce){.shop-categories::before,.shop-categories button{transition:none}}
+}
