@@ -421,6 +421,17 @@ async function readMenu(value) {
     result.name = label(shop?.name) || pageName(body);
     result.address = typeof addr === 'string' ? label(addr) : label([addr?.addressRegion, addr?.addressLocality, addr?.streetAddress].filter(Boolean).join(''));
     result.phone = label(shop?.telephone, 40);
+    result.tags = label(Array.isArray(shop?.servesCuisine) ? shop.servesCuisine.join('・') : shop?.servesCuisine, 30);
+    const dayNames = {Monday:'一',Tuesday:'二',Wednesday:'三',Thursday:'四',Friday:'五',Saturday:'六',Sunday:'日'};
+    const hourLines = values(shop?.openingHoursSpecification).flatMap(period => {
+      if (!period || !/^\d{2}:\d{2}(?::\d{2})?$/.test(period.opens || '') || !/^\d{2}:\d{2}(?::\d{2})?$/.test(period.closes || '')) return [];
+      const rawDays = values(period.dayOfWeek);
+      const days = rawDays.map(day => dayNames[String(typeof day === 'string' ? day : day?.['@id'] || '').split('/').pop()]).filter(Boolean);
+      if (rawDays.length && days.length !== rawDays.length) return [];
+      return [(days.length ? '週'+days.join('、')+' ' : '') + period.opens.slice(0,5)+'–'+period.closes.slice(0,5)];
+    });
+    result.hours = label(hourLines.length ? hourLines.join('；') : values(shop?.openingHours).join('；'), 2000);
+
     const { cats, missingPrice } = structuredMenu(nodes);
     result.cats = cats;
     if (cats.length) result.warnings.push('目前帶入公開菜單上的標示價格，客製選項與加價請以原頁確認。');
