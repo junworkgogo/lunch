@@ -8,7 +8,10 @@
   // 2026-11-18 內建頭貼改成 7 個部門的簡易可愛圖（順序對應 departments：設計、企劃、影相、會計、工程、廣告、BOSS們）
   var avatars = ["<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"12\" y=\"3.5\" width=\"16\" height=\"5.5\" rx=\"2.6\" fill=\"currentColor\"/><rect x=\"12\" y=\"9\" width=\"16\" height=\"3.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"12\" y=\"12.5\" width=\"16\" height=\"15\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><path d=\"M12 27.5 20 37.5 28 27.5Z\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><path d=\"M17.6 34.5 20 37.5 22.4 34.5Z\" fill=\"currentColor\"/><circle cx=\"17\" cy=\"19\" r=\"1.3\" fill=\"#3b2b20\"/><circle cx=\"23\" cy=\"19\" r=\"1.3\" fill=\"#3b2b20\"/><path d=\"M18.2 21.3q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"14.7\" cy=\"21.2\" r=\"1.2\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"25.3\" cy=\"21.2\" r=\"1.2\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 6.5l2.6 2.6M33 6.5l-2.6 2.6M20 1.8v3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><circle cx=\"20\" cy=\"17.5\" r=\"10.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"15\" y=\"27\" width=\"10\" height=\"4\" rx=\"1.6\" fill=\"currentColor\"/><rect x=\"16.5\" y=\"32.2\" width=\"7\" height=\"3.4\" rx=\"1.6\" fill=\"currentColor\"/><circle cx=\"16.8\" cy=\"17.5\" r=\"1.35\" fill=\"#3b2b20\"/><circle cx=\"23.2\" cy=\"17.5\" r=\"1.35\" fill=\"#3b2b20\"/><path d=\"M18.2 19.8q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"14\" cy=\"19.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"26\" cy=\"19.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"12.5\" y=\"7\" width=\"9\" height=\"6\" rx=\"1.8\" fill=\"currentColor\"/><rect x=\"4.5\" y=\"11\" width=\"31\" height=\"21.5\" rx=\"5.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"20\" cy=\"21.8\" r=\"7.6\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"30.2\" cy=\"15.6\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"17.3\" cy=\"21.2\" r=\"1.25\" fill=\"#3b2b20\"/><circle cx=\"22.7\" cy=\"21.2\" r=\"1.25\" fill=\"#3b2b20\"/><path d=\"M18.2 23.5q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"8.5\" y=\"3.5\" width=\"23\" height=\"33\" rx=\"5.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"12\" y=\"7\" width=\"16\" height=\"11\" rx=\"2.6\" fill=\"currentColor\" opacity=\".2\"/><circle cx=\"14.5\" cy=\"24\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"20\" cy=\"24\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"25.5\" cy=\"24\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"14.5\" cy=\"30\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"20\" cy=\"30\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"25.5\" cy=\"30\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"17\" cy=\"12\" r=\"1.25\" fill=\"#3b2b20\"/><circle cx=\"23\" cy=\"12\" r=\"1.25\" fill=\"#3b2b20\"/><path d=\"M18.2 14.3q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"14.4\" cy=\"14.2\" r=\"1.1\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"25.6\" cy=\"14.2\" r=\"1.1\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 4.5v4\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><circle cx=\"20\" cy=\"3.6\" r=\"2.2\" fill=\"currentColor\"/><rect x=\"3.8\" y=\"16.5\" width=\"4.6\" height=\"9\" rx=\"2.2\" fill=\"currentColor\"/><rect x=\"31.6\" y=\"16.5\" width=\"4.6\" height=\"9\" rx=\"2.2\" fill=\"currentColor\"/><rect x=\"8\" y=\"8.5\" width=\"24\" height=\"23\" rx=\"7.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"16.2\" cy=\"19.5\" r=\"1.6\" fill=\"#3b2b20\"/><circle cx=\"23.8\" cy=\"19.5\" r=\"1.6\" fill=\"#3b2b20\"/><path d=\"M18.2 21.8q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"13\" cy=\"21.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"27\" cy=\"21.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M29 13.5q3.2 6.5 0 13M32.8 10.2q5.4 9.8 0 19.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><path d=\"M13.8 26.5l1.8 7.2h4.2l-1.6-6.4\" fill=\"currentColor\"/><path d=\"M8 14.2 25 7.5v25L8 25.8Z\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"3.6\" y=\"13.6\" width=\"6\" height=\"12.8\" rx=\"2.2\" fill=\"currentColor\"/><circle cx=\"14.3\" cy=\"20\" r=\"1.25\" fill=\"#3b2b20\"/><circle cx=\"19.7\" cy=\"20\" r=\"1.25\" fill=\"#3b2b20\"/><path d=\"M15.2 22.3q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M6 14.5l7.2 6.3L20 9.5l6.8 11.3 7.2-6.3-2.6 15.5H8.6Z\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"6\" cy=\"13.5\" r=\"2.2\" fill=\"currentColor\"/><circle cx=\"20\" cy=\"8.3\" r=\"2.4\" fill=\"currentColor\"/><circle cx=\"34\" cy=\"13.5\" r=\"2.2\" fill=\"currentColor\"/><circle cx=\"16.6\" cy=\"23.5\" r=\"1.3\" fill=\"#3b2b20\"/><circle cx=\"23.4\" cy=\"23.5\" r=\"1.3\" fill=\"#3b2b20\"/><path d=\"M18.2 25.8q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"13.8\" cy=\"25.7\" r=\"1.3\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"26.2\" cy=\"25.7\" r=\"1.3\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>"];
   var departments = ['設計部', '企劃部', '影相部', '會計部', '工程部', '廣告部', 'BOSS們'];
-  function departmentSelect(value) { return '<select name="department" required autocomplete="organization"><option value="" disabled '+(departments.indexOf(value)<0?'selected':'')+'>請選擇部門</option>'+departments.map(function(d){return '<option value="'+d+'" '+(d===value?'selected':'')+'>'+d+'</option>';}).join('')+'</select>'; }
+  function departmentInput(value) {
+    return '<input name="department" value="'+A.esc(value,true)+'" required maxlength="40" list="departmentSuggestions" autocomplete="organization" placeholder="輸入或選擇部門">'+
+      '<datalist id="departmentSuggestions">'+departments.map(function(d){return '<option value="'+esc(d)+'"></option>';}).join('')+'</datalist>';
+  }
   function esc(v) { return A.esc(String(v == null ? '' : v)); }
   function path(v) { return /^[A-Za-z0-9_-]{1,160}$/.test(String(v)); }
   function config() { return C.firebase || (A && Object.prototype.hasOwnProperty.call(A,'firebaseConfig') ? A.firebaseConfig : (typeof FIREBASE_CONFIG !== 'undefined' ? FIREBASE_CONFIG : null)); }
@@ -100,8 +103,8 @@
     }
   }
   function demoView(root,query) {
-    root.innerHTML=shell('會員登入', '<section class="member-login"><div class="member-art" aria-hidden="true"><span>一起</span><span>吃飯</span><i>午餐有人作伴</i><div class="member-art-orb">✦</div></div><form class="member-login-form member-editor" data-demo><p class="member-kicker">本機示範</p><h2>選擇個人頭像</h2><div class="member-notice"><strong>本機示範會員，不是真實登入</strong><p>資料只存在這個瀏覽器，無法跨裝置同步。正式網站必須完成帳戶身分驗證。</p></div><fieldset class="member-avatars"><legend>選擇頭像</legend>'+avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(!i?'checked':'')+'><span class="member-avatar tone-'+i+'" aria-label="頭像 '+(i+1)+'">'+a+'</span></label>';}).join('')+'</fieldset><label>顯示名字<input name="displayName" required maxlength="30" autocomplete="name" placeholder="怎麼稱呼你？"></label><label>部門'+departmentSelect('')+'</label><button class="btn primary" type="submit">進入本機示範 →</button></form></section>');
-    root.querySelector('[data-demo]').onsubmit=function(e){e.preventDefault();var f=e.currentTarget,name=f.displayName.value.trim();if(!name)return;var uid='demo-member';try{uid=localStorage.getItem('lunch_demo_member_uid') || ('demo-'+Date.now().toString(36));localStorage.setItem('lunch_demo_member_uid',uid);}catch(ignore){}verified={uid:uid,id:uid,name:name,department:f.department.value.trim(),avatar:Number(f.avatar.value),demo:true,authenticated:false,admin:true};var demoUser=verified;verified=null;f.querySelector('button[type=submit]').disabled=true;finishSignIn(function(){verified=demoUser;A.setUser(verified);go(safeNext(query.next || pendingNext));pendingNext='';});};
+    root.innerHTML=shell('會員登入', '<section class="member-login"><div class="member-art" aria-hidden="true"><span>一起</span><span>吃飯</span><i>午餐有人作伴</i><div class="member-art-orb">✦</div></div><form class="member-login-form member-editor" data-demo><p class="member-kicker">本機示範</p><h2>選擇個人頭像</h2><div class="member-notice"><strong>本機示範會員，不是真實登入</strong><p>資料只存在這個瀏覽器，無法跨裝置同步。正式網站必須完成帳戶身分驗證。</p></div><fieldset class="member-avatars"><legend>選擇頭像</legend>'+avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(!i?'checked':'')+'><span class="member-avatar tone-'+i+'" aria-label="頭像 '+(i+1)+'">'+a+'</span></label>';}).join('')+'</fieldset><label>顯示名字<input name="displayName" required maxlength="30" autocomplete="name" placeholder="怎麼稱呼你？"></label><label>部門'+departmentInput('')+'</label><button class="btn primary" type="submit">進入本機示範 →</button></form></section>');
+    root.querySelector('[data-demo]').onsubmit=function(e){e.preventDefault();var f=e.currentTarget,identity=window.LunchIdentity.fields(f.displayName.value,f.department.value);if(!identity)return;var uid='demo-member';try{uid=localStorage.getItem('lunch_demo_member_uid') || ('demo-'+Date.now().toString(36));localStorage.setItem('lunch_demo_member_uid',uid);}catch(ignore){}verified={uid:uid,id:uid,name:identity.name,department:identity.department,avatar:Number(f.avatar.value),demo:true,authenticated:false,admin:true};var demoUser=verified;verified=null;f.querySelector('button[type=submit]').disabled=true;finishSignIn(function(){verified=demoUser;A.setUser(verified);go(safeNext(query.next || pendingNext));pendingNext='';});};
   }
   function compressAvatar(file) {
     return new Promise(function(resolve,reject) {
@@ -131,7 +134,7 @@
     });
   }
   function profileView(root) {
-    var u = verified, firstSetup = !!u.needsProfile, avatarImage=u.avatarImage||'', imageBusy=false,imageJob=0;
+    var u = verified, firstSetup = !!u.needsProfile, avatarImage=u.avatarImage||'', imageBusy=false,imageJob=0,savingProfile=false;
     root.innerHTML = shell('我的帳號',
       '<div class="member-dashboard"><section class="member-profile">'+
       '<button type="button" class="member-avatar-edit" data-edit-avatar aria-label="修改自己的頭貼"><span data-profile-avatar>'+avatar(u, 'member-avatar-large')+'</span><span class="member-avatar-edit-caption">更換頭貼 ✎</span></button><hr class="member-sep" aria-hidden="true">'+
@@ -143,8 +146,8 @@
       '<dialog class="profile-dialog" aria-labelledby="profileTitle"><button type="button" class="profile-close" data-profile-close aria-label="關閉">×</button><form class="member-editor" data-profile id="profileEdit"><h2 id="profileTitle">修改頭貼與姓名</h2><div class="profile-draft" data-draft-avatar>'+avatar(u,'member-avatar-large')+'</div>'+
       '<label class="member-upload-label" for="avatarUpload">上傳自己的頭貼</label><input id="avatarUpload" type="file" accept="image/*" data-avatar-upload><p class="member-muted" data-avatar-status>選擇照片後先預覽，儲存才會更換</p>'+ '<fieldset class="member-avatars" data-avatar-choices><legend>或選內建頭貼</legend>'+
       avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(Number(u.avatar || 0)===i ? 'checked' : '')+'><span class="member-avatar tone-'+i+'" aria-label="'+esc(departments[i] || ('頭貼 '+(i+1)))+'頭貼" title="'+esc(departments[i] || '')+'">'+a+'</span></label>';}).join('')+
-      '</fieldset><label>顯示姓名<input name="displayName" required maxlength="30" autocomplete="name" value="'+esc(u.name)+'"></label>'+
-      '<label>部門'+departmentSelect(u.department)+'</label>'+
+      '</fieldset><label>顯示姓名<input name="displayName" required maxlength="30" autocomplete="name" value="'+A.esc(u.name,true)+'"></label>'+
+      '<label>部門'+departmentInput(u.department)+'</label>'+(firstSetup?'<p class="member-muted">請先確認姓名與部門，再開始點餐。</p>':'')+
       '<p class="member-muted member-unsaved" data-unsaved hidden>上方為預覽，尚未儲存</p>'+
       '<button class="btn primary" type="submit">儲存修改</button>'+messageBox()+'</form></dialog>'+
       // 2026-11-18 收款資料：當負責人時，參加的人按「付款」會看到（pay.js）
@@ -157,7 +160,7 @@
     var form = root.querySelector('[data-profile]');
     root.querySelector('[data-logout]').onclick = function() { if(demo()){verified=null;A.setUser(null);go('#/members/login');}else auth.signOut().catch(function(e){notify(root,errorText(e));}); };
     var dialog=root.querySelector('.profile-dialog');
-    dialog.addEventListener('close',function(){imageJob++;imageBusy=false;form.querySelector('button[type="submit"]').disabled=false;form.querySelector('[data-avatar-status]').textContent='選擇照片後先預覽，儲存才會更換';form.reset();avatarImage=u.avatarImage||'';form.querySelector('[data-avatar-upload]').value='';form.querySelector('[data-unsaved]').hidden=true;form.querySelector('[data-draft-avatar]').innerHTML=avatar(u,'member-avatar-large');});
+    dialog.addEventListener('close',function(){imageJob++;imageBusy=false;form.querySelector('button[type="submit"]').disabled=savingProfile;form.querySelector('[data-avatar-status]').textContent='選擇照片後先預覽，儲存才會更換';form.reset();avatarImage=u.avatarImage||'';form.querySelector('[data-avatar-upload]').value='';form.querySelector('[data-unsaved]').hidden=true;form.querySelector('[data-draft-avatar]').innerHTML=avatar(u,'member-avatar-large');});
     root.querySelector('[data-profile-close]').onclick=function(){dialog.close();};
     dialog.addEventListener('click',function(e){if(e.target===dialog){var r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
     function openProfile(focusName){dialog.showModal();if(focusName){form.elements.displayName.focus();form.elements.displayName.select();}}
@@ -182,28 +185,38 @@
         form.querySelectorAll('input[name="avatar"]').forEach(function(radio){radio.checked=false;});
         status.textContent='預覽完成（約 '+Math.ceil(data.length*.75/1024)+' KB），請按儲存修改';
         previewChanges();
-      }).catch(function(e){if(form.isConnected&&job===imageJob)status.textContent=e.message;}).finally(function(){if(job!==imageJob)return;imageBusy=false;if(form.isConnected)submit.disabled=false;});
+      }).catch(function(e){if(form.isConnected&&job===imageJob)status.textContent=e.message;}).finally(function(){if(job!==imageJob)return;imageBusy=false;if(form.isConnected)submit.disabled=savingProfile;});
     });
     form.querySelectorAll('input[name="avatar"]').forEach(function(radio){
       radio.addEventListener('change',function(){if(radio.checked){avatarImage='';form.querySelector('[data-avatar-upload]').value='';form.querySelector('[data-avatar-status]').textContent='已選內建頭貼，儲存後移除舊照片';previewChanges();}});
     });
     form.elements.displayName.addEventListener('input',previewChanges);
+    form.elements.department.addEventListener('input',previewChanges);
     form.onsubmit = function(e) {
       e.preventDefault();
-      if(imageBusy||!form.reportValidity())return;
-      var name=form.elements.displayName.value.trim();
+      var submit=form.querySelector('button[type="submit"]');
+      if(savingProfile||imageBusy||!form.reportValidity())return;
+      var identity=window.LunchIdentity.fields(form.elements.displayName.value,form.elements.department.value);
+      if(!identity){notify(root,'請填寫姓名與部門，並確認沒有換行或控制字元。');return;}
       var selected=form.querySelector('input[name="avatar"]:checked');
-      if(!name||departments.indexOf(form.elements.department.value)<0)return;
       if(!selected&&!avatarImage){notify(root,'請選一個內建頭貼，或上傳自己的照片。');return;}
       var oldAvatar=Number(u.avatar);oldAvatar=Number.isInteger(oldAvatar)&&oldAvatar>=0&&oldAvatar<avatars.length?oldAvatar:0;
-      var p={name:name,department:form.elements.department.value.trim(),avatar:selected?Number(selected.value):oldAvatar,avatarImage:avatarImage||'',updatedAt:A.now()};
-      var b=form.querySelector('button[type="submit"]');b.disabled=true;
-      A.DB.update('members/'+u.uid,p).then(function(){
+      var p=Object.assign({},identity,{avatar:selected?Number(selected.value):oldAvatar,avatarImage:avatarImage||'',updatedAt:A.now()});
+      savingProfile=true;submit.disabled=true;
+      var saving=u.demo?A.DB.update('members/'+u.uid,p):window.LunchIdentity.save(A.DB,u.uid,p,u);
+      saving.then(function(){
+        if(!verified||verified.uid!==u.uid)return;
         Object.assign(verified,p,{needsProfile:false});
         A.setUser(verified);
         if(dialog.open)dialog.close();A.toast('頭貼與姓名已更新');
-        if(firstSetup)go('#/');
-      }).catch(function(er){notify(root,errorText(er));}).finally(function(){b.disabled=false;});
+        if(firstSetup){var next=pendingNext;pendingNext='';go(next||'#/');}
+      }).catch(function(er){
+        if(!form.isConnected)return;
+        if(er&&er.code==='member/name-taken'){notify(root,er.message);form.elements.displayName.focus();}
+        else if(er&&er.code==='member/identity-registry-updating'){notify(root,er.message);}
+        else if(/permission[_-]denied/i.test(String(er&&er.code||'')))notify(root,'無法儲存會員資料。請重新整理確認目前資料再試。');
+        else notify(root,errorText(er));
+      }).finally(function(){savingProfile=false;submit.disabled=imageBusy;});
     };
     wirePayInfo(root,u);if(u.roleManager)wireRoles(root);if(window.LunchAccount)window.LunchAccount.mount(root,u);
   }
@@ -232,7 +245,7 @@
   function wireRoles(root){
     if(!verified || !verified.roleManager)return;
     var managerUid=verified.uid, route=location.hash;
-    var fixedAdminUids=['Pn0ctiSzGVSyc6RvqGUb8BXzXdM2','hAj5Ki44tmR4450AqxA1i0d5gIo1'];
+    var fixedAdminUids=["Pn0ctiSzGVSyc6RvqGUb8BXzXdM2", "hAj5Ki44tmR4450AqxA1i0d5gIo1", "6sXRAKNGKMbPcFhkWbIEruN8Jn93"];
     var writesAtLoad=new Map(roleWrites);
     var panel=document.createElement('section');
     panel.className='card member-role-admin';
@@ -298,58 +311,141 @@
     });
   }
   function orderView(root) {
-    var alive = true, uid = verified.uid, groups = Object.create(null);
-    function canPayRow(r) { var receiver=r&&((r.group.collectors&&r.group.collectors[r.oid])||r.group.ownerUserId);return !!(r&&!r.order.cancelled&&!r.group.deleted&&receiver&&receiver!==uid&&r.bill.due>0&&window.LunchPay); }
+    var alive = true, uid = verified.uid, entries = Object.create(null), listeners = [];
+    var pending = 0, started = false, paymentGroup = '';
+    var access = window.LunchGroupAccess;
+    function canPayRow(row) {
+      if (!row || !row.group || row.order.cancelled || !window.LunchPay) return false;
+      var receiver = row.group.collectors && row.group.collectors[row.oid] || row.group.ownerUserId;
+      return Boolean(receiver && receiver !== uid && row.bill.due > 0);
+    }
     root.innerHTML = shell('我的訂單', '<div data-order-content class="member-loading" role="status">正在讀取你的訂單…</div>'+messageBox(), null, ['#/members', '回個人資料']);
-    function groupData(gid) {
-      if (!groups[gid]) groups[gid] = A.DB.get('groups/'+gid).then(function(g){
-        if(!g||g.deleted)return null;
-        return A.DB.get('orders/'+gid).then(function(os){return {group:g,orders:os||{},settled:A.settlement(os||{},g)};});
+    var content = root.querySelector('[data-order-content]');
+    function closePayment(gid) {
+      if (paymentGroup !== gid) return;
+      paymentGroup = '';
+      var close = document.querySelector('.pay-ov [data-pay-close]');
+      if (close) close.click();
+    }
+    function formatItems(order) {
+      return Object.values(order.items || {}).map(function(item) {
+        return '<li>'+esc(typeof A.lineLabel === 'function' ? A.lineLabel(item) : item.name || item.item || '餐點')+' × '+esc(item.qty || 0)+'</li>';
+      }).join('');
+    }
+    function draw() {
+      if (!alive || !started || pending) return;
+      var rows = Object.values(entries).flat().sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
+      content.innerHTML = rows.length ? '<div class="member-orders">'+rows.map(function(row, index) {
+        var order = row.order;
+        var date = '<p>'+esc(new Date(order.createdAt || 0).toLocaleString('zh-TW'))+'</p>';
+        var items = '<details class="member-receipt-details"><summary>查看餐點明細</summary><ul>'+formatItems(order)+'</ul></details>';
+        if (!row.group) {
+          return '<article class="member-order member-receipt-stack '+(order.cancelled?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+(order.cancelled?'已取消':'團購已不可查看')+'</span><h2>我的餐點</h2>'+date+'</div><strong>餐點原價 '+money(total(order))+'</strong>'+items+
+            (order.cancelled?'':'<p class="member-fine">收款及分攤金額請向團主確認。</p><button type="button" class="btn sm member-pay" data-cancel-row="'+index+'">取消訂單（截止前）</button>')+'</article>';
+        }
+        var bill = row.bill;
+        var state = order.cancelled ? '已取消 · 不計入總計' : row.pending === 0 ? '已收齊' : row.received > 0 ? '部分收款' : '待付款';
+        return '<article class="member-order member-receipt-stack '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+(order.department?'<small class="order-department">'+esc(order.name)+' · '+esc(order.department)+'</small>':'')+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">餐點原價 '+money(bill.base)+' · 運費 '+money(bill.shipping)+' · 折扣 '+money(bill.discount)+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+(canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '')+'<a class="member-link" href="#/g/'+esc(row.gid)+'">查看團購 ↗</a></article>';
+      }).join('')+'</div>' : '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
+      content.onclick = function(event) {
+        var cancel = event.target.closest('[data-cancel-row]');
+        var pay = event.target.closest('[data-pay-row]');
+        var row = cancel ? rows[Number(cancel.dataset.cancelRow)] : pay && rows[Number(pay.dataset.payRow)];
+        if (cancel && row && !row.group && !row.order.cancelled) {
+          cancel.disabled = true;
+          A.ask({title:'取消這筆訂單？',body:'取消後團主就不會幫你叫餐。',okText:'取消訂單',cancelText:'先不要',danger:true}).then(function(ok) {
+            if (!ok || !alive) return;
+            var patch = {};
+            patch['orders/'+row.gid+'/'+row.oid+'/cancelled'] = true;
+            patch['orders/'+row.gid+'/'+row.oid+'/updatedAt'] = A.now();
+            patch['userOrders/'+uid+'/'+row.gid+'/'+row.oid] = {cancelled:true};
+            patch['paid/'+row.gid+'/'+row.oid] = false;
+            return A.DB.update('',patch).then(function(){
+              if (!alive) return;
+              row.order.cancelled = true;draw();A.toast('訂單已取消');
+            });
+          }).catch(function() {
+            if (alive) notify(root,'無法取消這筆訂單，團購可能已截止。若有疑問請聯絡團主。');
+          }).finally(function(){cancel.disabled=false;});
+          return;
+        }
+        if (!canPayRow(row)) return;
+        paymentGroup = row.gid;
+        window.LunchPay.open({receiverPath:'groups/'+row.gid+'/collectors/'+row.oid,paidPath:'paid/'+row.gid+'/'+row.oid,ownerUid:row.group.ownerUserId,ownerName:row.group.owner,title:row.group.title,due:row.bill.due,closed:A.groupClosed(row.group),paidState:row.pending <= 0 ? 'ok' : (row.received > 0 ? 'part' : 'none'),avatarHtml:typeof A.memberAvSlot === 'function' ? A.memberAvSlot(row.group.ownerUserId,row.group.owner,'pay-dlg-av') : ''});
+      };
+    }
+    function ownRows(gid, ids) {
+      return Promise.all(ids.map(function(oid) {
+        return A.DB.get('orders/'+gid+'/'+oid).then(function(order){
+          return order&&order.userId===uid?{gid:gid,oid:oid,order:order,group:null}:null;
+        }).catch(function(error){if (!access.permissionDenied(error)) throw error;return null;});
+      })).then(function(rows){return rows.filter(Boolean);});
+    }
+    function groupRows(gid, ids, group, isCurrent) {
+      return A.DB.get('orders/'+gid).then(function(orders){
+        if(!isCurrent())return [];
+        orders=orders||{};
+        var settled=A.settlement(orders,group);
+        return Promise.all(ids.map(function(oid) {
+          var order=orders[oid];
+          if (!isCurrent()||!order||order.userId!==uid) return null;
+          var bill=order.cancelled?{base:total(order),shipping:0,discount:0,due:0,lineDues:[]}:settled.orders[oid];
+          if (!bill&&!Object.keys(order.items||{}).length) bill={base:0,shipping:0,discount:0,due:0,lineDues:[]};
+          if (!bill) throw new Error('SETTLEMENT_MISSING');
+          return A.DB.get('paid/'+gid+'/'+oid).then(function(paid){
+            if(!isCurrent())return null;
+            var received=bill.lineDues.reduce(function(sum,n,i){return sum+(paid&&paid[i]?Number(n):0);},0);
+            return {gid:gid,oid:oid,order:order,group:group,bill:bill,received:received,pending:bill.due-received};
+          });
+        })).then(function(rows){return rows.filter(Boolean);});
       });
-      return groups[gid];
+    }
+    function watch(gid, ids) {
+      var revision = 0, first = true;
+      function refresh(group, error) {
+        if (!alive) return;
+        var job = ++revision;
+        if ((!group&&!error)||(group&&group.deleted)) {
+          closePayment(gid);entries[gid]=[];if(first){first=false;pending--;}draw();return;
+        }
+        if (!access.canView(group,verified)) {
+          closePayment(gid);delete entries[gid];draw();
+        }
+        if (error && !access.permissionDenied(error)) notify(root,'有一筆訂單暫時無法確認團購資料。');
+        var load = access.canView(group,verified) ? groupRows(gid,ids,group,function(){return alive&&revision===job;}).catch(function(failure){
+          if(!alive||revision!==job)return [];
+          if (!access.permissionDenied(failure)) throw failure;
+          if (alive && revision===job) {closePayment(gid);delete entries[gid];draw();}
+          return ownRows(gid,ids);
+        }) : ownRows(gid,ids);
+        load.then(function(rows){
+          if (alive && revision===job) entries[gid]=rows;
+        }).catch(function(){
+          if (alive && revision===job) {
+            closePayment(gid);delete entries[gid];notify(root,'有一筆訂單暫時無法確認金額。');
+          }
+        }).finally(function(){
+          if (!alive || revision!==job) return;
+          if (first) {first=false;pending--;}
+          draw();
+        });
+      }
+      listeners.push(A.DB.on('groups/'+gid,refresh,{onError:function(error){refresh(null,error);}}));
     }
     A.DB.get('userOrders/'+uid).then(function(index) {
-      if (!alive) return [];
-      var tasks = [];
-      Object.keys(index || {}).forEach(function(gid) {
-        if (!path(gid)) return;
-        var ids = Object.keys(index[gid] || {}).filter(function(oid) { return path(oid) && index[gid][oid]; });
-        if (!ids.length) return;
-        tasks.push(groupData(gid).then(function(data) {
-          if (!alive || !data) return [];
-          return Promise.all(ids.map(function(oid) {
-            var o = data.orders[oid];
-            if (!o || o.userId !== uid) return null;
-            return A.DB.get('paid/'+gid+'/'+oid).then(function(paid) {
-              var bill = o.cancelled ? {base:total(o),shipping:0,discount:0,due:0,lineDues:[]} : data.settled.orders[oid];
-              if (!bill && !Object.keys(o.items || {}).length) bill = {base:0,shipping:0,discount:0,due:0,lineDues:[]};
-              if (!bill) throw new Error('SETTLEMENT_MISSING');
-              var received = bill.lineDues.reduce(function(sum,n,i) { return sum + (paid && paid[i] ? Number(n) : 0); },0);
-              return {gid:gid,oid:oid,order:o,group:data.group,bill:bill,received:received,pending:bill.due-received,receiverUid:data.group.collectors&&data.group.collectors[oid]};
-            });
-          }));
-        }));
-      });
-      return Promise.all(tasks).then(function(rows) { return [].concat.apply([],rows).filter(Boolean); });
-    }).then(function(rows) {
       if (!alive) return;
-      rows.sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
-      root.querySelector('[data-order-content]').innerHTML = (rows.length ? '<div class="member-orders">'+rows.map(function(r,ri) {
-        var o = r.order, bill = r.bill;
-        var state = o.cancelled ? '已取消 · 不計入總計' : r.pending === 0 ? '已收齊' : r.received > 0 ? '部分收款' : '待付款';
-        return '<article class="member-order '+(o.cancelled||r.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(r.group.title || '未命名團購')+'</h2><p>'+esc(new Date(o.createdAt || 0).toLocaleString('zh-TW'))+'</p></div><strong>應付 '+money(bill.due)+'</strong><ul>'+Object.values(o.items || {}).map(function(it) { return '<li>'+esc(typeof A.lineLabel === 'function' ? A.lineLabel(it) : it.name || it.item || '餐點')+' × '+esc(it.qty || 0)+'</li>'; }).join('')+'</ul><p class="member-fine">餐點原價 '+money(bill.base)+' · 運費 '+money(bill.shipping)+' · 折扣 '+money(bill.discount)+'</p><p>已收 '+money(r.received)+' · 待付 '+money(r.pending)+'</p>'+(canPayRow(r) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+ri+'">付款</button>' : '')+(!r.group.deleted ? '<a class="member-link" href="#/g/'+esc(r.gid)+'">查看團購 ↗</a>' : '')+'</article>';
-      }).join('')+'</div>' : '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>');
-      root.querySelector('[data-order-content]').onclick = function(e) {
-        var b = e.target.closest('[data-pay-row]'), r = b && rows[Number(b.getAttribute('data-pay-row'))];
-        if (!r || !canPayRow(r)) return;
-        window.LunchPay.open({receiverPath:'groups/'+r.gid+'/collectors/'+r.oid,paidPath:'paid/'+r.gid+'/'+r.oid,ownerUid:r.group.ownerUserId,ownerName:r.group.owner,title:r.group.title,due:r.bill.due,closed:typeof A.groupClosed === 'function' ? A.groupClosed(r.group) : true,paidState:r.pending <= 0 ? 'ok' : (r.received > 0 ? 'part' : 'none'),avatarHtml:typeof A.memberAvSlot === 'function' ? A.memberAvSlot(r.group.ownerUserId,r.group.owner,'pay-dlg-av') : ''});
-      };
-    }).catch(function(e) {
+      var groups = Object.keys(index||{}).filter(path).map(function(gid){
+        return {gid:gid,ids:Object.keys(index[gid]||{}).filter(function(oid){return path(oid)&&index[gid][oid];})};
+      }).filter(function(entry){return entry.ids.length;});
+      pending=groups.length;started=true;
+      groups.forEach(function(entry){watch(entry.gid,entry.ids);});
+      draw();
+    }).catch(function(error) {
       if (!alive) return;
-      root.querySelector('[data-order-content]').textContent = '目前無法完整讀取訂單與收款資料，金額尚未確認。';
-      notify(root,e.message === 'GROUP_MISSING' ? '部分團購資料已不存在，無法確認運費與折扣，請聯絡團主。' : e.message === 'SETTLEMENT_MISSING' ? '部分訂單無法結算，請聯絡團主確認餐點資料。' : errorText(e));
+      content.textContent='目前無法讀取你的訂單。';
+      notify(root,errorText(error));
     });
-    return function() { alive=false; };
+    return function(){alive=false;listeners.forEach(function(off){off();});if(paymentGroup)closePayment(paymentGroup);};
   }
   function collectionView(root,gid) {
     var alive=true; if (!path(gid)) { root.innerHTML=shell('找不到這個團購','<p>請從團購管理頁重新開啟。</p>'); return; }
@@ -364,8 +460,9 @@
   }
   function guardRoute(_,parts,query,href) {
     if (!secure() || parts[0] === 'members') return true;
-    if (verified) return true;
+    if (verified && !verified.needsProfile) return true;
     pendingNext=safeNext(href);
+    if (verified) { go('#/members'); return false; }
     if (!settled) { waitView(_); return false; }
     go('#/members/login?next='+encodeURIComponent(pendingNext)); return false;
   }
@@ -387,7 +484,7 @@
     appReady.then(function(){ if(!window.firebase) return loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'); }).then(function(){if(!firebase.apps.length)firebase.initializeApp(config());return typeof firebase.auth === 'function' ? null : loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');}).then(function(){auth=firebase.auth();return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);}).then(function(){auth.onAuthStateChanged(function(fu){if(roleOff){roleOff();roleOff=null;}authReady=true;var expected=fu&&fu.uid; verified=null;
       if (!fu) { if(window.LunchMascot)window.LunchMascot.hide();settle(); if(startupError===SLOW)startupError=''; A.setUser(null); return; }
       settled=false;if(window.LunchMascot)window.LunchMascot.show('Hi！要來點什麼');
-      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult(),A.DB.get('roles/'+fu.uid).catch(function(){return null;})]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};var signedMember={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',avatar:p.avatar || 0,avatarImage:p.avatarImage || '',authenticated:true,needsProfile:!p.updatedAt || !p.name || !p.department,roleManager:claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0,admin:(claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0)||values[2]==='admin'};var next=pendingNext;pendingNext='';return finishSignIn(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;verified=signedMember;settle();if(startupError===SLOW)startupError='';if(verified.needsProfile){if(location.hash!=='#/members')go('#/members');}else if(next&&location.hash.indexOf('#/members')===0)go(next);A.setUser(verified);roleOff=A.DB.on('roles/'+fu.uid,function(role){if(!verified||verified.uid!==fu.uid)return;var next=verified.roleManager||role==='admin';if(verified.admin!==next){verified.admin=next;A.setUser(verified);}});});}).catch(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;if(window.LunchMascot)window.LunchMascot.hide();startupError='無法確認帳號權限，請重新登入。';verified=null;settle();A.setUser(null);});
+      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult(),A.DB.get('roles/'+fu.uid).catch(function(){return null;})]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};var signedMember={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',departmentKey:p.departmentKey||'',nameKey:p.nameKey||'',avatar:p.avatar || 0,avatarImage:p.avatarImage || '',authenticated:true,needsProfile:!p.updatedAt || !window.LunchIdentity.claimPath(p),roleManager:claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0,admin:(claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0)||values[2]==='admin'};var next=pendingNext;if(!signedMember.needsProfile)pendingNext='';return finishSignIn(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;verified=signedMember;settle();if(startupError===SLOW)startupError='';if(verified.needsProfile){if(location.hash!=='#/members')go('#/members');}else if(next&&location.hash.indexOf('#/members')===0)go(next);A.setUser(verified);roleOff=A.DB.on('roles/'+fu.uid,function(role){if(!verified||verified.uid!==fu.uid)return;var next=verified.roleManager||role==='admin';if(verified.admin!==next){verified.admin=next;A.setUser(verified);}});});}).catch(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;if(window.LunchMascot)window.LunchMascot.hide();startupError='無法確認帳號權限，請重新登入。';verified=null;settle();A.setUser(null);});
     });}).catch(function(){if(window.LunchMascot)window.LunchMascot.hide();startupError='會員登入載入失敗，請聯絡站長檢查登入設定與授權網域。';settle();updateNav();A.route();});
   }
   function updateNav() {
