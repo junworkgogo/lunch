@@ -11,7 +11,8 @@ const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
 const MENU_LABEL = /菜單|價目表|餐點|點餐|訂餐|產品介紹|美味專區|\bmenu\b|\border online\b/i;
 const SEARCH_LABELS = { ichef: 'iCHEF', quickclick: '快一點', oddle: 'Oddle', website: '店家官網' };
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
-const SEARCH_MODEL = 'gemini-2.5-flash-lite';
+// 免費方案只有 2.5 系列能用 Google 搜尋（3.x 搜尋額度是 0）；這把金鑰 2.5 Flash-Lite、2.5 Flash 各每天 20 次（2026-11-19 AI Studio 實查）
+const SEARCH_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
 const DISCOVERY_MS = 15000;
 const SEARCH_RESERVE_MS = 5000;
 const REDIRECT_HOST = 'vertexaisearch.cloud.google.com';
@@ -462,7 +463,7 @@ function shopKey(query) {
 }
 
 // 店名搜尋改用 Gemini 2.5 Flash-Lite＋Google 搜尋（2026-11-19）：
-// 免費方案只有 2.5 Flash／Flash-Lite 能用搜尋（每天 500 次，兩者共用），3.x 免費方案不能用。
+// 免費方案只有 2.5 Flash／Flash-Lite 能用搜尋，3.x 免費方案不能用（次數上限見 SEARCH_MODELS 旁的註解）。
 // 原本抓 search.brave.com 的做法已停用：對方回驗證碼（429），robots.txt 也寫明不准抓 /search。
 // 只採用 Google 搜尋實際回傳的來源網址（groundingChunks），不採用模型自己寫出來的網址（可能是編的）。
 // 依 Google 規定，有用到搜尋結果就要把 searchEntryPoint 的「Google 搜尋建議」顯示給使用者，所以一起回傳 suggest。
@@ -474,33 +475,43 @@ async function geminiSearch(query, deadline) {
     '只根據搜尋結果，用一句話說明找到哪些；找不到就說找不到，不要猜測。';
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), Math.max(1000, deadline - Date.now() - SEARCH_RESERVE_MS));
-  const started = Date.now();
-  let status = 'error';
-  let count = 0;
   try {
-    const response = await fetch(GEMINI_URL + SEARCH_MODEL + ':generateContent', {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        tools: [{ google_search: {} }],
-        generationConfig: { temperature: 0, maxOutputTokens: 512 }
-      })
-    });
-    status = response.status;
-    const data = await response.json().catch(() => null);
-    if (response.status === 429) throw Object.assign(new Error('免費搜尋次數用完'), { code: 'quota' });
-    if (!response.ok) throw new Error('Gemini 搜尋回應 ' + response.status);
-    const meta = data?.candidates?.[0]?.groundingMetadata || {};
-    const chunks = values(meta.groundingChunks).map(chunk => chunk?.web)
-      .filter(web => web && typeof web.uri === 'string' && web.uri.length <= 2048).slice(0, 10);
-    count = chunks.length;
-    const html = meta.searchEntryPoint?.renderedContent;
-    return { chunks, suggest: typeof html === 'string' && html.length <= 30000 ? html : '' };
+    for (const model of SEARCH_MODELS) {
+      const started = Date.now();
+      let status = 'error';
+      let count = 0;
+      let note = '';
+      try {
+        const response = await fetch(GEMINI_URL + model + ':generateContent', {
+          method: 'POST',
+          signal: ctrl.signal,
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            tools: [{ google_search: {} }],
+            generationConfig: { temperature: 0, maxOutputTokens: 512 }
+          })
+        });
+        status = response.status;
+        const data = await response.json().catch(() => null);
+        if (!response.ok) note = label(data?.error?.message, 200);
+        // 404＝這個金鑰用不了這個模型，換下一個；其他錯誤不重試
+        if (response.status === 404) continue;
+        if (response.status === 429) throw Object.assign(new Error('免費搜尋次數用完'), { code: 'quota' });
+        if (!response.ok) throw new Error('Gemini 搜尋回應 ' + response.status);
+        const meta = data?.candidates?.[0]?.groundingMetadata || {};
+        const chunks = values(meta.groundingChunks).map(chunk => chunk?.web)
+          .filter(web => web && typeof web.uri === 'string' && web.uri.length <= 2048).slice(0, 10);
+        count = chunks.length;
+        const html = meta.searchEntryPoint?.renderedContent;
+        return { chunks, suggest: typeof html === 'string' && html.length <= 30000 ? html : '' };
+      } finally {
+        console.log('menu-search gemini', model, status, (Date.now() - started) + 'ms', 'sources', count, note);
+      }
+    }
+    throw new Error('沒有可用的 Gemini 搜尋模型');
   } finally {
     clearTimeout(timer);
-    console.log('menu-search gemini', SEARCH_MODEL, status, (Date.now() - started) + 'ms', 'sources', count);
   }
 }
 
