@@ -10,6 +10,7 @@
   function padTime(n){return String(n).padStart(2,'0');}
   // The original input remains the source read by existing save handlers.
   function timeSelect(source){
+    if(window.LunchDateTime){window.LunchDateTime.mount(source);return;}
     if(source.dataset.timeSelect)return;source.dataset.timeSelect='true';
     var label=app.querySelector('label[for="'+source.id+'"]'),name=label?label.textContent.trim():(source.getAttribute('aria-label')||'時間');
     var group=el('div','time-select'),hour=el('select'),minute=el('select'),committing=false;
@@ -192,7 +193,7 @@
   document.addEventListener('click',function(e){var t=e.target;if(!t||!t.closest)return;var o=t.closest('[data-all-open]');if(o){openAll(o);return;}if(t.closest('[data-all-close]'))closeAll();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.querySelector('#all.is-open'))closeAll();});
   window.addEventListener('hashchange',function(){closeAll(true);});
-  var queued=false,observer=new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;enhance();});});
+  var queued=false,observer=new MutationObserver(function(){if(queued)return;queued=true;setTimeout(function(){queued=false;enhance();},0);});
   function enhance(){observer.disconnect();try{home();ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
   window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay,timeSelect:timeSelect};enhance();
 })();

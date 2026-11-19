@@ -495,6 +495,7 @@ a{color:#394150}
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 <script src="group-access.js?v=20261119refined3"></script>
+<link rel="stylesheet" href="datetime-picker.css?v=20261119click1">
 </head>
 <body>
 <div class="demo" id="demoBar" hidden>示範模式：資料只存在這台電腦</div>
@@ -941,7 +942,7 @@ function pageHome(root,history){
     var shown=history?end:act;
     root.querySelector('#homeGroups').innerHTML=shown.length
       ?shown.map(function(k){return card(k,groups[k],history);}).join('')
-      :'<div class="home-empty"><div class="home-empty-face" aria-hidden="true">&#92;(^Д^)/</div><p>'+(history?'還沒有結束的團':'沒有團')+'</p></div>';
+      :'<div class="home-empty"><div class="home-empty-face" aria-hidden="true">&#92;(^Д^)/</div><p>'+'目前沒有團'+'</p></div>';
   }
   var deleting={};
   root.querySelector('#homeGroups').addEventListener('click',function(e){
@@ -1351,12 +1352,22 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
       return '<li><div class="imp-m"><p class="imp-n"><span>'+esc(c.name)+'</span><span class="imp-src">'+esc(IMP_SRC[c.src]||'店家網站')+'</span>'+(c.best?'<span class="imp-best">最符合</span>':'')+'</p>'+(sub?'<p class="imp-a">'+sub+'</p>':'')+(external?'<p class="imp-a">'+esc(url?new URL(url).hostname:'')+'・請核對店家與價格</p>':'')+'</div><div class="imp-source-actions">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">開啟來源 ↗</a>':'')+'<button type="button" class="btn sm" data-i="'+i+'" aria-label="'+label+' '+esc(c.name)+'（'+esc(IMP_SRC[c.src]||'店家網站')+'）">'+label+'</button></div></li>';
     }).join('')+'</ul>'+searches+'<div id="imp-detail" aria-live="polite"></div>';
   }
+  function prepareFacts(s,c){
+      // 欄位是空的、或內容還是上一次帶入的 → 換成這家的；使用者自己打過的（含編輯頁原本存好的）不動
+      var F=[['#sn','店名',s.name||(c.name==='店家菜單'?'':c.name)],['#sa','地址',s.address],['#sp','電話',s.phone],['#sh','營業時間',s.hours],['#st','類型',s.tags]].filter(function(f){return root.querySelector(f[0]);});
+      F.forEach(function(f){var el=root.querySelector(f[0]);f[2]=String(f[2]||'').slice(0,+el.getAttribute('maxlength')||200);f[3]=el.value.trim();f[4]=!f[3]||f[3]===filled[f[0]];});
+      function fill(f){if(f[4]&&f[2].trim()){var field=root.querySelector(f[0]);field.value=f[2];filled[f[0]]=field.value.trim();field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));}}
+      var chg=F.filter(function(f){return f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];}),
+          keep=F.filter(function(f){return !f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];});
+      return {apply:function(){F.forEach(fill);h.mp();},chg:chg,keep:keep};
+
+  }
   function busy(on){ib.disabled=on;Array.prototype.forEach.call(ir.querySelectorAll('button'),function(b){b.disabled=on||b.getAttribute('data-unsafe-url')==='true';});}
   function find(){
     var q=iq.value.trim(),my=++seq;
     if(!q){busy(false);msg('請先貼上地圖、菜單連結、地址或店名',true);iq.focus();return;}
     busy(true);msg('正在查詢店家與多個菜單來源，請稍候…');
-    impFind(q).then(function(r){if(!live(my))return;last=r.list;ir.innerHTML=listHtml(r);busy(false);},
+    impFind(q).then(function(r){if(!live(my))return;last=r.list;ir.innerHTML=listHtml(r);if(last.length===1&&last[0].shop)prepareFacts(last[0].shop,last[0]).apply();busy(false);},
       function(e){if(!live(my))return;busy(false);msg(esc(e&&e.imp?e.message:'找店時出了問題，請稍後再試'),true);});
   }
   ib.addEventListener('click',find);
@@ -1368,22 +1379,18 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
     impLoad(c).then(function(s){
       if(!live(my))return;
       var text=menuTextFrom(s.cats),r=parseMenu(text);
+      var facts=prepareFacts(s,c),fillMetadata=facts.apply,chg=facts.chg,keep=facts.keep;
       if(!r.count){
+        fillMetadata();
         if(c.src==='dbd'||c.src==='nidin'){busy(false);b.textContent='帶入';var emptyDetail=ir.querySelector('#imp-detail');if(emptyDetail)emptyDetail.innerHTML='<p class="imp-note">這家店在'+esc(IMP_SRC[c.src])+'目前沒有可帶入的品項，請改貼其他菜單連結；尚未更動目前菜單。</p>';return;}
         var detail=ir.querySelector('#imp-detail'),links=[{url:s.url||c.url,name:'開啟店家菜單'}].concat(arr(s.links),arr(s.images).map(function(im){return {url:im.url,name:im.name||'開啟菜單圖片'};})),seen={};
-        var html='<p class="imp-note">找到網站，但尚未讀到菜單。請改貼其他菜單來源或上傳菜單照片。</p><div class="imp-links">'+links.map(function(l){var u=impSafeUrl(l.url);if(!u||seen[u])return '';seen[u]=1;return '<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(l.name||'開啟菜單')+' ↗</a>';}).join('')+'</div>';
+        var html='<p class="imp-note">已帶入查得到的店家資料，但尚未讀到菜單。可改貼其他來源或上傳照片。</p><div class="imp-links">'+links.map(function(l){var u=impSafeUrl(l.url);if(!u||seen[u])return '';seen[u]=1;return '<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(l.name||'開啟菜單')+' ↗</a>';}).join('')+'</div>';
         busy(false);b.textContent='讀取菜單';if(detail)detail.innerHTML=html;else msg(html);return;
       }
-      // 欄位是空的、或內容還是上一次帶入的 → 換成這家的；使用者自己打過的（含編輯頁原本存好的）不動
-      var F=[['#sn','店名',s.name||c.name],['#sa','地址',s.address],['#sp','電話',s.phone],['#sh','營業時間',s.hours],['#st','類型',s.tags]].filter(function(f){return root.querySelector(f[0]);});
-      F.forEach(function(f){var el=root.querySelector(f[0]);f[2]=String(f[2]||'').slice(0,+el.getAttribute('maxlength')||200);f[3]=el.value.trim();f[4]=!f[3]||f[3]===filled[f[0]];});
-      function fill(f){if(f[4]){root.querySelector(f[0]).value=f[2];filled[f[0]]=f[2];}}
-      var chg=F.filter(function(f){return f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];}),
-          keep=F.filter(function(f){return !f[4]&&f[3]!==f[2].trim();}).map(function(f){return f[1];});
       function apply(){
         if(!live(my))return;
-        F.forEach(fill);
-        h.sm.value=text;h.pv();h.mp();
+        fillMetadata();
+        h.sm.value=text;h.pv();
         busy(false);b.textContent='帶入';
         var sourceUrl=impSafeUrl(s.url||c.url);
         msg('已帶入「'+esc(s.name||c.name)+'」'+r.cats.length+' 個分類、'+r.count+' 個品項（來源 '+IMP_SRC[c.src]+'）。'+(r.errors.length?'有 '+r.errors.length+' 行要手動修正（菜單框紅字）。':'')+(arr(s.warnings).length?'<br>提醒：'+arr(s.warnings).map(esc).join('；')+'<br>':'')+'請看預覽，沒問題再按「儲存店家」。'+(sourceUrl?'<br><a href="'+esc(sourceUrl)+'" target="_blank" rel="noopener noreferrer">核對原始菜單 ↗</a>':''));
@@ -1412,7 +1419,6 @@ function pageShopEdit(root,id){
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
     '<div class="fld"><label for="sh">營業時間</label><textarea id="sh" rows="1" maxlength="2000">'+esc(s.hours||'')+'</textarea></div>'+
     freeShippingField('shopFreeShipping',s.freeShippingThreshold)+
-    '<div class="fld"><label for="sx">優惠活動</label><textarea id="sx" style="min-height:84px;font-family:inherit" maxlength="400" placeholder="一行一則，例如&#10;滿1000打9折&#10;買5送1">'+esc(s.promos||'')+'</textarea><p class="hint">優惠只會顯示在點餐頁，不會自動算折扣。</p></div>'+
     '<div class="fld"><label for="sm">菜單（一行一個品項）</label><p class="hint">{分類名稱} 開新分類；品名, 價格；品名, 價格, 停售。縮排兩格（或行首「- 」）的行是選項：群組名*: 選項, 選項+加價（有 * 必選單選，沒有 * 可不選、可複選）。選項寫在分類下面、第一個品項前，整個分類共用。</p><div class="insrow"><button type="button" class="btn sm" id="ins1">插入：飲料（尺寸／甜度／冰塊）</button><button type="button" class="btn sm" id="ins2">插入：便當客製（飯少／飯多／不要蔥／要切）</button></div><textarea id="sm" spellcheck="false" aria-describedby="smE">'+esc(s.menuText)+'</textarea><ul class="errlist" id="smE" role="alert"></ul></div>'+
     '<p class="err" id="saveE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存店家</button>'+(isNew?'':'<button type="button" class="btn danger" id="del">刪除店家</button>')+'</div></form></section>'+
     '<section class="card pv"><h2 style="font-size:18px;font-weight:900">預覽</h2><div id="pv"></div><div id="mp" style="margin-top:14px"></div></section></div></div>';
@@ -1439,7 +1445,7 @@ function pageShopEdit(root,id){
       if(r.errors.length){saveE.textContent='菜單有 '+r.errors.length+' 行格式不對（紅字），請先修正再儲存';saveE.hidden=false;sm.focus();return;}
       var freeShippingThreshold=parseFreeShippingThreshold(root.querySelector('#shopFreeShipping').value);
       if(!Number.isFinite(freeShippingThreshold)){saveE.textContent='免運門檻請填 0–1,000,000 的整數，或留白';saveE.hidden=false;root.querySelector('#shopFreeShipping').focus();return;}
-      var stamp=now(),f={name:name,category:root.querySelector('input[name=shopCategory]:checked').value,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value,promos:root.querySelector('#sx').value.trim(),freeShippingThreshold:freeShippingThreshold,menuText:sm.value,updatedAt:stamp};
+      var stamp=now(),f={name:name,category:root.querySelector('input[name=shopCategory]:checked').value,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value,freeShippingThreshold:freeShippingThreshold,menuText:sm.value,updatedAt:stamp};
       if(!isNew&&root.querySelector('#sh').value===initialHoursValue)delete f.hours;
       var p=isNew?DB.set('shops/'+sid,Object.assign({createdAt:stamp},f)):DB.update('shops/'+sid,f);
       p.then(function(){toast('店家已儲存');location.hash='#/shops';}).catch(fail);
@@ -2116,9 +2122,10 @@ if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
 <script src="menu-vision.js?v=20261119gemini"></script>
+<script src="datetime-picker.js?v=20261119click1"></script>
 <script src="hours-editor.js?v=20261119refined3"></script>
 <script src="happy-rain.js?v=20261119refined3"></script>
-<script src="interface.js?v=20261119refined3"></script>
+<script src="interface.js?v=20261119click1"></script>
 <script src="participants.js?v=20261119refined3"></script>
 <script src="pay.js?v=20261119a"></script>
 <script src="mascot.js?v=20261119refined3"></script>
