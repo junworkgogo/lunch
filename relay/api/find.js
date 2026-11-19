@@ -282,7 +282,7 @@ module.exports = async function (req, res) {
     if (op === 'menu-search') {
       const t = textOf(q.q);
       if (!t) out = { status: 400, json: { error: 'bad-q' } };
-      else { out = { status: 200, json: await menuSources.discover(t, { gemini: q.g === '1' }) }; cache = out.json.list && out.json.list.length && !(out.json.warnings || []).some(function(w){return /暫時|忙碌|用完/.test(w);}) ? 'private, max-age=600' : 'no-store'; }
+      else { out = { status: 200, json: await menuSources.discover(t) }; cache = out.json.list && out.json.list.length && !(out.json.warnings || []).some(function(w){return /暫時|忙碌/.test(w);}) ? 'private, max-age=600' : 'no-store'; }
     } else if (op === 'menu-read') {
       const url = String(q.url || '').trim();
       if (!url || url.length > 2000) out = { status: 400, json: { error: 'bad-url' } };
