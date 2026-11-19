@@ -140,7 +140,7 @@
       '<button type="button" class="member-avatar-edit" data-edit-avatar aria-label="修改自己的頭貼"><span data-profile-avatar>'+avatar(u, 'member-avatar-large')+'</span><span class="member-avatar-edit-caption">更換頭貼 ✎</span></button><hr class="member-sep" aria-hidden="true">'+
       '<p class="member-kicker">個人資料</p><h2 data-profile-name>'+esc(u.name || '午餐夥伴')+'</h2>'+
       '<button type="button" class="member-edit-name" data-edit-name>修改姓名 ✎</button>'+
-      '<p>'+esc(u.department || '尚未設定部門')+'</p><span class="member-verified">'+(u.demo ? '本機示範會員，不是真實登入' : (u.admin ? '✓ 管理員' : '✓ 帳號已驗證'))+'</span><hr class="member-sep" aria-hidden="true">'+
+      '<p>'+esc(u.department || '尚未設定部門')+'</p><span class="member-verified">'+(u.demo ? '本機示範會員，不是真實登入' : (u.roleOwner ? '✓ 最高管理者' : u.admin ? '✓ 管理者' : '✓ 帳號已驗證'))+'</span><hr class="member-sep" aria-hidden="true">'+
       '<p class="member-fine">'+esc(auth && auth.currentUser && auth.currentUser.email || '')+'</p><hr class="member-sep" aria-hidden="true">'+
       '<div class="actions"><button class="btn" type="button" data-logout>登出</button></div></section>'+
       '<dialog class="profile-dialog" aria-labelledby="profileTitle"><button type="button" class="profile-close" data-profile-close aria-label="關閉">×</button><form class="member-editor" data-profile id="profileEdit"><h2 id="profileTitle">修改頭貼與姓名</h2><div class="profile-draft" data-draft-avatar>'+avatar(u,'member-avatar-large')+'</div>'+
@@ -244,71 +244,42 @@
   }
   function wireRoles(root){
     if(!verified || !verified.roleManager)return;
-    var managerUid=verified.uid, route=location.hash;
-    var fixedAdminUids=["Pn0ctiSzGVSyc6RvqGUb8BXzXdM2", "hAj5Ki44tmR4450AqxA1i0d5gIo1", "6sXRAKNGKMbPcFhkWbIEruN8Jn93"];
-    var writesAtLoad=new Map(roleWrites);
-    var panel=document.createElement('section');
-    panel.className='card member-role-admin';
+    var managerUid=verified.uid,route=location.hash,loadedOwner='',revision=0,members={},roles={};
+    var panel=document.createElement('section');panel.className='card member-role-admin';
     panel.innerHTML='<h2>會員權限</h2><p data-role-status role="status">讀取會員中…</p><div data-role-list></div>';
     root.querySelector('.member-dashboard').appendChild(panel);
     var status=panel.querySelector('[data-role-status]'),list=panel.querySelector('[data-role-list]');
-
-    function active(){
-      return panel.isConnected && location.hash===route && verified && verified.uid===managerUid && verified.roleManager;
-    }
-    function syncRow(segment,role,busy){
-      segment.dataset.role=role;
-      segment.closest('.role-row').setAttribute('aria-busy',String(busy));
-      segment.querySelectorAll('[data-role-choice]').forEach(function(button){
-        button.setAttribute('aria-pressed',String(button.dataset.roleChoice===role));
-        button.disabled=busy||segment.hasAttribute('data-fixed-admin');
-      });
-    }
-    function watchWrite(segment,write,focusButton){
-      syncRow(segment,write.next,true);
-      write.done.then(function(saved){
-        if(!active() || !segment.isConnected)return;
-        syncRow(segment,saved?write.next:write.previous,false);
-        if(focusButton && document.activeElement===document.body)focusButton.focus();
-        if(saved)A.toast('會員權限已更新');
-        else A.toast('權限未更新，請稍後重試。',true);
-      });
-    }
-    Promise.all([A.DB.get('members'),A.DB.get('roles')]).then(function(values){
-      if(!active())return;
-      var members=values[0]||{},roles=values[1]||{};
-      status.textContent='管理者可管理團購與店家。原有三位管理者的固定權限不受此設定影響。';
-      list.innerHTML=Object.keys(members).filter(function(id){return id!==managerUid && path(id);}).map(function(id){
-        var member=members[id],fixed=fixedAdminUids.indexOf(id)>=0,role=fixed||roles[id]==='admin'?'admin':'member';
-        var name=esc(member.name || '午餐夥伴');
-        return '<div class="role-row">'+avatar(member)+'<div><b>'+name+'</b><small>'+esc(member.department)+'</small></div>'+
-          '<span class="role-segment" data-role-user="'+esc(id)+'"'+(fixed?' data-fixed-admin aria-description="固定管理者"':'')+' data-role="'+role+'" role="group" aria-label="'+name+'的權限">'+
-          '<button type="button" data-role-choice="member" aria-label="'+name+'：會員" aria-pressed="'+(role==='member')+'"'+(fixed?' disabled':'')+'>會員</button>'+
-          '<button type="button" data-role-choice="admin" aria-label="'+name+'：管理者" aria-pressed="'+(role==='admin')+'"'+(fixed?' disabled':'')+'>管理者</button></span></div>';
+    function active(){return panel.isConnected&&location.hash===route&&verified&&verified.uid===managerUid&&verified.roleManager;}
+    function draw(){
+      if(!active())return;status.textContent='';status.hidden=true;
+      list.innerHTML=Object.keys(members).filter(path).map(function(id){
+        var member=members[id],isOwner=id===loadedOwner,role=isOwner?'owner':roles[id]==='admin'?'admin':'member',name=esc(member.name||'午餐夥伴');
+        var choices=verified.roleOwner?['member','admin','owner']:['member','admin'];
+        var control=isOwner&&!verified.roleOwner?'<span class="role-owner-badge">最高管理者</span>':'<span class="role-segment'+(verified.roleOwner?' role-three':'')+'" data-role-user="'+esc(id)+'" data-role="'+role+'" role="group" aria-label="'+name+'的權限">'+choices.map(function(choice){var label={member:'會員',admin:'管理者',owner:'最高管理者'}[choice];return '<button type="button" data-role-choice="'+choice+'" aria-label="'+name+'：'+label+'" aria-pressed="'+(role===choice)+'"'+(isOwner?' disabled':'')+'>'+label+'</button>';}).join('')+'</span>';
+        return '<div class="role-row">'+avatar(member)+'<div><b>'+name+'</b><small>'+esc(member.department)+'</small></div>'+control+'</div>';
       }).join('');
-      list.querySelectorAll('[data-role-user]').forEach(function(segment){
-        var id=segment.dataset.roleUser, write=roleWrites.get(id)||writesAtLoad.get(id);
-        if(write)watchWrite(segment,write);
-      });
-      list.onclick=function(event){
-        var button=event.target.closest('[data-role-choice]');
-        if(!button || button.disabled || !active())return;
-        var segment=button.closest('[data-role-user]');
-        var id=segment.dataset.roleUser, next=button.dataset.roleChoice, previous=segment.dataset.role;
-        if(next===previous || roleWrites.has(id)||fixedAdminUids.indexOf(id)>=0)return;
-        var write={next:next,previous:previous};
-        write.done=Promise.resolve().then(function(){
-          if(!verified || verified.uid!==managerUid || !verified.roleManager)throw new Error('權限已變更');
-          return A.DB.set('roles/'+id,next);
-        }).then(function(){return true;},function(){return false;}).finally(function(){
-          roleWrites.delete(id);
-        });
-        roleWrites.set(id,write);
-        watchWrite(segment,write,document.activeElement===button?button:null);
-      };
-    }).catch(function(){
-      if(active())status.textContent='目前無法讀取會員權限，請確認資料庫規則已發布。';
-    });
+    }
+    function load(){return Promise.all([A.DB.get('members'),A.DB.get('roles'),A.DB.get('administration')]).then(function(values){if(!active())return;members=values[0]||{};roles=values[1]||{};loadedOwner=values[2]&&values[2].ownerUid;revision=values[2]&&values[2].revision;if(!loadedOwner||!Number.isInteger(revision))throw new Error('權限設定尚未完成');draw();});}
+    function error(){if(!active())return;status.hidden=false;status.textContent='權限未更新，請重新整理後再試。';}
+    load().catch(error);
+    list.onclick=function(event){
+      var button=event.target.closest('[data-role-choice]');if(!button||button.disabled||!active())return;
+      var segment=button.closest('[data-role-user]'),id=segment.dataset.roleUser,next=button.dataset.roleChoice,previous=segment.dataset.role;
+      if(next===previous||id===loadedOwner||roleWrites.has(id)||!['member','admin','owner'].includes(next))return;
+      if(next==='owner'&&!verified.roleOwner)return;
+      var write={next:next,previous:previous};roleWrites.set(id,write);segment.closest('.role-row').setAttribute('aria-busy','true');segment.querySelectorAll('button').forEach(function(b){b.disabled=true;});
+      var confirmation=next==='owner'?A.ask({title:'轉讓最高管理者？',body:'將最高管理者轉讓給「'+(members[id].name||'午餐夥伴')+'」'+(members[id].department?'（'+members[id].department+'）':'')+'。轉讓後，你會成為一般管理者，無法自行取回最高管理者權限。',okText:'確認轉讓',cancelText:'取消'}):Promise.resolve(true);
+      write.done=confirmation.then(function(ok){
+        if(!ok)return false;
+        if(!active()||!verified.roleManager)throw new Error('權限已變更');
+        if(next==='owner'){
+          if(!verified.roleOwner||loadedOwner!==managerUid)throw new Error('最高管理者已變更');
+          var update={administration:{ownerUid:id,revision:revision+1}};update['roles/'+id]='admin';
+          return A.DB.update('',update).then(function(){A.toast('已轉讓最高管理者，你現在是管理者');return true;});
+        }
+        return A.DB.set('roles/'+id,next).then(function(){A.toast('會員權限已更新');return true;});
+      }).catch(function(){error();return false;}).finally(function(){roleWrites.delete(id);if(active())load().catch(error);});
+    };
   }
   function orderView(root) {
     var alive = true, uid = verified.uid, entries = Object.create(null), listeners = [];
@@ -484,7 +455,9 @@
     appReady.then(function(){ if(!window.firebase) return loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'); }).then(function(){if(!firebase.apps.length)firebase.initializeApp(config());return typeof firebase.auth === 'function' ? null : loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');}).then(function(){auth=firebase.auth();return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);}).then(function(){auth.onAuthStateChanged(function(fu){if(roleOff){roleOff();roleOff=null;}authReady=true;var expected=fu&&fu.uid; verified=null;
       if (!fu) { if(window.LunchMascot)window.LunchMascot.hide();settle(); if(startupError===SLOW)startupError=''; A.setUser(null); return; }
       settled=false;if(window.LunchMascot)window.LunchMascot.show('Hi！要來點什麼');
-      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult(),A.DB.get('roles/'+fu.uid).catch(function(){return null;})]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};var signedMember={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',departmentKey:p.departmentKey||'',nameKey:p.nameKey||'',avatar:p.avatar || 0,avatarImage:p.avatarImage || '',authenticated:true,needsProfile:!p.updatedAt || !window.LunchIdentity.claimPath(p),roleManager:claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0,admin:(claims.email_verified === true && ['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw'].indexOf(claims.email)>=0)||values[2]==='admin'};var next=pendingNext;if(!signedMember.needsProfile)pendingNext='';return finishSignIn(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;verified=signedMember;settle();if(startupError===SLOW)startupError='';if(verified.needsProfile){if(location.hash!=='#/members')go('#/members');}else if(next&&location.hash.indexOf('#/members')===0)go(next);A.setUser(verified);roleOff=A.DB.on('roles/'+fu.uid,function(role){if(!verified||verified.uid!==fu.uid)return;var next=verified.roleManager||role==='admin';if(verified.admin!==next){verified.admin=next;A.setUser(verified);}});});}).catch(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;if(window.LunchMascot)window.LunchMascot.hide();startupError='無法確認帳號權限，請重新登入。';verified=null;settle();A.setUser(null);});
+      Promise.all([A.DB.get('members/'+fu.uid),fu.getIdTokenResult(),A.DB.get('roles/'+fu.uid).catch(function(){return null;}),A.DB.get('administration')]).then(function(values){var p=values[0],claims=values[1].claims || {}; if(!auth.currentUser || auth.currentUser.uid!==expected)return;p=p||{};var signedMember={uid:fu.uid,id:fu.uid,name:p.name || fu.displayName || '午餐夥伴',department:p.department || '',departmentKey:p.departmentKey||'',nameKey:p.nameKey||'',avatar:p.avatar || 0,avatarImage:p.avatarImage || '',authenticated:true,needsProfile:!p.updatedAt || !window.LunchIdentity.claimPath(p),ownerUid:values[3]&&values[3].ownerUid,roleOwner:!!(values[3]&&values[3].ownerUid===fu.uid),roleManager:!!(values[3]&&values[3].ownerUid===fu.uid)||values[2]==='admin',admin:!!(values[3]&&values[3].ownerUid===fu.uid)||values[2]==='admin'};var next=pendingNext;if(!signedMember.needsProfile)pendingNext='';return finishSignIn(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;verified=signedMember;settle();if(startupError===SLOW)startupError='';if(verified.needsProfile){if(location.hash!=='#/members')go('#/members');}else if(next&&location.hash.indexOf('#/members')===0)go(next);A.setUser(verified);var liveRole=values[2],liveOwner=values[3]&&values[3].ownerUid;
+            function syncAuthority(){if(!verified||verified.uid!==fu.uid)return;var owner=liveOwner===fu.uid,admin=owner||liveRole==='admin';if(verified.ownerUid!==liveOwner||verified.roleOwner!==owner||verified.admin!==admin||verified.roleManager!==admin){verified.ownerUid=liveOwner;verified.roleOwner=owner;verified.admin=verified.roleManager=admin;A.setUser(verified);}}
+            var roleUnsub=A.DB.on('roles/'+fu.uid,function(role){liveRole=role;syncAuthority();}),ownerUnsub=A.DB.on('administration',function(state){liveOwner=state&&state.ownerUid;syncAuthority();});roleOff=function(){roleUnsub();ownerUnsub();};});}).catch(function(){if(!auth.currentUser||auth.currentUser.uid!==expected)return;if(window.LunchMascot)window.LunchMascot.hide();startupError='無法確認帳號權限，請重新登入。';verified=null;settle();A.setUser(null);});
     });}).catch(function(){if(window.LunchMascot)window.LunchMascot.hide();startupError='會員登入載入失敗，請聯絡站長檢查登入設定與授權網域。';settle();updateNav();A.route();});
   }
   function updateNav() {
