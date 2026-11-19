@@ -11,7 +11,6 @@
 const ORIGIN='https://junworkgogo.github.io';
 const FIREBASE_KEY='AIzaSyCLzpiNkFesQYvTiS9e9Jh4fMVRr6riQ74'; // Firebase client config, not secret
 const PROJECT_ID='lunch-8ebca';
-const ADMINS=new Set(['junworkgogo@gmail.com','jun@adholic.com.tw','ruuu@adholic.com.tw']);
 const TOTAL_MS=55000;   // 留在一分鐘內回應
 const HEDGE_MS=20000;   // 一個模型 20 秒還沒回，就同時請下一個
 const MIN_START_MS=6000; // 剩不到 6 秒就不再開新的呼叫
@@ -48,7 +47,15 @@ async function verifyAdmin(token){
  });
  if(!r.ok)return false;
  const json=await r.json(),user=json.users&&json.users[0];
- return !!(user&&user.localId&&user.emailVerified===true&&ADMINS.has(String(user.email||'').toLowerCase()));
+ if(!user||typeof user.localId!=='string'||!user.localId||user.emailVerified!==true||!/^[A-Za-z0-9_-]{1,160}$/.test(user.localId))return false;
+ const database='https://lunch-8ebca-default-rtdb.asia-southeast1.firebasedatabase.app/';
+ const paths=['roles/'+user.localId,'administration/ownerUid'];
+ const values=await Promise.all(paths.map(async path=>{
+  const reply=await fetch(database+path+'.json?auth='+encodeURIComponent(token),{signal:AbortSignal.timeout(8000),cache:'no-store'});
+  if(!reply.ok)throw new Error('Role verification unavailable');
+  return reply.json();
+ }));
+ return values[0]==='admin'||values[1]===user.localId;
 }
 // Gemini：照片直接放進 inlineData；不支援的設定（thinking／高解析／schema）被 400 退回時拿掉重送
 function geminiPayload(images,opt){
