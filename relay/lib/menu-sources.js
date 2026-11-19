@@ -3,12 +3,16 @@
 const dns = require('node:dns').promises;
 const https = require('node:https');
 const net = require('node:net');
+const iding = require('./iding-menu');
 
 const LIMIT_BYTES = 2 * 1024 * 1024;
 const LIMIT_MS = 5500;
 const REDIRECTS = 3;
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36';
 const MENU_LABEL = /菜單|價目表|餐點|點餐|訂餐|產品介紹|美味專區|\bmenu\b|\border online\b/i;
+const SEARCH_LABELS = { ichef: 'iCHEF', quickclick: '快一點', oddle: 'Oddle', website: '店家官網' };
+const SEARCH_CACHE = new Map();
+const SEARCH_INFLIGHT = new Map();
 
 function urlOf(value, base) {
   if (typeof value !== 'string' || value.length > 2048) return null;
@@ -425,6 +429,15 @@ async function readMenu(value) {
     if (cats.length) result.warnings.push('目前帶入公開菜單上的標示價格，客製選項與加價請以原頁確認。');
     if (missingPrice) result.warnings.push('已略過缺少有效台幣價格的品項。');
     Object.assign(result, menuLinks(body, nodes, url));
+    if (!result.cats.length && url.hostname === 'iding.tw' && /^\/store\/[A-Za-z0-9_-]{1,80}\/?$/.test(url.pathname)) {
+      const id = url.pathname.split('/')[2];
+      const menu = await getJson('https://iding.tw/api/stores/menus?identifier=' + encodeURIComponent(id), u => u.hostname === 'iding.tw' && u.pathname === '/api/stores/menus', deadline);
+      const converted = iding.convert(menu,label);
+      result.cats = converted.cats;
+      if(converted.skipped) result.warnings.push('已略過 '+converted.skipped+' 個無法完整保留套餐或複合選項的品項，請核對原頁。');
+      if(converted.omittedUpgrades) result.warnings.push('另有 '+converted.omittedUpgrades+' 個餐點的套餐加購尚未帶入，請核對原頁。');
+      if(result.cats.length) result.warnings.push('已讀取微碧公開菜單；線上價格可能與紙本不同，帶入前請核對。');
+    }
     if (!result.cats.length) {
       if (source(url) === 'quickclick') await quickClickMenu(url, result, deadline);
       if (source(url) === 'ichef') await iChefMenu(url, result, deadline);
@@ -453,14 +466,81 @@ function shopKey(query) {
   return keyOf(query.split(/\s+/).filter(part => !location.test(part.replace(/臺/g, '台'))).join(' '));
 }
 
-// 店名搜尋已停用（2026-11-19，使用者決定先維持現狀）：
-// 原本讀 search.brave.com 搜尋頁，對方回驗證碼（429），robots.txt 也寫明不准抓 /search；
-// 改用 Gemini＋Google 搜尋也不行：這把免費金鑰呼叫 2.5 系列回 404（不開放給新使用者），3.x 免費方案搜尋額度是 0。
-// 回應內容維持跟停用前一樣，網站畫面不用改。要重新開放前先讀專案 CLAUDE.md「菜單中繼站」段。
+function searchResults(body) {
+  const results = [];
+  for (const [, attrs, content] of body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)) {
+    if (!/(?:^|\s)l1(?:\s|$)/.test(attribute(attrs, 'class'))) continue;
+    const title = /<div\b[^>]*class="[^"]*\btitle\b[^"]*"[^>]*>([\s\S]*?)<\/div\s*>/i.exec(content);
+    const url = urlOf(attribute(attrs, 'href'));
+    const name = label(title?.[1]);
+    if (url && name) results.push({ url, name });
+  }
+  return results;
+}
+
+async function search(term, deadline) {
+  const params = new URLSearchParams({ q: term, num: '10', hl: 'zh-TW', gl: 'tw', cc: 'tw' });
+  const { body } = await getPage('https://search.brave.com/search?' + params, url => url.hostname === 'search.brave.com', deadline);
+  const results = searchResults(body);
+  if (!results.length && !/no results found|couldn.t find any results|查無結果/i.test(body)) throw new Error('搜尋結果暫時無法讀取');
+  return results;
+}
+
+async function runDiscovery(query, key) {
+  const deadline = Date.now() + LIMIT_MS;
+  const warnings = [];
+  const list = [];
+  const seen = new Set();
+  function collect(results, allowed = Object.keys(SEARCH_LABELS)) {
+    for (const { url, name } of results) {
+      const src = source(url);
+      if (!allowed.includes(src) || !keyOf(name).includes(key) || seen.has(url.href) || list.filter(item => item.src === src).length >= 3) continue;
+      if (src === 'website' && (platformHost(url.hostname) ||
+          /(?:^|\.)(?:facebook\.com|instagram\.com|google\.com|ubereats\.com|foodpanda\.com\.tw|wikipedia\.org|youtube\.com|line\.me|threads\.com|pixnet\.net)$/.test(url.hostname) ||
+          (!/官方網站|官方網頁|官網|official website/i.test(name) && !(url.pathname === '/' && keyOf(name).startsWith(key))))) continue;
+      seen.add(url.href);
+      const canImport = ['ichef', 'oddle'].includes(src) || (src === 'quickclick' && url.hostname === 'order.quickclick.cc');
+      list.push({ src, id: url.href, url: url.href, name: pageName('<title>' + name + '</title>'), address: '', ...(canImport ? { canImport } : {}) });
+    }
+  }
+  let unavailable = false;
+  try {
+    collect(await search(query + ' 線上點餐 菜單', deadline));
+    const platforms = { ichef: 'shop.ichefpos.com', quickclick: 'order.quickclick.cc', oddle: 'oddle.me' };
+    const missing = Object.keys(platforms).filter(src => !list.some(item => item.src === src));
+    if (missing.length) {
+      const sites = missing.map(src => 'site:' + platforms[src]).join(' OR ');
+      collect(await search(query + ' (' + sites + ')', deadline), missing);
+    }
+  } catch { unavailable = true; }
+  const missingLabels = Object.keys(SEARCH_LABELS).filter(src => !list.some(item => item.src === src)).map(src => SEARCH_LABELS[src]);
+  if (unavailable) warnings.push('公開搜尋暫時無法完整取得結果，可直接貼上店家菜單網址。');
+  else if (missingLabels.length) warnings.push(missingLabels.join('、') + '未找到可確認的同名連結，可直接貼上店家菜單網址。');
+  return { output: { list, warnings }, unavailable };
+}
+
 async function discover(value) {
   const query = label(value, 100);
-  if (shopKey(query).length < 2) return { list: [], warnings: ['請輸入店名搜尋。'] };
-  return { list: [], warnings: ['公開搜尋暫時無法完整取得結果，可直接貼上店家菜單網址。'] };
+  const key = shopKey(query);
+  if (key.length < 2) return { list: [], warnings: ['請輸入店名搜尋。'] };
+  const cacheKey = keyOf(query) + '|' + key;
+  const cached = SEARCH_CACHE.get(cacheKey);
+  if (cached) {
+    SEARCH_CACHE.delete(cacheKey);
+    if (cached.until > Date.now()) {
+      SEARCH_CACHE.set(cacheKey, cached);
+      return cached.output;
+    }
+  }
+  if (SEARCH_INFLIGHT.has(cacheKey)) return SEARCH_INFLIGHT.get(cacheKey);
+  if (SEARCH_INFLIGHT.size >= 8) return { list: [], warnings: ['公開搜尋目前忙碌，可直接貼上店家菜單網址。'] };
+  const pending = runDiscovery(query, key).then(({ output, unavailable }) => {
+    SEARCH_CACHE.set(cacheKey, { output, until: Date.now() + (unavailable ? 10000 : 600000) });
+    if (SEARCH_CACHE.size > 50) SEARCH_CACHE.delete(SEARCH_CACHE.keys().next().value);
+    return output;
+  }).finally(() => SEARCH_INFLIGHT.delete(cacheKey));
+  SEARCH_INFLIGHT.set(cacheKey, pending);
+  return pending;
 }
 
 module.exports = { discover, readMenu };
