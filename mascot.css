@@ -1,0 +1,33 @@
+.mascot-welcome {
+  overflow: auto;
+}
+
+.mascot-delivery-scene {
+  display: grid;
+  justify-items: center;
+  gap: clamp(12px, 3vh, 24px);
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.mascot-delivery-scene .mascot-delivery-cat {
+  display: block;
+  width: min(42vw, 24vh, 190px);
+  min-width: min(120px, 60vw);
+  max-width: 100%;
+  height: auto;
+}
+
+.mascot-delivery-scene h2 {
+  margin: 0;
+}
+
+.mascot-inline .mascot-delivery-cat {
+  max-width: 145px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-welcome.leaving {
+    transition: none;
+  }
+}

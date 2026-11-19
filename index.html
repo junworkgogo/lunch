@@ -485,7 +485,12 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261119slider">
+<link rel="stylesheet" href="glass.css?v=20261119visual4">
+<link rel="stylesheet" href="hours-editor.css?v=20261119visual4">
+<link rel="stylesheet" href="account-tabs.css?v=20261119visual4">
+<link rel="stylesheet" href="happy-rain.css?v=20261119visual4">
+<link rel="stylesheet" href="refined.css?v=20261119visual4">
+<link rel="stylesheet" href="mascot.css?v=20261119visual4">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 </head>
@@ -896,8 +901,8 @@ function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+
 
 /* ---------- 首頁 ---------- */
 function pageHome(root,history){
-  root.innerHTML='<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a></div></section><section class="home-groups"><nav class="home-switch" aria-label="團購狀態"><a href="#/"'+(!history?' aria-current="page"':'')+'>進行中</a><a href="#/?view=ended"'+(history?' aria-current="page"':'')+'>已結束</a></nav><div class="grid" id="'+(history?'end':'act')+'" aria-label="'+(history?'已結束':'進行中')+'的團購"></div></section></div>';
-  var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false;
+  root.innerHTML='<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a></div></section><section class="home-groups"><nav class="home-switch" aria-label="團購狀態"><a href="#/"'+(!history?' aria-current="page"':'')+'>進行中</a><a href="#/?view=ended"'+(history?' aria-current="page"':'')+'>已結束</a></nav><div class="grid" id="homeGroups" aria-label="'+(history?'已結束':'進行中')+'的團購"></div></section></div>';
+  var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false,historyWatch=0;
   function stats(gid){var l=liveOrders(orders[gid]);return {people:peopleCount(orders[gid]),qty:l.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0)};}
   function canRemove(g){return !!(g&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||g.ownerUserId&&g.ownerUserId===userId()));}
   function card(id,g,ended){
@@ -908,11 +913,11 @@ function pageHome(root,history){
     var ids=Object.keys(groups).filter(function(k){return groups[k]&&!groups[k].deleted;});
     var act=ids.filter(function(k){return !groupClosed(groups[k]);}).sort(function(a,b){return groups[a].deadline-groups[b].deadline;});
     var end=ids.filter(function(k){return groupClosed(groups[k]);}).sort(function(a,b){return groups[b].deadline-groups[a].deadline;}).slice(0,historyLimit);
-    if(!history){root.querySelector('#act').innerHTML=act.length?act.map(function(k){return card(k,groups[k],false);}).join(''):'<p class="home-empty">(´;ω;`)沒有團</p>';
-    }else root.querySelector('#end').innerHTML=end.length?end.map(function(k){return card(k,groups[k],true);}).join(''):'<div style="grid-column:1/-1">'+emptyBox('還沒有結束的團。')+'</div>';
+    if(!history){root.querySelector('#homeGroups').innerHTML=act.length?act.map(function(k){return card(k,groups[k],false);}).join(''):'<div class="home-empty"><div class="home-empty-face" aria-hidden="true">\\(^Д^)/</div><p>沒有團</p></div>';
+    }else root.querySelector('#homeGroups').innerHTML=end.length?end.map(function(k){return card(k,groups[k],true);}).join(''):'<div style="grid-column:1/-1">'+'<div class="home-empty"><div class="home-empty-face" aria-hidden="true">\\(^Д^)/</div><p>還沒有結束的團</p></div>'+'</div>';
   }
   var deleting={};
-  if(history)root.querySelector('#end').addEventListener('click',function(e){
+  root.querySelector('#homeGroups').addEventListener('click',function(e){
     var b=e.target.closest('[data-delete-group]');if(!b)return;
     var id=b.getAttribute('data-delete-group'),g=groups[id];if(disposed||deleting[id]||!canRemove(g)||!groupClosed(g)||g.deleted)return;
     deleting[id]=true;b.disabled=true;
@@ -922,19 +927,26 @@ function pageHome(root,history){
       return deleteGroupData(id).then(function(){toast('團已刪除');});
     }).catch(fail).finally(function(){delete deleting[id];if(!disposed)draw();});
   });
-  var more=null;if(history){more=document.createElement('button');more.type='button';more.className='btn';more.textContent='載入更多已結束團購';root.querySelector('#end').parentNode.appendChild(more);}
+  var more=document.createElement('button');more.type='button';more.className='btn';more.textContent='載入更多已結束團購';more.hidden=!history;root.querySelector('#homeGroups').parentNode.appendChild(more);
   function subscribeGroups(){
-    if(groupOff)groupOff();
-    groupOff=DB.on('groups',function(v){recentGroups=v||{};syncGroups();},{orderBy:'createdAt',limit:historyLimit});
+    if(groupOff)groupOff();var watch=++historyWatch;
+    groupOff=DB.on('groups',function(v){if(disposed||watch!==historyWatch)return;recentGroups=v||{};syncGroups();},{orderBy:'createdAt',limit:historyLimit});
   }
   function syncGroups(){
-      if(disposed)return;groups=Object.assign({},recentGroups,activeGroups);
-      Object.keys(orderOffs).forEach(function(id){if(!groups[id]||groups[id].deleted){orderOffs[id]();delete orderOffs[id];delete orders[id];}});
-      Object.keys(groups).forEach(function(id){if(groups[id].deleted||orderOffs[id])return;orderOffs[id]=function(){};orderOffs[id]=DB.on('orders/'+id,function(os){if(disposed)return;orders[id]=os||{};draw();});});
-      if(more)more.hidden=Object.keys(recentGroups).length<historyLimit;draw();
+      if(disposed)return;groups=Object.assign({},history?recentGroups:{},activeGroups);
+      Object.keys(orderOffs).forEach(function(id){if(!groups[id]||groups[id].deleted||(!history&&groupClosed(groups[id]))){orderOffs[id]();delete orderOffs[id];delete orders[id];}});
+      Object.keys(groups).forEach(function(id){if(groups[id].deleted||(!history&&groupClosed(groups[id]))||orderOffs[id])return;orderOffs[id]=function(){};orderOffs[id]=DB.on('orders/'+id,function(os){if(disposed)return;orders[id]=os||{};draw();});});
+      if(more)more.hidden=!history||Object.keys(recentGroups).length<historyLimit;draw();
   }
-  if(more){more.addEventListener('click',function(){historyLimit+=25;subscribeGroups();});subscribeGroups();}activeOff=DB.on('groups',function(v){activeGroups=v||{};syncGroups();},{orderBy:'deadline',startAt:now()});
-  var t=setInterval(draw,15000);
+  root.querySelector('.home-switch').addEventListener('click',function(e){
+    var link=e.target.closest('a');if(!link||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();
+    var ended=link.getAttribute('href').indexOf('view=ended')>=0;if(ended===history)return;history=ended;
+    root.querySelectorAll('.home-switch a').forEach(function(a){if(a===link)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+    root.querySelector('#homeGroups').setAttribute('aria-label',(history?'已結束':'進行中')+'的團購');
+    window.history.replaceState(null,'',history?'#/?view=ended':'#/');if(!history&&groupOff){groupOff();groupOff=null;historyWatch++;recentGroups={};}if(history&&!groupOff)subscribeGroups();syncGroups();
+  });
+  more.addEventListener('click',function(){historyLimit+=25;subscribeGroups();});if(history)subscribeGroups();activeOff=DB.on('groups',function(v){activeGroups=v||{};syncGroups();},{orderBy:'deadline',startAt:now()});
+  var t=setInterval(syncGroups,15000);
   return function(){disposed=true;if(groupOff)groupOff();if(activeOff)activeOff();Object.keys(orderOffs).forEach(function(k){orderOffs[k]();});clearInterval(t);};
 }
 
@@ -1334,13 +1346,13 @@ function pageShopEdit(root,id){
     '<div class="fld"><label for="shopCategory">店家分類</label><select id="shopCategory"><option value="meal"'+((s.category||(!isNew&&shopCategory(s))||parseHash().q.category)!=='drink'?' selected':'')+'>餐點</option><option value="drink"'+((s.category||(!isNew&&shopCategory(s))||parseHash().q.category)==='drink'?' selected':'')+'>飲品</option></select></div>'+
     '<div class="fld"><label for="sa">地址</label><input id="sa" value="'+esc(s.address)+'" maxlength="100" autocomplete="off" placeholder="填了就會顯示 地圖"></div>'+
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
-    '<div class="fld"><label for="sh">營業時間</label><input id="sh" value="'+esc(s.hours||'')+'" maxlength="60" placeholder="例如 10:30–18:30" autocomplete="off"></div>'+
+    '<div class="fld"><label for="sh">營業時間</label><textarea id="sh" rows="1" maxlength="2000">'+esc(s.hours||'')+'</textarea></div>'+
     freeShippingField('shopFreeShipping',s.freeShippingThreshold)+
     '<div class="fld"><label for="sx">優惠活動</label><textarea id="sx" style="min-height:84px;font-family:inherit" maxlength="400" placeholder="一行一則，例如&#10;滿1000打9折&#10;買5送1">'+esc(s.promos||'')+'</textarea><p class="hint">優惠只會顯示在點餐頁，不會自動算折扣。</p></div>'+
     '<div class="fld"><label for="sm">菜單（一行一個品項）</label><p class="hint">{分類名稱} 開新分類；品名, 價格；品名, 價格, 停售。縮排兩格（或行首「- 」）的行是選項：群組名*: 選項, 選項+加價（有 * 必選單選，沒有 * 可不選、可複選）。選項寫在分類下面、第一個品項前，整個分類共用。</p><div class="insrow"><button type="button" class="btn sm" id="ins1">插入：飲料（尺寸／甜度／冰塊）</button><button type="button" class="btn sm" id="ins2">插入：便當客製（飯少／飯多／不要蔥／要切）</button></div><textarea id="sm" spellcheck="false" aria-describedby="smE">'+esc(s.menuText)+'</textarea><ul class="errlist" id="smE" role="alert"></ul></div>'+
     '<p class="err" id="saveE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存店家</button>'+(isNew?'':'<button type="button" class="btn danger" id="del">刪除店家</button>')+'</div></form></section>'+
     '<section class="card pv"><h2 style="font-size:18px;font-weight:900">預覽</h2><div id="pv"></div><div id="mp" style="margin-top:14px"></div></section></div></div>';
-    var sm=root.querySelector('#sm'),sa=root.querySelector('#sa');
+    var sm=root.querySelector('#sm'),sa=root.querySelector('#sa');var hoursField=root.querySelector('#sh');hoursField.defaultValue=hoursField.value=s.hours||'';var initialHoursValue=hoursField.value;
     function pv(){
       var r=parseMenu(sm.value);
       sm.classList.toggle('has-err',r.errors.length>0);
@@ -1363,7 +1375,8 @@ function pageShopEdit(root,id){
       if(r.errors.length){saveE.textContent='菜單有 '+r.errors.length+' 行格式不對（紅字），請先修正再儲存';saveE.hidden=false;sm.focus();return;}
       var freeShippingThreshold=parseFreeShippingThreshold(root.querySelector('#shopFreeShipping').value);
       if(!Number.isFinite(freeShippingThreshold)){saveE.textContent='免運門檻請填 0–1,000,000 的整數，或留白';saveE.hidden=false;root.querySelector('#shopFreeShipping').focus();return;}
-      var stamp=now(),f={name:name,category:root.querySelector('#shopCategory').value,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value.trim(),promos:root.querySelector('#sx').value.trim(),freeShippingThreshold:freeShippingThreshold,menuText:sm.value,updatedAt:stamp};
+      var stamp=now(),f={name:name,category:root.querySelector('#shopCategory').value,address:sa.value.trim(),phone:root.querySelector('#sp').value.trim(),tags:root.querySelector('#st').value.trim(),hours:root.querySelector('#sh').value,promos:root.querySelector('#sx').value.trim(),freeShippingThreshold:freeShippingThreshold,menuText:sm.value,updatedAt:stamp};
+      if(!isNew&&root.querySelector('#sh').value===initialHoursValue)delete f.hours;
       var p=isNew?DB.set('shops/'+sid,Object.assign({createdAt:stamp},f)):DB.update('shops/'+sid,f);
       p.then(function(){toast('店家已儲存');location.hash='#/shops';}).catch(fail);
     });
@@ -1534,6 +1547,7 @@ function pageGroup(root,gid){
     function close(){
       if(!overlay.parentNode)return;
       document.removeEventListener('keydown',onKey);
+      if(window.LunchHappyRain)window.LunchHappyRain.stop();
       overlay.parentNode.removeChild(overlay);
       document.body.style.overflow=previousOverflow;
       closeSuccessDialog=null;
@@ -1558,7 +1572,7 @@ function pageGroup(root,gid){
     document.body.style.overflow='hidden';
     document.addEventListener('keydown',onKey);
     overlay.querySelector('[data-success-view]').focus();
-    confettiBurst(overlay);
+    if(window.LunchHappyRain)window.LunchHappyRain.show(overlay);
   }
   // 送出成功的小撒花（使用者 2026-11-18 指定）：從勾勾附近往外噴、再往下飄，1.9 秒後自動移除；
   // 只用主題橘黃色（不得出現紅色）；系統設定「減少動態」時不播。純裝飾，出錯也不影響送出流程。
@@ -2014,10 +2028,13 @@ if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
 <script src="menu-vision.js?v=20261119gemini"></script>
-<script src="interface.js?v=20261119a"></script>
+<script src="hours-editor.js?v=20261119visual4"></script>
+<script src="happy-rain.js?v=20261119visual4"></script>
+<script src="interface.js?v=20261119visual4"></script>
 <script src="participants.js?v=20261118dept"></script>
 <script src="pay.js?v=20261119a"></script>
-<script src="mascot.js?v=20261119arm3"></script>
-<script src="members.js?v=20261119a"></script>
+<script src="mascot.js?v=20261119visual4"></script>
+<script src="account-tabs.js?v=20261119visual4"></script>
+<script src="members.js?v=20261119visual4"></script>
 </body>
 </html>

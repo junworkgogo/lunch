@@ -3,7 +3,7 @@
   'use strict';
   var A, auth = null, verified = null, authReady = false, startupError = '', pendingNext = '', activeRefresh = null;
   /* settled：已經知道「有沒有登入」（含讀完會員資料）。還不知道時先顯示「確認登入狀態中」，不急著送去登入頁。 */
-  var settled = false, settleTimer = null, roleOff=null;
+  var settled = false, settleTimer = null, roleOff=null, roleWrites = new Map();
   var C = window.LUNCH_MEMBERS_CONFIG || window.LUNCH_MEMBER_CONFIG || {};
   // 2026-11-18 內建頭貼改成 7 個部門的簡易可愛圖（順序對應 departments：設計、企劃、影相、會計、工程、廣告、BOSS們）
   var avatars = ["<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"12\" y=\"3.5\" width=\"16\" height=\"5.5\" rx=\"2.6\" fill=\"currentColor\"/><rect x=\"12\" y=\"9\" width=\"16\" height=\"3.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"12\" y=\"12.5\" width=\"16\" height=\"15\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><path d=\"M12 27.5 20 37.5 28 27.5Z\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><path d=\"M17.6 34.5 20 37.5 22.4 34.5Z\" fill=\"currentColor\"/><circle cx=\"17\" cy=\"19\" r=\"1.3\" fill=\"#3b2b20\"/><circle cx=\"23\" cy=\"19\" r=\"1.3\" fill=\"#3b2b20\"/><path d=\"M18.2 21.3q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"14.7\" cy=\"21.2\" r=\"1.2\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"25.3\" cy=\"21.2\" r=\"1.2\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 6.5l2.6 2.6M33 6.5l-2.6 2.6M20 1.8v3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><circle cx=\"20\" cy=\"17.5\" r=\"10.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"15\" y=\"27\" width=\"10\" height=\"4\" rx=\"1.6\" fill=\"currentColor\"/><rect x=\"16.5\" y=\"32.2\" width=\"7\" height=\"3.4\" rx=\"1.6\" fill=\"currentColor\"/><circle cx=\"16.8\" cy=\"17.5\" r=\"1.35\" fill=\"#3b2b20\"/><circle cx=\"23.2\" cy=\"17.5\" r=\"1.35\" fill=\"#3b2b20\"/><path d=\"M18.2 19.8q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"14\" cy=\"19.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"26\" cy=\"19.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"12.5\" y=\"7\" width=\"9\" height=\"6\" rx=\"1.8\" fill=\"currentColor\"/><rect x=\"4.5\" y=\"11\" width=\"31\" height=\"21.5\" rx=\"5.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"20\" cy=\"21.8\" r=\"7.6\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"30.2\" cy=\"15.6\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"17.3\" cy=\"21.2\" r=\"1.25\" fill=\"#3b2b20\"/><circle cx=\"22.7\" cy=\"21.2\" r=\"1.25\" fill=\"#3b2b20\"/><path d=\"M18.2 23.5q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"8.5\" y=\"3.5\" width=\"23\" height=\"33\" rx=\"5.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"12\" y=\"7\" width=\"16\" height=\"11\" rx=\"2.6\" fill=\"currentColor\" opacity=\".2\"/><circle cx=\"14.5\" cy=\"24\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"20\" cy=\"24\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"25.5\" cy=\"24\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"14.5\" cy=\"30\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"20\" cy=\"30\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"25.5\" cy=\"30\" r=\"1.7\" fill=\"currentColor\"/><circle cx=\"17\" cy=\"12\" r=\"1.25\" fill=\"#3b2b20\"/><circle cx=\"23\" cy=\"12\" r=\"1.25\" fill=\"#3b2b20\"/><path d=\"M18.2 14.3q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"14.4\" cy=\"14.2\" r=\"1.1\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"25.6\" cy=\"14.2\" r=\"1.1\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 4.5v4\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><circle cx=\"20\" cy=\"3.6\" r=\"2.2\" fill=\"currentColor\"/><rect x=\"3.8\" y=\"16.5\" width=\"4.6\" height=\"9\" rx=\"2.2\" fill=\"currentColor\"/><rect x=\"31.6\" y=\"16.5\" width=\"4.6\" height=\"9\" rx=\"2.2\" fill=\"currentColor\"/><rect x=\"8\" y=\"8.5\" width=\"24\" height=\"23\" rx=\"7.5\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"16.2\" cy=\"19.5\" r=\"1.6\" fill=\"#3b2b20\"/><circle cx=\"23.8\" cy=\"19.5\" r=\"1.6\" fill=\"#3b2b20\"/><path d=\"M18.2 21.8q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"13\" cy=\"21.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"27\" cy=\"21.7\" r=\"1.4\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M29 13.5q3.2 6.5 0 13M32.8 10.2q5.4 9.8 0 19.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/><path d=\"M13.8 26.5l1.8 7.2h4.2l-1.6-6.4\" fill=\"currentColor\"/><path d=\"M8 14.2 25 7.5v25L8 25.8Z\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><rect x=\"3.6\" y=\"13.6\" width=\"6\" height=\"12.8\" rx=\"2.2\" fill=\"currentColor\"/><circle cx=\"14.3\" cy=\"20\" r=\"1.25\" fill=\"#3b2b20\"/><circle cx=\"19.7\" cy=\"20\" r=\"1.25\" fill=\"#3b2b20\"/><path d=\"M15.2 22.3q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 40 40\" width=\"1.15em\" height=\"1.15em\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M6 14.5l7.2 6.3L20 9.5l6.8 11.3 7.2-6.3-2.6 15.5H8.6Z\" fill=\"#fff\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"/><circle cx=\"6\" cy=\"13.5\" r=\"2.2\" fill=\"currentColor\"/><circle cx=\"20\" cy=\"8.3\" r=\"2.4\" fill=\"currentColor\"/><circle cx=\"34\" cy=\"13.5\" r=\"2.2\" fill=\"currentColor\"/><circle cx=\"16.6\" cy=\"23.5\" r=\"1.3\" fill=\"#3b2b20\"/><circle cx=\"23.4\" cy=\"23.5\" r=\"1.3\" fill=\"#3b2b20\"/><path d=\"M18.2 25.8q1.8 1.9 3.6 0\" fill=\"none\" stroke=\"#3b2b20\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><circle cx=\"13.8\" cy=\"25.7\" r=\"1.3\" fill=\"#ff9d6b\" opacity=\".6\"/><circle cx=\"26.2\" cy=\"25.7\" r=\"1.3\" fill=\"#ff9d6b\" opacity=\".6\"/></svg>"];
@@ -205,7 +205,7 @@
         if(firstSetup)go('#/');
       }).catch(function(er){notify(root,errorText(er));}).finally(function(){b.disabled=false;});
     };
-    wirePayInfo(root,u);if(u.roleManager)wireRoles(root);
+    wirePayInfo(root,u);if(u.roleManager)wireRoles(root);if(window.LunchAccount)window.LunchAccount.mount(root,u);
   }
   // 2026-11-18 收款資料表單：讀不到舊資料時不給存，免得用空白蓋掉原本的帳號。
   function wirePayInfo(root,u) {
@@ -230,16 +230,72 @@
     };
   }
   function wireRoles(root){
-    var panel=document.createElement('section');panel.className='card member-role-admin';panel.innerHTML='<h2>會員權限</h2><p data-role-status role="status">讀取會員中…</p><div data-role-list></div>';root.querySelector('.member-dashboard').appendChild(panel);
+    if(!verified || !verified.roleManager)return;
+    var managerUid=verified.uid, route=location.hash;
+    var fixedAdminUids=['Pn0ctiSzGVSyc6RvqGUb8BXzXdM2','hAj5Ki44tmR4450AqxA1i0d5gIo1'];
+    var writesAtLoad=new Map(roleWrites);
+    var panel=document.createElement('section');
+    panel.className='card member-role-admin';
+    panel.innerHTML='<h2>會員權限</h2><p data-role-status role="status">讀取會員中…</p><div data-role-list></div>';
+    root.querySelector('.member-dashboard').appendChild(panel);
     var status=panel.querySelector('[data-role-status]'),list=panel.querySelector('[data-role-list]');
-    Promise.all([A.DB.get('members'),A.DB.get('roles')]).then(function(v){
-      if(!panel.isConnected)return;var members=v[0]||{},roles=v[1]||{};
-      status.textContent='管理員可管理團購與店家。原有三位管理員的固定權限不受此設定影響。';
-      list.innerHTML=Object.keys(members).filter(function(id){return id!==verified.uid;}).map(function(id){var m=members[id],role=roles[id];return '<div class="role-row">'+avatar(m)+'<div><b>'+esc(m.name)+'</b><small>'+esc(m.department)+'</small></div><select data-role-user="'+esc(id)+'" aria-label="'+esc(m.name)+' 的權限"><option value=""'+(!role?' selected':'')+' disabled>尚未變更授權</option><option value="member"'+(role==='member'?' selected':'')+'>取消額外管理權限</option><option value="admin"'+(role==='admin'?' selected':'')+'>授予管理員權限</option></select><button type="button" class="btn sm" data-role-save="'+esc(id)+'">儲存</button></div>';}).join('');
-      list.onclick=function(e){var b=e.target.closest('[data-role-save]');if(!b)return;var id=b.getAttribute('data-role-save'),select=b.parentNode.querySelector('select'),role=select.value;if(!role)return;var selected=role;
-        A.ask({title:(role==='admin'?'升級為管理員？':'取消額外管理權限？'),body:members[id].name+'：'+(role==='admin'?'可管理全站團購與店家。':'取消這次額外授予的管理權限；原有管理員不受影響。'),okText:'確認變更',cancelText:'先不要'}).then(function(ok){if(!ok||!panel.isConnected)return;b.disabled=true;return A.DB.set('roles/'+id,selected).then(function(){status.textContent='已更新 '+members[id].name+' 的額外管理權限';A.toast('會員權限已更新');});}).catch(function(){status.textContent='權限未更新，請確認資料庫規則已發布及目前帳號權限。';}).finally(function(){if(b.isConnected)b.disabled=false;});
+
+    function active(){
+      return panel.isConnected && location.hash===route && verified && verified.uid===managerUid && verified.roleManager;
+    }
+    function syncRow(segment,role,busy){
+      segment.dataset.role=role;
+      segment.closest('.role-row').setAttribute('aria-busy',String(busy));
+      segment.querySelectorAll('[data-role-choice]').forEach(function(button){
+        button.setAttribute('aria-pressed',String(button.dataset.roleChoice===role));
+        button.disabled=busy||segment.hasAttribute('data-fixed-admin');
+      });
+    }
+    function watchWrite(segment,write,focusButton){
+      syncRow(segment,write.next,true);
+      write.done.then(function(saved){
+        if(!active() || !segment.isConnected)return;
+        syncRow(segment,saved?write.next:write.previous,false);
+        if(focusButton && document.activeElement===document.body)focusButton.focus();
+        if(saved)A.toast('會員權限已更新');
+        else A.toast('權限未更新，請稍後重試。',true);
+      });
+    }
+    Promise.all([A.DB.get('members'),A.DB.get('roles')]).then(function(values){
+      if(!active())return;
+      var members=values[0]||{},roles=values[1]||{};
+      status.textContent='管理者可管理團購與店家。原有三位管理者的固定權限不受此設定影響。';
+      list.innerHTML=Object.keys(members).filter(function(id){return id!==managerUid && path(id);}).map(function(id){
+        var member=members[id],fixed=fixedAdminUids.indexOf(id)>=0,role=fixed||roles[id]==='admin'?'admin':'member';
+        var name=esc(member.name || '午餐夥伴');
+        return '<div class="role-row">'+avatar(member)+'<div><b>'+name+'</b><small>'+esc(member.department)+'</small></div>'+
+          '<span class="role-segment" data-role-user="'+esc(id)+'"'+(fixed?' data-fixed-admin aria-description="固定管理者"':'')+' data-role="'+role+'" role="group" aria-label="'+name+'的權限">'+
+          '<button type="button" data-role-choice="member" aria-label="'+name+'：會員" aria-pressed="'+(role==='member')+'"'+(fixed?' disabled':'')+'>會員</button>'+
+          '<button type="button" data-role-choice="admin" aria-label="'+name+'：管理者" aria-pressed="'+(role==='admin')+'"'+(fixed?' disabled':'')+'>管理者</button></span></div>';
+      }).join('');
+      list.querySelectorAll('[data-role-user]').forEach(function(segment){
+        var id=segment.dataset.roleUser, write=roleWrites.get(id)||writesAtLoad.get(id);
+        if(write)watchWrite(segment,write);
+      });
+      list.onclick=function(event){
+        var button=event.target.closest('[data-role-choice]');
+        if(!button || button.disabled || !active())return;
+        var segment=button.closest('[data-role-user]');
+        var id=segment.dataset.roleUser, next=button.dataset.roleChoice, previous=segment.dataset.role;
+        if(next===previous || roleWrites.has(id)||fixedAdminUids.indexOf(id)>=0)return;
+        var write={next:next,previous:previous};
+        write.done=Promise.resolve().then(function(){
+          if(!verified || verified.uid!==managerUid || !verified.roleManager)throw new Error('權限已變更');
+          return A.DB.set('roles/'+id,next);
+        }).then(function(){return true;},function(){return false;}).finally(function(){
+          roleWrites.delete(id);
+        });
+        roleWrites.set(id,write);
+        watchWrite(segment,write,document.activeElement===button?button:null);
       };
-    }).catch(function(){if(panel.isConnected)status.textContent='目前無法讀取會員權限，請確認資料庫規則已發布。';});
+    }).catch(function(){
+      if(active())status.textContent='目前無法讀取會員權限，請確認資料庫規則已發布。';
+    });
   }
   function orderView(root) {
     var alive = true, uid = verified.uid, groups = Object.create(null);
