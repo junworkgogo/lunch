@@ -1,5 +1,5 @@
 .order-success-overlay{isolation:isolate}.order-success-overlay>.order-success-dialog{position:relative;z-index:1}
 .happy-rain{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;user-select:none}
-.happy-rain>span{position:absolute;left:var(--x);bottom:-4rem;color:#80501e;font-size:var(--size);font-weight:400;letter-spacing:.025em;white-space:nowrap;opacity:0;will-change:transform,opacity;animation:happy-rise var(--duration) linear var(--delay) both}
-@keyframes happy-rise{0%{opacity:0;transform:translate(-50%,var(--start))}15%{opacity:.85}72%{opacity:.85}100%{opacity:0;transform:translate(-50%,calc(var(--start) - 110vh))}}
+.happy-rain>span{position:absolute;left:var(--x);bottom:0;color:#4b5563;font-size:var(--size);font-weight:400;letter-spacing:.025em;white-space:nowrap;opacity:0;will-change:transform,opacity;animation:happy-rise var(--duration) linear var(--delay) both}
+@keyframes happy-rise{0%{opacity:0;transform:translate(calc(-1 * var(--x)),var(--start))}15%{opacity:.85}72%{opacity:.85}100%{opacity:0;transform:translate(calc(-1 * var(--x)),calc(var(--start) - 74vh))}}
 @media(prefers-reduced-motion:reduce){.happy-rain{display:none}}

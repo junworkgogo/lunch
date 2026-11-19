@@ -245,6 +245,7 @@
   function wireRoles(root){
     if(!verified || !verified.roleManager)return;
     var managerUid=verified.uid,route=location.hash,loadedOwner='',revision=0,members={},roles={};
+    var rosterMarkup=null,loadSequence=0;
     var panel=document.createElement('section');panel.className='card member-role-admin';
     panel.innerHTML='<h2>會員權限</h2><p data-role-status role="status">讀取會員中…</p><div data-role-list></div>';
     root.querySelector('.member-dashboard').appendChild(panel);
@@ -252,14 +253,34 @@
     function active(){return panel.isConnected&&location.hash===route&&verified&&verified.uid===managerUid&&verified.roleManager;}
     function draw(){
       if(!active())return;status.textContent='';status.hidden=true;
-      list.innerHTML=Object.keys(members).filter(path).map(function(id){
-        var member=members[id],isOwner=id===loadedOwner,role=isOwner?'owner':roles[id]==='admin'?'admin':'member',name=esc(member.name||'午餐夥伴');
+      var markup=Object.keys(members).filter(path).map(function(id){
+        var member=members[id],isOwner=id===loadedOwner,name=esc(member.name||'午餐夥伴');
         var choices=verified.roleOwner?['member','admin','owner']:['member','admin'];
-        var control=isOwner&&!verified.roleOwner?'<span class="role-owner-badge">最高管理者</span>':'<span class="role-segment'+(verified.roleOwner?' role-three':'')+'" data-role-user="'+esc(id)+'" data-role="'+role+'" role="group" aria-label="'+name+'的權限">'+choices.map(function(choice){var label={member:'會員',admin:'管理者',owner:'最高管理者'}[choice];return '<button type="button" data-role-choice="'+choice+'" aria-label="'+name+'：'+label+'" aria-pressed="'+(role===choice)+'"'+(isOwner?' disabled':'')+'>'+label+'</button>';}).join('')+'</span>';
+        var control=isOwner&&!verified.roleOwner?'<span class="role-owner-badge">最高管理者</span>':'<span class="role-segment'+(verified.roleOwner?' role-three':'')+'" data-role-user="'+esc(id)+'" role="group" aria-label="'+name+'的權限">'+choices.map(function(choice){var label={member:'會員',admin:'管理者',owner:'最高管理者'}[choice];return '<button type="button" data-role-choice="'+choice+'" aria-label="'+name+'：'+label+'"'+(isOwner?' disabled':'')+'>'+label+'</button>';}).join('')+'</span>';
         return '<div class="role-row">'+avatar(member)+'<div><b>'+name+'</b><small>'+esc(member.department)+'</small></div>'+control+'</div>';
       }).join('');
+      if(markup!==rosterMarkup){list.innerHTML=markup;rosterMarkup=markup;}
+      list.querySelectorAll('[data-role-user]').forEach(function(segment){
+        var id=segment.dataset.roleUser,pending=roleWrites.get(id),isOwner=id===loadedOwner;
+        var role=isOwner?'owner':pending?pending.previous:roles[id]==='admin'?'admin':'member';
+        var row=segment.closest('.role-row');
+        if(pending)row.setAttribute('aria-busy','true');else row.removeAttribute('aria-busy');
+        segment.dataset.role=role;
+        segment.querySelectorAll('button').forEach(function(button){
+          button.disabled=isOwner||Boolean(pending);
+          button.setAttribute('aria-pressed',String(button.dataset.roleChoice===role));
+        });
+      });
     }
-    function load(){return Promise.all([A.DB.get('members'),A.DB.get('roles'),A.DB.get('administration')]).then(function(values){if(!active())return;members=values[0]||{};roles=values[1]||{};loadedOwner=values[2]&&values[2].ownerUid;revision=values[2]&&values[2].revision;if(!loadedOwner||!Number.isInteger(revision))throw new Error('權限設定尚未完成');draw();});}
+    function load(){
+      var sequence=++loadSequence;
+      return Promise.all([A.DB.get('members'),A.DB.get('roles'),A.DB.get('administration')]).then(function(values){
+        if(!active()||sequence!==loadSequence)return;
+        members=values[0]||{};roles=values[1]||{};loadedOwner=values[2]&&values[2].ownerUid;revision=values[2]&&values[2].revision;
+        if(!loadedOwner||!Number.isInteger(revision))throw new Error('權限設定尚未完成');
+        draw();
+      });
+    }
     function error(){if(!active())return;status.hidden=false;status.textContent='權限未更新，請重新整理後再試。';}
     load().catch(error);
     list.onclick=function(event){
@@ -278,7 +299,19 @@
           return A.DB.update('',update).then(function(){A.toast('已轉讓最高管理者，你現在是管理者');return true;});
         }
         return A.DB.set('roles/'+id,next).then(function(){A.toast('會員權限已更新');return true;});
-      }).catch(function(){error();return false;}).finally(function(){roleWrites.delete(id);if(active())load().catch(error);});
+      }).then(function(saved){
+        roleWrites.delete(id);
+        if(!active())return;
+        if(saved&&next!=='owner')roles[id]=next;
+        draw();
+        load().catch(error);
+      },function(){
+        roleWrites.delete(id);
+        if(!active())return;
+        draw();
+        error();
+        load().catch(error);
+      });
     };
   }
   function orderView(root) {
@@ -309,14 +342,19 @@
       content.innerHTML = rows.length ? '<div class="member-orders">'+rows.map(function(row, index) {
         var order = row.order;
         var date = '<p>'+esc(new Date(order.createdAt || 0).toLocaleString('zh-TW'))+'</p>';
-        var items = '<details class="member-receipt-details"><summary>查看餐點明細</summary><ul>'+formatItems(order)+'</ul></details>';
+        var identity = order.department ? '<small class="order-department">'+esc(order.name)+' · '+esc(order.department)+'</small>' : '';
+        var items = '<div class="member-order-items"><ul>'+formatItems(order)+'</ul></div>';
         if (!row.group) {
-          return '<article class="member-order member-receipt-stack '+(order.cancelled?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+(order.cancelled?'已取消':'團購已不可查看')+'</span><h2>我的餐點</h2>'+date+'</div><strong>餐點原價 '+money(total(order))+'</strong>'+items+
-            (order.cancelled?'':'<p class="member-fine">收款及分攤金額請向團主確認。</p><button type="button" class="btn sm member-pay" data-cancel-row="'+index+'">取消訂單（截止前）</button>')+'</article>';
+          return '<article class="member-order '+(order.cancelled?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+(order.cancelled?'已取消':'團購已不可查看')+'</span><h2>我的餐點</h2>'+date+identity+'</div><strong>餐點原價 '+money(total(order))+'</strong>'+items+
+            (order.cancelled?'':'<p class="member-fine">收款及分攤金額請向團主確認。</p><div class="member-order-actions"><button type="button" class="btn sm member-pay" data-cancel-row="'+index+'">取消訂單（截止前）</button></div>')+'</article>';
         }
         var bill = row.bill;
         var state = order.cancelled ? '已取消 · 不計入總計' : row.pending === 0 ? '已收齊' : row.received > 0 ? '部分收款' : '待付款';
-        return '<article class="member-order member-receipt-stack '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+(order.department?'<small class="order-department">'+esc(order.name)+' · '+esc(order.department)+'</small>':'')+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">餐點原價 '+money(bill.base)+' · 運費 '+money(bill.shipping)+' · 折扣 '+money(bill.discount)+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+(canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '')+'<a class="member-link" href="#/g/'+esc(row.gid)+'">查看團購 ↗</a></article>';
+        var payButton = canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
+        var groupLink = '<a class="member-group-link" href="#/g/'+esc(row.gid)+'" aria-label="查看團購" title="查看團購">'+
+          '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l8-8M4 4h8v8"/></svg></a>';
+        return '<article class="member-order '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">餐點原價 '+money(bill.base)+' · 運費 '+money(bill.shipping)+' · 折扣 '+money(bill.discount)+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
+          '<div class="member-order-actions">'+payButton+groupLink+'</div></article>';
       }).join('')+'</div>' : '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
       content.onclick = function(event) {
         var cancel = event.target.closest('[data-cancel-row]');

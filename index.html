@@ -489,8 +489,8 @@ a{color:#394150}
 <link rel="stylesheet" href="glass.css?v=20261119refined3">
 <link rel="stylesheet" href="hours-editor.css?v=20261119refined3">
 <link rel="stylesheet" href="account-tabs.css?v=20261119refined3">
-<link rel="stylesheet" href="happy-rain.css?v=20261119refined3">
-<link rel="stylesheet" href="refined.css?v=20261119owner1">
+<link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
+<link rel="stylesheet" href="refined.css?v=20261119faces1">
 <link rel="stylesheet" href="mascot.css?v=20261119refined3">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
@@ -942,7 +942,7 @@ function pageHome(root,history){
     var shown=history?end:act;
     root.querySelector('#homeGroups').innerHTML=shown.length
       ?shown.map(function(k){return card(k,groups[k],history);}).join('')
-      :'<div class="home-empty"><div class="home-empty-face" aria-hidden="true">&#92;(^Д^)/</div><p>'+'目前沒有團'+'</p></div>';
+      :'<p class="home-group-empty"><span aria-hidden="true">(´;ω;&#96;)</span>沒有團</p>';
   }
   var deleting={};
   root.querySelector('#homeGroups').addEventListener('click',function(e){
@@ -1588,6 +1588,7 @@ function pageGroup(root,gid){
     $('#submit').textContent=o?'更新訂單':'送出訂單';
   }
   function findIk(cat,name){for(var k in itemIdx){if(itemIdx[k].cat===cat&&itemIdx[k].it.n===name)return k;}return null;}
+  var loadedOrderHint='已載入訂單，改好後按「更新訂單」';
   function loadOrder(o){
     setEditing(o);$('#uname').value=currentUser?(currentUser.name||currentUser.displayName||o.name):o.name;if(window.LunchTraditional)$('#uname').value=window.LunchTraditional($('#uname').value);
     cart=arr(o.items).map(function(it,i){
@@ -1596,12 +1597,16 @@ function pageGroup(root,gid){
       return {ik:findIk(it.cat,it.item)||('x'+i),cat:it.cat,item:it.item,base:it.base!=null?Number(it.base):unit-adds,options:opts,note:it.note||'',qty:Number(it.qty)||1};
     });
     update();$('#cart').classList.toggle('open',true);$('#bar').setAttribute('aria-expanded','true');
-    toast('已載入訂單，改好後按「更新訂單」');
+    toast(loadedOrderHint);
   }
   function itemsHtml(o){return '<ul>'+arr(o.items).map(function(it){return '<li><span>'+esc(lineLabel(it))+' ×'+it.qty+(it.note?'<span class="lnote">備註：'+esc(it.note)+'</span>':'')+'</span><span>'+money(lineTotal(it))+'</span></li>';}).join('')+'</ul>';}
 
   function showOrderSuccessDialog(wasEdit, orderName, quantity, total, department){
     if(closeSuccessDialog)closeSuccessDialog();
+    if(!toastEl.hidden&&!toastEl.classList.contains('bad')&&toastEl.textContent===loadedOrderHint){
+      clearTimeout(toastT);
+      toastEl.hidden=true;
+    }
     var previousFocus=document.activeElement, previousOverflow=document.body.style.overflow;
     var overlay=document.createElement('div');
     overlay.className='order-success-overlay';
@@ -2124,13 +2129,13 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="menu-vision.js?v=20261119gemini"></script>
 <script src="datetime-picker.js?v=20261119click1"></script>
 <script src="hours-editor.js?v=20261119refined3"></script>
-<script src="happy-rain.js?v=20261119refined3"></script>
+<script src="happy-rain.js?v=20261119faces1"></script>
 <script src="interface.js?v=20261119click1"></script>
 <script src="participants.js?v=20261119refined3"></script>
 <script src="pay.js?v=20261119a"></script>
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>
 <script src="identity.js?v=20261119refined3"></script>
-<script src="members.js?v=20261119owner1"></script>
+<script src="members.js?v=20261119followup1"></script>
 </body>
 </html>
