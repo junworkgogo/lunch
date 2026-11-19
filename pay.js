@@ -61,10 +61,28 @@
     });
   }
 
-  var closeOpen=null;
-  // o：{ownerUid, ownerName, title, due, closed, avatarHtml, paidState('ok'|'part'|'none') 或 paidPath＋lineCount}
+  var closeOpen=null,openSequence=0;
   function open(o){
-    if(o.receiverPath&&!o.receiverResolved){return A.DB.get(o.receiverPath).then(function(id){if(!id)return open(Object.assign({},o,{receiverResolved:true}));return A.DB.get('memberDirectory/'+id).then(function(p){return open(Object.assign({},o,{receiverResolved:true,ownerUid:id,ownerName:p&&p.name||'收款人',avatarHtml:A.memberAvSlot(id,p&&p.name||'收款人','pay-dlg-av')}));});}).catch(function(){A.toast('讀不到實際收款人，請稍後重試',true);});}
+    var sequence=++openSequence,route=location.hash,groupPath='groups/'+o.groupId;
+    function current(){return sequence===openSequence&&location.hash===route&&A.getUser()?.uid===o.payerUid;}
+    return A.DB.get(groupPath).then(function(group){
+      if(!current())return;
+      if(!group||group.deleted)throw new Error('團購已無法查看');
+      var uid=A.collectionReceiver(group,o.orderId);
+      if(!uid||uid===o.payerUid){
+        A.toast(uid?'你是這團的收款人':'這團尚未設定收款人');
+        return;
+      }
+      return A.DB.get('memberDirectory/'+uid).then(function(profile){
+        if(!current())return;
+        var name=profile&&profile.name||(uid===group.ownerUserId?group.owner:'收款人');
+        showPayment(Object.assign({},o,{
+          groupPath:groupPath,ownerUid:uid,ownerName:name,avatarHtml:A.memberAvSlot(uid,name,'pay-dlg-av')
+        }));
+      });
+    }).catch(function(){if(current())A.toast('讀不到實際收款人，請稍後重試',true);});
+  }
+  function showPayment(o){
     if(closeOpen)closeOpen();
     var prevFocus=document.activeElement,prevOverflow=document.body.style.overflow;
     var ov=document.createElement('div');ov.className='pay-ov';
@@ -79,9 +97,10 @@
       '<div class="pay-actions"><button type="button" class="btn primary" data-pay-close>完成</button></div>'+
       '</section>';
     document.body.appendChild(ov);document.body.style.overflow='hidden';
-    var dlg=ov.querySelector('.pay-dlg'),body=ov.querySelector('[data-pay-body]'),alive=true;
+    var dlg=ov.querySelector('.pay-dlg'),body=ov.querySelector('[data-pay-body]'),alive=true,offGroup=null;
     function close(){
-      if(!alive)return;alive=false;closeOpen=null;
+      if(!alive)return;alive=false;closeOpen=null;openSequence++;
+      if(offGroup)offGroup();
       document.removeEventListener('keydown',key,true);
       if(ov.parentNode)ov.parentNode.removeChild(ov);
       document.body.style.overflow=prevOverflow;
@@ -112,6 +131,16 @@
       if(e.target.closest('[data-qr-zoom]')){dlg.classList.toggle('is-big');return;}
     });
     (ov.querySelector('[data-pay-close]:not(.pay-x)')||dlg).focus();
+
+    function clearRecipient(){
+      if(!alive)return;
+      close();
+      A.toast('收款設定已變更，請重新開啟付款');
+    }
+    offGroup=A.DB.on(o.groupPath,function(group){
+      if(!group||group.deleted||A.collectionReceiver(group,o.orderId)!==o.ownerUid)clearRecipient();
+    },{onError:clearRecipient});
+    if(!alive){offGroup();return;}
 
     function setState(st){
       var el=ov.querySelector('[data-pay-state]');if(!el)return;

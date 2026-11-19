@@ -320,7 +320,7 @@
     var access = window.LunchGroupAccess;
     function canPayRow(row) {
       if (!row || !row.group || row.order.cancelled || !window.LunchPay) return false;
-      var receiver = row.group.collectors && row.group.collectors[row.oid] || row.group.ownerUserId;
+      var receiver = A.collectionReceiver(row.group,row.oid);
       return Boolean(receiver && receiver !== uid && row.bill.due > 0);
     }
     root.innerHTML = shell('我的訂單', '<div data-order-content class="member-loading" role="status">正在讀取你的訂單…</div>'+messageBox(), null, ['#/members', '回個人資料']);
@@ -353,7 +353,10 @@
         var payButton = canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
         var groupLink = '<a class="member-group-link" href="#/g/'+esc(row.gid)+'" aria-label="查看團購" title="查看團購">'+
           '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l8-8M4 4h8v8"/></svg></a>';
-        return '<article class="member-order '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">餐點原價 '+money(bill.base)+' · 運費 '+money(bill.shipping)+' · 折扣 '+money(bill.discount)+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
+        var charges = '餐點原價 '+money(bill.base);
+        if (bill.shipping) charges+=' · 運費 '+money(bill.shipping);
+        if (bill.discount) charges+=' · 折扣 '+money(bill.discount);
+        return '<article class="member-order '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">'+charges+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
           '<div class="member-order-actions">'+payButton+groupLink+'</div></article>';
       }).join('')+'</div>' : '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
       content.onclick = function(event) {
@@ -380,7 +383,11 @@
         }
         if (!canPayRow(row)) return;
         paymentGroup = row.gid;
-        window.LunchPay.open({receiverPath:'groups/'+row.gid+'/collectors/'+row.oid,paidPath:'paid/'+row.gid+'/'+row.oid,ownerUid:row.group.ownerUserId,ownerName:row.group.owner,title:row.group.title,due:row.bill.due,closed:A.groupClosed(row.group),paidState:row.pending <= 0 ? 'ok' : (row.received > 0 ? 'part' : 'none'),avatarHtml:typeof A.memberAvSlot === 'function' ? A.memberAvSlot(row.group.ownerUserId,row.group.owner,'pay-dlg-av') : ''});
+        window.LunchPay.open({
+          groupId:row.gid,orderId:row.oid,payerUid:uid,paidPath:'paid/'+row.gid+'/'+row.oid,
+          title:row.group.title,due:row.bill.due,closed:A.groupClosed(row.group),
+          paidState:row.pending <= 0 ? 'ok' : (row.received > 0 ? 'part' : 'none')
+        });
       };
     }
     function ownRows(gid, ids) {

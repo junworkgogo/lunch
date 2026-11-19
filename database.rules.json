@@ -73,6 +73,9 @@
             }
           }
         },
+        "collectionReceiverUid": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{1,160}$/) && root.child('members').child(newData.val()).exists()"
+        },
         "collectors": {
           "$oid": {
             ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{1,160}$/) && root.child('members').child(newData.val()).exists() && root.child('orders').child($gid).child($oid).exists()"

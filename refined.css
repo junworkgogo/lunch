@@ -12,7 +12,7 @@ h1,h2,h3,.page h1.ph,.hero h1,.group h1,.member-heading h1{font-weight:600;lette
 .fld>label,.member-editor label,.field label,.editor-cat-head input,.lh-headings{font-weight:400}.fld input,.fld textarea,.fld select,.field input,.share-row input,.member-editor input:not([type=radio]),.member-editor select,.audience-filters input,.audience-filters select{background:#fafafa;border-color:#dedede;font-size:13px;color:var(--text);box-shadow:none}.fld input:focus,.fld textarea:focus,.fld select:focus,.member-editor input:focus{background:#fff}
 .menu-search input,.menu .menu-search input{background:#eaeaea;border-color:transparent;box-shadow:none;font-weight:400}.menu .item .iname{font-weight:400}.menu .item .price{font-weight:500}.item:hover:not(.off){background:#f8f8f8;border-color:#dedede}.item.picked{background:#fff5e8;border-color:#e7b27a;box-shadow:none}.item-count{font-weight:500}
 .member-profile,.member-editor,.member-payinfo{padding:22px}.member-profile>p,.member-muted,.member-fine,.member-profile .member-fine{color:var(--muted)}.member-verified{background:#f1f1f1;color:#555;font-weight:400}.member-metrics b{font-size:23px;font-weight:500}.member-order h2{font-size:15px;font-weight:600}.member-order>strong,.pc-due{font-size:18px;font-weight:500}.num b,.sum b{font-size:22px;font-weight:500}.num span,.member-kicker{font-weight:400}.role-row b{font-weight:500}.role-row small{font-size:11px}.role-segment[data-role="admin"]::before{background:var(--accent-bright)}
-.pay-card.is-none,.pay-card.is-part,.member-order.is-pending{background:linear-gradient(145deg,#fffaf5 10%,#ffebd8 65%,#ffcfa5);border-color:#f4dfca;box-shadow:0 3px 18px #89521b08}.pay-card.is-ok,.member-order.is-ok{background:#f1f1f1;border-color:#e5e5e5;box-shadow:none}.pay-pill.is-none{background:#343434;color:#fff}.pay-pill{font-weight:400}
+.pay-card.is-none,.pay-card.is-part,.member-order.is-pending{background:linear-gradient(145deg,#fffaf5 10%,#ffebd8 65%,#ffcfa5);border-color:#f4dfca;box-shadow:0 3px 18px #89521b08}.pay-card.is-none,.pay-card.is-part{background:#fff;border-color:var(--line);box-shadow:0 3px 18px #00000003}.pay-card.is-ok,.member-order.is-ok{background:#f1f1f1;border-color:#e5e5e5;box-shadow:none}.pay-pill.is-none{background:#343434;color:#fff}.pay-pill{font-weight:400}
 .free-shipping,.free-shipping.reached,.participation-summary{background:#fff;border-color:var(--line)}.free-shipping progress{accent-color:var(--accent-bright)}.participation-numbers b{font-size:23px;font-weight:500}.audience-modes>label,.audience-person{background:#fff;border-color:var(--line)}.audience-modes>label:has(:checked),.audience-person:has(input:checked){background:#fff7ed;border-color:#edc495}
 .modal,.pk,.pay-dlg,.profile-dialog{background:#fff;border-color:#e9e9e9;box-shadow:0 20px 70px #00000014}.modal h2,.pay-dlg h2{font-size:19px;font-weight:600}.modal p,.pay-dlg p{font-weight:400}.pk-ov,.modal-ov,.pay-ov{background:#27272740;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}.chip{background:#fff;border-color:#dedede;font-weight:400}.chip[aria-pressed=true]{background:#fff0df;color:var(--soft-ink);border-color:#e6b27d}
 .menu-editor,.menu-editor-details{background:#fafafa;border-color:var(--line)}.editor-cat-head input,.editor-item input{font-weight:400}.editor-item label,.editor-status{font-weight:400}.pv h3{font-size:14px;font-weight:600}.pv li{font-weight:400}.pv li b{font-weight:500}
@@ -26,7 +26,8 @@ h1,h2,h3,.page h1.ph,.hero h1,.group h1,.member-heading h1{font-weight:600;lette
 .member-avatar-edit-caption{font-weight:400}.order-success-overlay{background:#27272740}
 @media(max-width:480px){.member-page:has(.account-tabs) .member-heading{margin-bottom:16px}.account-tab-panels .member-profile>p{margin-block:6px!important}.account-tab-panels .member-profile>.member-sep{margin-block:8px}.account-tab-panels .member-profile .actions{margin-top:10px}.account-tab-panels .member-profile>.member-fine{margin-top:10px}.account-tab-panels .member-profile>.member-verified{margin-top:6px}}
 .home-empty{min-height:38vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:52px 12px;text-align:center;color:#8a8a8a}
-.home-group-empty{grid-column:1/-1;margin:0;padding:24px 12px;text-align:center;color:var(--muted);font-size:13px;font-weight:400;line-height:1.5}
+.home-empty-face{font-family:system-ui,-apple-system,sans-serif;font-size:clamp(64px,14vw,176px);font-weight:300;line-height:1.25;letter-spacing:0;white-space:nowrap}
+.home-empty>p{margin:0;font-size:13px;font-weight:400;letter-spacing:.055em;color:var(--muted)}
 .member-orders .member-order{min-width:0;grid-template-columns:minmax(0,1fr) auto;overflow-wrap:anywhere}
 .member-order .member-order-items{grid-column:1/-1;min-width:0;margin:0;padding:8px 0 0;border-top:1px solid #00000012;color:var(--text);font-size:13px;line-height:1.55}
 .member-order-items>ul{border:0;padding:0}
@@ -51,3 +52,110 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto
 @media(prefers-reduced-motion:reduce){.shop-category-choice::before{transition:none}}
 
 .role-three{grid-template-columns:repeat(3,minmax(0,1fr))}.role-three::before{width:calc((100% - 12px)/3)}.role-three[data-role=owner]::before{transform:translateX(calc(200% + 6px));background:var(--accent-bright)}.role-owner-badge{font-size:12px;padding:10px 16px;border-radius:999px;background:#fff0de;color:#8c4a13;white-space:nowrap}.role-three button{padding:7px 10px;white-space:nowrap}.role-segment button:disabled{cursor:default}.role-row[aria-busy=true] .role-segment button:disabled{cursor:wait}@media(max-width:600px){.role-row:has(.role-three){flex-wrap:wrap}.role-row .role-three{width:100%;margin-left:0}.role-row .role-three button{min-height:44px}}
+
+/* 收錢頁：免運、運費與折扣、訂餐進度。 */
+.finance-trio{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:12px;margin:0 0 12px;
+}
+.finance-trio>.card{
+  display:flex;flex-direction:column;min-width:0;min-height:150px;margin:0;padding:12px 15px;
+  border:1px solid var(--line);background:#fff;
+}
+.finance-trio h2{margin:0 0 8px;font-size:15px;font-weight:600;line-height:1.35}
+.finance-trio p{font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.finance-trio .collection-shipping-state{
+  display:block;margin:0 0 4px;font-size:clamp(15px,2.1vw,25px);font-weight:650;line-height:1.2;color:var(--text);
+}
+.finance-trio .collection-shipping-caption,.finance-adjust-status{color:var(--muted)}
+.finance-trio .collection-shipping>progress{height:7px;margin:auto 0 1px}
+.finance-trio .collection-shipping:has(progress) .collection-shipping-caption{margin-bottom:8px}
+.finance-adjust-status{display:flex;flex-wrap:wrap;gap:4px 14px}
+.finance-adjust-status b,.finance-adjust-status strong{font-size:clamp(14px,1.65vw,20px);font-weight:650;color:var(--text)}
+.finance-adjust-details{margin-top:auto}
+.finance-adjust-details summary{
+  display:flex;align-items:center;justify-content:center;gap:5px;width:fit-content;min-height:44px;margin:9px 0 0 auto;
+  padding:4px 12px;border:1px solid #edbe9c;border-radius:9px;color:var(--accent);font-size:13px;line-height:1.3;list-style:none;cursor:pointer;
+}
+.finance-adjust-details summary::-webkit-details-marker{display:none}
+.finance-adjust-details summary::after{
+  content:"";flex:none;width:5px;height:5px;border:solid currentColor;border-width:0 1px 1px 0;transform:rotate(45deg);
+}
+.finance-adjust-details[open] summary::after{transform:rotate(225deg)}
+.finance-adjust-details summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.finance-trio .finance-adjust .form{margin-top:10px;gap:8px}
+.finance-trio .finance-adjust .fld{min-width:0;gap:4px}
+.finance-trio .finance-adjust :is(input,select){min-width:0;min-height:44px;padding:6px 8px}
+.finance-trio .finance-adjust .btn{min-height:44px}
+.collection-progress .participation-summary{
+  display:block;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;
+}
+.collection-progress .participation-summary h2{margin-bottom:6px}
+.collection-progress .participation-summary progress{display:block;width:100%;height:7px;margin:6px 0;accent-color:#ff9b4d}
+.collection-progress .participation-numbers{gap:10px;margin-top:5px}
+.collection-progress .participation-numbers>span{min-width:0}
+.collection-progress .participation-numbers>span>b,.collection-progress .wp-btn>b{font-size:18px;line-height:1.15}
+.collection-progress .wp-btn{min-height:44px}
+.collection-progress [data-go-people]{min-height:44px;margin-top:auto;font-size:12px;line-height:1.3;text-align:start}
+.collection-progress .waiting-pop{right:0;width:min(280px,calc(100vw - 52px))}
+
+/* 四項款項摘要共用同一白底橫條。 */
+.nums.collection-totals{
+  grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.25fr);gap:0;margin-bottom:12px;padding:9px 0;
+  border:1px solid var(--line);border-radius:var(--radius);background:#fff;
+}
+.collection-totals>.num{
+  display:flex;min-width:0;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;
+  padding:2px 16px;border:0;border-radius:0;background:none;box-shadow:none;text-align:left;
+}
+.collection-totals>.num+.num{border-inline-start:1px solid var(--line)}
+.collection-totals>.num>b{font-size:clamp(14px,2.6vw,22px);line-height:1.35;overflow-wrap:anywhere}
+.collection-totals .collection-receiver>label{font-size:12px;color:var(--muted)}
+.collection-receiver-field{
+  position:relative;display:flex;align-items:center;gap:7px;width:100%;min-width:0;min-height:44px;padding:0 3px;
+  border-radius:7px;color:var(--text);
+}
+.collection-receiver-field::after{content:"";flex:none;width:6px;height:6px;margin-left:auto;border:solid currentColor;border-width:0 1px 1px 0;transform:rotate(45deg)}
+.collection-receiver-field:has(select:enabled):hover{background:#fafafa}
+.collection-receiver-field:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.collection-receiver-field .receiver-av{display:inline-flex;flex:none}
+.collection-receiver-field .receiver-av .member-avatar,.collection-receiver-field .receiver-av .av{width:24px;height:24px;font-size:13px}
+.collection-receiver-field .collection-receiver-name{min-width:0;color:var(--text);font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.collection-receiver-field select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.collection-receiver-field select:disabled{cursor:default}
+.collection-receiver-field:has(select:disabled){opacity:.65}
+
+@media(max-width:600px){
+  .finance-trio{gap:5px;margin-bottom:8px}
+  .finance-trio>.card{min-height:122px;padding:8px 7px;border-radius:10px}
+  .finance-trio h2{font-size:13px;margin-bottom:5px}
+  .finance-trio p{font-size:11px}
+  .finance-adjust-status{gap:1px 5px}
+  .finance-adjust-details summary{font-size:12px;margin-top:5px;padding:3px 7px}
+  .finance-trio .finance-adjust .row2{grid-template-columns:minmax(0,1fr);gap:5px}
+  .finance-trio .finance-adjust .btn{width:100%;padding:5px 3px;font-size:12px}
+  .finance-trio .finance-adjust label{font-size:11px}
+  .collection-progress .participation-numbers{justify-content:space-between;gap:2px}
+  .collection-progress .participation-numbers>span,.collection-progress .wp-btn{font-size:9px;line-height:1.2}
+  .collection-progress .participation-numbers>span>b,.collection-progress .wp-btn>b{font-size:15px}
+  .collection-progress .wp-btn{justify-content:center;gap:2px;margin:0;padding:0 1px}
+  .collection-progress .wp-label{gap:0;white-space:normal}
+  .collection-progress .wp-label svg{flex:none;width:8px;height:8px}
+  .collection-progress [data-go-people]{font-size:11px;overflow-wrap:anywhere}
+  .nums.collection-totals{padding:6px 0;border-radius:10px}
+  .collection-totals>.num{padding:2px 5px}
+  .collection-receiver-field{gap:2px;padding:3px 2px}
+  .collection-receiver-field .receiver-av .member-avatar,.collection-receiver-field .receiver-av .av{width:18px;height:18px;font-size:10px}
+  .collection-receiver-field .collection-receiver-name{font-size:12px}
+  .collection-receiver-field::after{width:4px;height:4px}
+}
+
+.home-switch.home-switch-liquid::before{display:none}
+.home-switch-drop{
+  position:absolute;top:0;left:0;z-index:0;border-radius:999px;background:#fff;
+  box-shadow:0 2px 7px #0000000a;pointer-events:none;transform-origin:0 0;
+}
+
+/* Keep the B summaries aligned until the adjustment editor opens. */
+.finance-trio{align-items:stretch}.finance-trio:has(.finance-adjust-details[open]){align-items:start}
+.collection-progress .collection-progress-count{display:block;font-size:26px;font-weight:500;line-height:1.3}
+@media(max-width:600px){.collection-progress .collection-progress-count{font-size:18px}}

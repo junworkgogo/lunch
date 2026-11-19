@@ -37,17 +37,48 @@
     draw();
     return {value:function(){keepOwner();if(mode==='selected'&&!loaded)throw new Error('會員名單載入中，請稍後再試。');if(mode==='selected'&&error)throw new Error(error);if(mode==='selected'&&Object.keys(chosen).length>500)throw new Error('單一團購最多選擇 500 位會員。');if(mode==='selected'&&!Object.keys(chosen).length)throw new Error('請至少選擇一位可參加的會員。');return {audience:mode,participants:mode==='selected'?Object.assign({},chosen):false};},dirty:function(){return dirty;},destroy:function(){alive=false;mount.removeEventListener('change',changeHandler);if(off)off();}};
   }
-  function summaryHtml(g,orders){if(g.audience!=='selected')return '<section class="card participation-summary"><div><h2>訂餐進度</h2><p>本團開放所有會員；指定參加名單後，就能追蹤誰還沒訂餐。</p></div></section>';var s=progress(g,orders);lastWaiting=s.waiting;
-    // 點「未訂餐」開小視窗列出誰還沒點（使用者 2026-11-18 指定）；開關狀態記在 waitPopOpen，資料更新重畫時不會自己關掉。
-    var n=s.waiting.length,list=n?'<ul>'+s.waiting.map(function(p){return '<li><b>'+esc(p.name)+'</b>'+(p.department?'<small>'+esc(p.department)+'</small>':'')+'</li>';}).join('')+'</ul>':'<p class="wp-empty">所有參加會員都已訂餐。</p>';
-    return '<section class="card participation-summary"><div><h2>訂餐進度</h2><p>依有效訂單即時更新，取消後會回到未訂餐。</p></div><div class="participation-numbers"><span><b>'+s.done.length+'</b>已訂餐</span><span class="wp-wrap"><button type="button" class="wp-btn" data-waiting-pop aria-haspopup="dialog" aria-controls="waitingPop" aria-expanded="'+waitPopOpen+'"><b>'+n+'</b><span class="wp-label">未訂餐<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="waiting-pop" id="waitingPop" role="dialog" aria-label="誰還沒點"'+(waitPopOpen?'':' hidden')+'><div class="wp-head"><strong>誰還沒點</strong><span>'+n+' 人</span><button type="button" class="wp-close" data-waiting-close aria-label="關閉">×</button></div>'+list+(n?'<button type="button" class="text-button wp-copy" data-waiting-copy>複製名單</button>':'')+'</div></span><span><b>'+s.total+'</b>參加人數</span></div></section>';}
+  function summaryHtml(g,orders,compact){
+    var title='<section class="card participation-summary'+(compact?' collection-compact-progress':'')+'"><div><h2>訂餐進度</h2>';
+    if(g.audience!=='selected'){
+      return title+(compact?'<p class="collection-progress-public">開放所有會員</p>':'<p>本團開放所有會員；指定參加名單後，就能追蹤誰還沒訂餐。</p>')+'</div></section>';
+    }
+    var s=progress(g,orders);lastWaiting=s.waiting;
+    // 資料重畫時維持「未訂餐」名單的開關狀態。
+    var n=s.waiting.length,list=n?'<ul>'+s.waiting.map(function(p){
+      return '<li><b>'+esc(p.name)+'</b>'+(p.department?'<small>'+esc(p.department)+'</small>':'')+'</li>';
+    }).join('')+'</ul>':'<p class="wp-empty">所有參加會員都已訂餐。</p>';
+    var waiting='<span class="wp-wrap"><button type="button" class="wp-btn" data-waiting-pop aria-haspopup="dialog" aria-controls="waitingPop" aria-expanded="'+waitPopOpen+'"><b>'+n+'</b><span class="wp-label">未訂餐<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="waiting-pop" id="waitingPop" role="dialog" aria-label="誰還沒點"'+(waitPopOpen?'':' hidden')+'><div class="wp-head"><strong>誰還沒點</strong><span>'+n+' 人</span><button type="button" class="wp-close" data-waiting-close aria-label="關閉">×</button></div>'+list+(n?'<button type="button" class="text-button wp-copy" data-waiting-copy>複製名單</button>':'')+'</div></span>';
+    if(compact){
+      return title+'</div><strong class="collection-progress-count" aria-label="已訂餐 '+s.done.length+' 人，共 '+s.total+' 人">'+
+        s.done.length+' / '+s.total+' 人</strong><div class="collection-progress-meta">'+waiting+'</div>'+
+        '<progress max="'+Math.max(1,s.total)+'" value="'+s.done.length+'" aria-label="訂餐進度"></progress></section>';
+    }
+    return title+'<p>依有效訂單即時更新，取消後會回到未訂餐。</p></div><div class="participation-numbers">'+
+      '<span><b>'+s.done.length+'</b>已訂餐</span>'+waiting+'<span><b>'+s.total+'</b>參加人數</span></div></section>';
+  }
   var waitPopOpen=false,lastWaiting=[];
   function syncWaitPop(focusButton){var b=document.querySelector('[data-waiting-pop]'),p=document.getElementById('waitingPop');if(b)b.setAttribute('aria-expanded',String(waitPopOpen));if(p)p.hidden=!waitPopOpen;if(focusButton&&b)b.focus();}
   document.addEventListener('click',function(e){
     var t=e.target;if(!t||!t.closest)return;
     if(t.closest('[data-waiting-pop]')){waitPopOpen=!waitPopOpen;syncWaitPop();return;}
     if(t.closest('[data-waiting-close]')){waitPopOpen=false;syncWaitPop(true);return;}
-    if(t.closest('[data-waiting-copy]')){var text=lastWaiting.map(function(p){return p.name+(p.department?'（'+p.department+'）':'');}).join('\n');if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(function(){A.toast('已複製未訂餐名單');}).catch(function(){A.toast('無法自動複製，請改用參加名單頁的「複製名單」',true);});else A.toast('無法自動複製，請改用參加名單頁的「複製名單」',true);return;}
+    if(t.closest('[data-waiting-copy]')){
+      var text=lastWaiting.map(function(p){return p.name+(p.department?'（'+p.department+'）':'');}).join('\n');
+      function selectForCopy(){
+        var pop=document.getElementById('waitingPop');
+        if(!pop||pop.hidden)return;
+        var field=pop.querySelector('.copyfallback');
+        if(!field){
+          field=el('textarea','copyfallback');field.readOnly=true;
+          field.setAttribute('aria-label','未訂餐名單');pop.appendChild(field);
+        }
+        field.value=text;field.focus();field.select();
+        A.toast('已選取名單，請直接複製');
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(function(){A.toast('已複製未訂餐名單');}).catch(selectForCopy);
+      else selectForCopy();
+      return;
+    }
     if(waitPopOpen&&!t.closest('.waiting-pop')){waitPopOpen=false;syncWaitPop();}
   });
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&waitPopOpen){waitPopOpen=false;syncWaitPop(true);}});
@@ -57,10 +88,13 @@
     var alive=true,current=g,currentOrders=orders,baseline=rosterSignature(g),saving=false,conflict=false;
     mount.innerHTML='<div data-roster-status></div><section class="card roster-edit"><h2>設定參加名單</h2><p class="muted">更改名單不會刪除任何既有訂單。移出名單的會員無法再新增或修改餐點，仍可在「我的訂單」於截止前取消自己的訂單。</p><div id="adminAudience"></div><div class="actions"><button type="button" class="btn primary" data-save-audience>儲存參加名單</button><button type="button" class="btn" data-reload-audience>重新載入名單</button></div><p data-audience-status role="status" hidden></p></section>';
     var choose=picker(mount.querySelector('#adminAudience'),g),message=mount.querySelector('[data-audience-status]');
-    function draw(){if(!alive)return;var target=mount.querySelector('[data-roster-status]');if(current.audience!=='selected'){target.innerHTML=summaryHtml(current,currentOrders);return;}var s=progress(current,currentOrders);
-      function people(items,done){return items.length?items.map(function(p){return '<li><span class="roster-check '+(done?'done':'')+'" aria-hidden="true">'+(done?'✓':'—')+'</span><span><b>'+esc(p.name)+'</b><small>'+esc(p.department)+'</small></span><span class="roster-state">'+(done?'已訂餐':'尚未訂餐')+'</span></li>';}).join(''):'<li class="muted">'+(done?'還沒有人送出訂單。':'所有參加會員都已訂餐。')+'</li>';}
-      target.innerHTML=summaryHtml(current,currentOrders)+'<div class="roster-columns"><section class="card"><div class="roster-title"><h2>尚未訂餐 <span>'+s.waiting.length+'</span></h2><button type="button" class="text-button" data-copy-waiting>複製名單</button></div><ul class="roster-list">'+people(s.waiting,false)+'</ul></section><section class="card"><h2>已訂餐 <span>'+s.done.length+'</span></h2><ul class="roster-list">'+people(s.done,true)+'</ul></section></div>'+(s.outside.length?'<p class="roster-outside">另有 '+s.outside.length+' 筆名單外既有訂單，仍保留在收錢與叫餐彙整，不計入名單完成數。</p>':'');
-      target.querySelector('[data-copy-waiting]').onclick=function(){var text=s.waiting.map(function(p){return p.name+(p.department?'（'+p.department+'）':'');}).join('\n');if(!text){A.toast('目前沒有未訂餐會員');return;}if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(function(){A.toast('已複製未訂餐名單');}).catch(function(){message.hidden=false;message.textContent=text;});else{message.hidden=false;message.textContent=text;}};
+    function draw(){
+      if(!alive)return;
+      var target=mount.querySelector('[data-roster-status]');
+      target.innerHTML=summaryHtml(current,currentOrders);
+      if(current.audience!=='selected')return;
+      var s=progress(current,currentOrders);
+      if(s.outside.length)target.insertAdjacentHTML('beforeend','<p class="roster-outside">另有 '+s.outside.length+' 筆名單外既有訂單，仍保留在收錢與叫餐彙整，不計入名單完成數。</p>');
     }
     var saveButton=mount.querySelector('[data-save-audience]');
     function resetPicker(group){choose.destroy();choose=picker(mount.querySelector('#adminAudience'),group);baseline=rosterSignature(group);conflict=false;saveButton.disabled=saving;}

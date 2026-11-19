@@ -41,6 +41,78 @@
     // 拿掉「查看今日團購」（就在本頁，使用者 2026-11-18 指定），只留「開新團」並改成主按鈕。
     if(actions){var create=el('a','btn primary','＋開新團');create.href='#/new';actions.replaceChildren(create);}
   }
+  var homeSwitchController=null;
+  function homeSwitch(){
+    var nav=app.querySelector('.home-switch');
+    if(homeSwitchController&&homeSwitchController.nav===nav)return;
+    if(homeSwitchController)homeSwitchController.destroy();
+    homeSwitchController=null;
+    if(!nav)return;
+
+    var drop=el('span','home-switch-drop');
+    if(typeof drop.animate!=='function')return;
+    drop.setAttribute('aria-hidden','true');
+    var selected=nav.querySelector('a[aria-current="page"]');
+    if(!selected)return;
+    var animation=null,targetBox=null;
+    var reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function box(element){
+      var frame=nav.getBoundingClientRect(),rect=element.getBoundingClientRect();
+      return {x:rect.left-frame.left-nav.clientLeft,y:rect.top-frame.top-nav.clientTop,w:rect.width,h:rect.height};
+    }
+    function move(animate){
+      var next=nav.querySelector('a[aria-current="page"]');
+      if(!next)return;
+      var to=box(next),from=animate?box(drop):null;
+      selected=next;
+      targetBox=to;
+      if(animation){animation.cancel();animation=null;}
+      drop.style.width=to.w+'px';
+      drop.style.height=to.h+'px';
+      function transform(x,y,sx,sy){return 'translate('+x+'px,'+y+'px) scale('+sx+','+sy+')';}
+      drop.style.transform=transform(to.x,to.y,1,1);
+      if(!from||reducedMotion.matches||!from.w||!from.h||!to.w||!to.h)return;
+
+      var fromCenter=from.x+from.w/2,toCenter=to.x+to.w/2;
+      var travel=toCenter-fromCenter,stretch=Math.min(1,Math.abs(travel)/to.w);
+      if(!stretch)return;
+      function shape(progress,width,height){
+        var w=to.w*width,h=to.h*height;
+        return transform(fromCenter+travel*progress-w/2,to.y+(to.h-h)/2,width,height);
+      }
+      // Starting at the current rendered shape lets a second tap turn the same drop around.
+      animation=drop.animate([
+        {transform:transform(from.x,from.y,from.w/to.w,from.h/to.h),offset:0,easing:'cubic-bezier(.32,0,.22,1)'},
+        {transform:shape(.38,1+.23*stretch,1-.07*stretch),offset:.34,easing:'cubic-bezier(.15,.76,.3,1)'},
+        {transform:shape(.96,1+.04*stretch,1-.015*stretch),offset:.73,easing:'ease-out'},
+        {transform:shape(1,1-.045*stretch,1+.025*stretch),offset:.87,easing:'ease-out'},
+        {transform:drop.style.transform,offset:1}
+      ],{duration:Math.round(290+190*stretch)});
+    }
+
+    nav.prepend(drop);
+    nav.classList.add('home-switch-liquid');
+    move(false);
+    var selectionObserver=new MutationObserver(function(){
+      if(nav.querySelector('a[aria-current="page"]')!==selected)move(true);
+    });
+    selectionObserver.observe(nav,{subtree:true,attributes:true,attributeFilter:['aria-current']});
+    var sizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(function(){
+      // The first size notification is only a baseline, so it must not interrupt a tap.
+      var current=box(selected);
+      if(current.x!==targetBox.x||current.y!==targetBox.y||current.w!==targetBox.w||current.h!==targetBox.h)move(false);
+    }):null;
+    if(sizeObserver)nav.querySelectorAll('a').forEach(function(link){sizeObserver.observe(link);});
+    function motionChanged(){if(reducedMotion.matches)move(false);}
+    if(reducedMotion.addEventListener)reducedMotion.addEventListener('change',motionChanged);
+    homeSwitchController={nav:nav,destroy:function(){
+      selectionObserver.disconnect();
+      if(sizeObserver)sizeObserver.disconnect();
+      if(animation)animation.cancel();
+      if(reducedMotion.removeEventListener)reducedMotion.removeEventListener('change',motionChanged);
+    }};
+  }
   function simplify(name,shop){if(!shop)return name;var escaped=shop.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return name.replace(new RegExp('^'+escaped+'\\s*[-－—–:：/／]\\s*'),'')||name;}
   function ordering(){
     var shop=app.querySelector('.shop');
@@ -194,7 +266,7 @@
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.querySelector('#all.is-open'))closeAll();});
   window.addEventListener('hashchange',function(){closeAll(true);});
   var queued=false,observer=new MutationObserver(function(){if(queued)return;queued=true;setTimeout(function(){queued=false;enhance();},0);});
-  function enhance(){observer.disconnect();try{home();ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
+  function enhance(){observer.disconnect();try{home();homeSwitch();ordering();settings();editor();times();}finally{observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-checked']});}}
   window.LunchInterface={enhance:enhance,sourceModel:sourceModel,numericDisplay:numericDisplay,timeSelect:timeSelect};enhance();
 })();
 
