@@ -316,7 +316,7 @@
   }
   function orderView(root) {
     var alive = true, uid = verified.uid, entries = Object.create(null), listeners = [];
-    var pending = 0, started = false, paymentGroup = '';
+    var pending = 0, started = false, paymentGroup = '', paymentOrder = '';
     var access = window.LunchGroupAccess;
     function canPayRow(row) {
       if (!row || !row.group || row.order.cancelled || row.pending <= 0 || !window.LunchPay) return false;
@@ -327,7 +327,7 @@
     var content = root.querySelector('[data-order-content]');
     function closePayment(gid) {
       if (paymentGroup !== gid) return;
-      paymentGroup = '';
+      paymentGroup = '';paymentOrder = '';
       var close = document.querySelector('.pay-ov [data-pay-close]');
       if (close) close.click();
     }
@@ -351,7 +351,7 @@
         }
         var bill = row.bill;
         var state = order.cancelled ? '已取消 · 不計入總計' : row.pending === 0 ? '已收齊' : row.received > 0 ? '部分收款' : '待付款';
-        var payButton = !order.cancelled && bill.due > 0 && row.pending <= 0 ? '<button type="button" class="btn sm member-pay is-paid" disabled>已付款</button>' : canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
+        var payButton = !order.cancelled && bill.due > 0 && row.pending <= 0 ? '<button type="button" class="btn sm member-pay is-paid" disabled>已收款</button>' : canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
         var groupLink = '<a class="member-group-link" href="#/g/'+esc(row.gid)+'" aria-label="查看團購" title="查看團購">'+
           '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l8-8M4 4h8v8"/></svg></a>';
         var charges = '餐點原價 '+money(bill.base);
@@ -383,7 +383,7 @@
           return;
         }
         if (!canPayRow(row)) return;
-        paymentGroup = row.gid;
+        paymentGroup = row.gid;paymentOrder = row.oid;
         window.LunchPay.open({
           groupId:row.gid,orderId:row.oid,payerUid:uid,paidPath:'paid/'+row.gid+'/'+row.oid,
           title:row.group.title,due:row.bill.due,closed:A.groupClosed(row.group),
@@ -418,7 +418,19 @@
       });
     }
     function watch(gid, ids) {
-      var revision = 0, first = true;
+      var revision = 0, first = true, paidValues = Object.create(null);
+      function applyReceipt(row){
+        if(!row.group||!row.bill||!Object.prototype.hasOwnProperty.call(paidValues,row.oid))return;
+        var p=paidValues[row.oid];
+        row.received=row.bill.lineDues.reduce(function(sum,n,i){return sum+(p&&p[i]===true?Number(n):0);},0);
+        row.pending=row.bill.due-row.received;
+        if(paymentGroup===gid&&paymentOrder===row.oid&&row.pending<=0)closePayment(gid);
+      }
+      function receivePaid(oid,value){
+        paidValues[oid]=value||{};
+        (entries[gid]||[]).forEach(function(row){if(row.oid===oid)applyReceipt(row);});
+        draw();
+      }
       function refresh(group, error) {
         if (!alive) return;
         var job = ++revision;
@@ -436,7 +448,7 @@
           return ownRows(gid,ids);
         }) : ownRows(gid,ids);
         load.then(function(rows){
-          if (alive && revision===job) entries[gid]=rows;
+          if (alive && revision===job) {rows.forEach(applyReceipt);entries[gid]=rows;}
         }).catch(function(){
           if (alive && revision===job) {
             closePayment(gid);delete entries[gid];notify(root,'有一筆訂單暫時無法確認金額。');
@@ -448,6 +460,9 @@
         });
       }
       listeners.push(A.DB.on('groups/'+gid,refresh,{onError:function(error){refresh(null,error);}}));
+      ids.forEach(function(oid){
+        listeners.push(A.DB.on('paid/'+gid+'/'+oid,function(value){if(alive)receivePaid(oid,value);},{onError:function(){if(alive)receivePaid(oid,null);}}));
+      });
     }
     A.DB.get('userOrders/'+uid).then(function(index) {
       if (!alive) return;

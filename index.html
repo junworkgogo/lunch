@@ -490,7 +490,7 @@ a{color:#394150}
 <link rel="stylesheet" href="hours-editor.css?v=20261119refined3">
 <link rel="stylesheet" href="account-tabs.css?v=20261119refined3">
 <link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
-<link rel="stylesheet" href="refined.css?v=20261120card1">
+<link rel="stylesheet" href="refined.css?v=20261120received1">
 <link rel="stylesheet" href="mobile-nav.css?v=20261120mobile1">
 <link rel="stylesheet" href="mascot.css?v=20261119refined3">
 <script src="members-config.js?v=20261117c"></script>
@@ -1524,6 +1524,7 @@ function pageNew(root,q){
 /* ---------- 點餐頁 ---------- */
 function pageGroup(root,gid){
   var group=null,orders={},got=false,built=false,lastClosed=null,editingId=null,submitting=false,retryOrderId=null,pageAlive=true;
+  var minePaid={},minePaidOff={},paymentOrderId='';
   var menu=[],itemIdx={},cart=[],closePicker=null,closeSuccessDialog=null,menuEl,linesEl;
   root.innerHTML='<div class="page"><p class="muted">載入中…</p></div>';
   var $=function(s){return root.querySelector(s);};
@@ -1673,10 +1674,23 @@ function pageGroup(root,gid){
     return !!(group&&currentUser&&(currentUser.authenticated||(!FIREBASE_CONFIG&&currentUser.demo))&&(adminUser()||(group.ownerUserId&&userId()===group.ownerUserId)));
   }
   // 2026-11-18 付款按鈕：自己不是負責人、訂單沒取消、金額大於 0 才出現。
-  function canPay(o){var receiver=o&&collectionReceiver(group,o.id);return !!(o&&!o.cancelled&&receiver&&receiver!==userId()&&orderTotal(o)>0&&window.LunchPay);}
+  function canPay(o){var receiver=o&&collectionReceiver(group,o.id),bill=o&&settlement(orders,group).orders[o.id];return !!(o&&!o.cancelled&&receiver&&receiver!==userId()&&bill&&bill.due>0&&window.LunchPay);}
+  function minePaidStatus(o){
+    var bill=settlement(orders,group).orders[o.id],p=minePaid[o.id];
+    if(!bill||bill.due<=0)return 'none';
+    var received=bill.lineDues.reduce(function(sum,n,i){return sum+(p&&p[i]===true?Number(n):0);},0);
+    return received>=bill.due?'ok':received>0?'part':'none';
+  }
+  function syncMinePaid(mine){
+    var wanted={};mine.forEach(function(o){wanted[o.id]=true;});
+    Object.keys(minePaidOff).forEach(function(id){if(!wanted[id]){minePaidOff[id]();delete minePaidOff[id];delete minePaid[id];}});
+    mine.forEach(function(o){var id=o.id;if(minePaidOff[id])return;minePaidOff[id]=function(){};
+      minePaidOff[id]=DB.on('paid/'+gid+'/'+id,function(v){if(!pageAlive||!minePaidOff[id])return;minePaid[id]=v||{};if(paymentOrderId===id&&minePaidStatus(o)==='ok'){var close=document.querySelector('.pay-ov [data-pay-close]');if(close)close.click();paymentOrderId='';}if(mounted())refresh();},{onError:function(){if(!pageAlive||!minePaidOff[id])return;minePaid[id]={};if(mounted())refresh();}});
+    });
+  }
   function openPay(oid){
-    var o=orders[oid];if(!o||!canPay(Object.assign({id:oid},o)))return;
-    var bill=settlement(orders,group).orders[oid];
+    var o=orders[oid];if(!o||!canPay(Object.assign({id:oid},o))||minePaidStatus(Object.assign({id:oid},o))==='ok')return;
+    var bill=settlement(orders,group).orders[oid];paymentOrderId=oid;
     window.LunchPay.open({
       groupId:gid,orderId:oid,payerUid:userId(),title:group.title,
       due:bill?bill.due:orderTotal(o),closed:groupClosed(group),
@@ -1699,8 +1713,9 @@ function pageGroup(root,gid){
     if(editingId&&!mayEditOrder(gid,editingId,orders[editingId])){setEditing(null);resetCart();}
     var mineIds=myOrders(gid).slice();if(userId())Object.keys(orders).forEach(function(k){if(orders[k].userId===userId()&&mineIds.indexOf(k)<0)mineIds.push(k);});
     var mine=mineIds.map(function(k){var o=orders[k];if(o){o.id=k;}return o;}).filter(function(o){return o&&mayEditOrder(gid,o.id,o);});
+    syncMinePaid(mine);
     $('#mine').hidden=!mine.length;
-    $('#mineL').innerHTML=mine.map(function(o){return '<div class="ob"><div class="order-sent-badge"><span class="order-sent-check" aria-hidden="true">'+I('check',16)+'</span><span>已成功送出</span><small>尚不代表已付款</small></div><div class="oh"><span>'+esc(o.name)+orderDepartmentHtml(o.department)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'<div class="actions">'+(canPay(o)?'<button type="button" class="btn sm primary pay-open" data-pay="'+esc(o.id)+'">付款</button>':'')+'<button type="button" class="btn sm" data-edit="'+esc(o.id)+'"'+(dis?' disabled':'')+'>修改</button><button type="button" class="btn sm danger" data-cancel="'+esc(o.id)+'"'+(closed?' disabled':'')+'>取消</button></div></div>';}).join('');
+    $('#mineL').innerHTML=mine.map(function(o){var received=minePaidStatus(o)==='ok';return '<div class="ob"><div class="order-sent-badge"><span class="order-sent-check" aria-hidden="true">'+I('check',16)+'</span><span>已成功送出</span>'+(received?'':'<small>尚不代表已付款</small>')+'</div><div class="oh"><span>'+esc(o.name)+orderDepartmentHtml(o.department)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'<div class="actions">'+(canPay(o)?(received?'<button type="button" class="btn sm pay-open is-paid" disabled>已收款</button>':'<button type="button" class="btn sm primary pay-open" data-pay="'+esc(o.id)+'">付款</button>'):'')+'<button type="button" class="btn sm" data-edit="'+esc(o.id)+'"'+(dis?' disabled':'')+'>修改</button><button type="button" class="btn sm danger" data-cancel="'+esc(o.id)+'"'+(closed?' disabled':'')+'>取消</button></div></div>';}).join('');
     $('#allN').textContent=peopleCount(orders);
     $('#allL').innerHTML=live.length?live.map(function(o){return '<div class="ob"><div class="oh"><span>'+esc(o.name)+orderDepartmentHtml(o.department)+'</span><span>'+money(orderTotal(o))+'</span></div>'+itemsHtml(o)+'</div>';}).join(''):'<p class="muted">還沒有人點餐</p>';
   }
@@ -1861,6 +1876,7 @@ function pageGroup(root,gid){
   var scrollOff=null,orderOff=null;
   function revokeAccess(){
     group=null;orders={};cart=[];menu=[];itemIdx={};editingId=null;
+    Object.keys(minePaidOff).forEach(function(id){minePaidOff[id]();});minePaidOff={};minePaid={};
     if(orderOff){orderOff();orderOff=null;}
     if(scrollOff){scrollOff();scrollOff=null;}
     if(closePicker)closePicker();
@@ -2256,7 +2272,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>
 <script src="identity.js?v=20261119refined3"></script>
-<script src="members.js?v=20261120card1"></script>
+<script src="members.js?v=20261120received1"></script>
 <script src="mobile-nav.js?v=20261120mobile1"></script>
 </body>
 </html>
