@@ -490,7 +490,7 @@ a{color:#394150}
 <link rel="stylesheet" href="hours-editor.css?v=20261119refined3">
 <link rel="stylesheet" href="account-tabs.css?v=20261119refined3">
 <link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
-<link rel="stylesheet" href="refined.css?v=20261120mobile1">
+<link rel="stylesheet" href="refined.css?v=20261120paid1">
 <link rel="stylesheet" href="mobile-nav.css?v=20261120mobile1">
 <link rel="stylesheet" href="mascot.css?v=20261119refined3">
 <script src="members-config.js?v=20261117c"></script>
@@ -1908,7 +1908,7 @@ function pageAdmin(root,gid,q){
       '<div class="admin-title-row"><h1 class="ph" id="adminGroupTitle">'+esc(group.title)+'</h1><span class="admin-countdown" id="adminCountdown"></span></div>'+
       '<ul class="meta"><li>'+I('store')+esc(group.shop.name)+'</li><li>'+I('user')+'<span id="adminGroupOwner">負責人 '+esc(group.owner)+'</span></li></ul></section>'+
       (q.new?'<section id="newShare">'+shareBlock(gid)+'</section>':'')+
-      '<div class="tabsx admin-page-tabs" id="tx"><a class="btn sm primary" aria-label="看點餐頁" href="#/g/'+esc(gid)+'"><span class="admin-order-full">看點餐頁</span><span class="admin-order-short" aria-hidden="true">點餐頁</span></a>'+
+      '<div class="tabsx admin-page-tabs" id="tx"><a class="btn sm primary" aria-label="點餐" href="#/g/'+esc(gid)+'"><span class="admin-order-full">點餐</span><span class="admin-order-short" aria-hidden="true">點餐</span></a>'+
       '<div class="admin-tab-group" role="tablist" aria-label="團購管理"><button type="button" data-t="pay">收錢</button><button type="button" data-t="sum">叫餐彙整</button><button type="button" data-t="set">設定</button></div><button type="button" class="btn admin-close-button" id="toggleClose"></button></div><div id="body"></div></div>';
     if(q.new)wireShare($('#newShare'),gid,group.title);
     $('#tx').addEventListener('click',function(e){if(e.target.closest('#toggleClose')){bodyClick(e);return;}var b=e.target.closest('button[data-t]');if(!b)return;tab=b.getAttribute('data-t');if(peopleController){peopleController.destroy();peopleController=null;}setBuilt=false;draw();});
@@ -2102,8 +2102,7 @@ function pageAdmin(root,gid,q){
     var closed=groupClosed(group),label=closed?'重新開放':'提前截止';
     if(button.textContent!==label)button.textContent=label;
     button.disabled=closeBusy;
-    button.classList.toggle('primary',closed);
-    button.classList.toggle('danger',!closed);
+    button.classList.remove('primary','danger');
   }
   function bodyClick(e){
     if(e.target.closest('[data-go-people]')){
@@ -2252,7 +2251,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>
 <script src="identity.js?v=20261119refined3"></script>
-<script src="members.js?v=20261120mobile1"></script>
+<script src="members.js?v=20261120paid1"></script>
 <script src="mobile-nav.js?v=20261120mobile1"></script>
 </body>
 </html>

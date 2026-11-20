@@ -319,7 +319,7 @@
     var pending = 0, started = false, paymentGroup = '';
     var access = window.LunchGroupAccess;
     function canPayRow(row) {
-      if (!row || !row.group || row.order.cancelled || !window.LunchPay) return false;
+      if (!row || !row.group || row.order.cancelled || row.pending <= 0 || !window.LunchPay) return false;
       var receiver = A.collectionReceiver(row.group,row.oid);
       return Boolean(receiver && receiver !== uid && row.bill.due > 0);
     }
@@ -351,7 +351,7 @@
         }
         var bill = row.bill;
         var state = order.cancelled ? '已取消 · 不計入總計' : row.pending === 0 ? '已收齊' : row.received > 0 ? '部分收款' : '待付款';
-        var payButton = canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
+        var payButton = !order.cancelled && bill.due > 0 && row.pending <= 0 ? '<button type="button" class="btn sm member-pay is-paid" disabled>已付款</button>' : canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
         var groupLink = '<a class="member-group-link" href="#/g/'+esc(row.gid)+'" aria-label="查看團購" title="查看團購">'+
           '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l8-8M4 4h8v8"/></svg></a>';
         var charges = '餐點原價 '+money(bill.base);
