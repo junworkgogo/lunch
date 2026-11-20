@@ -191,3 +191,168 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto
     border:0;border-inline-start:1px solid var(--line);border-radius:0;font-size:12px;white-space:nowrap;
   }
 }
+
+.collection-toolbar{justify-content:flex-start}
+
+@media(max-width:768px){
+  .finance-trio:has(.finance-adjust-details[open]){grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .finance-trio:has(.finance-adjust-details[open])>.collection-shipping{order:1}
+  .finance-trio:has(.finance-adjust-details[open])>.collection-progress{order:2}
+  .finance-trio:has(.finance-adjust-details[open])>.finance-adjust{grid-column:1/-1;order:3;min-height:0}
+  .finance-trio .finance-adjust .finance-adjust-details[open] .row2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .finance-trio .finance-adjust .finance-adjust-details[open] label{font-size:13px}
+  .finance-trio .finance-adjust .finance-adjust-details[open] .btn{font-size:13px}
+
+  .account-tab-panels .member-role-admin [data-role-list]{max-height:none;overflow:visible;overscroll-behavior:auto}
+
+  .lh-editor{--lh-button-size:44px;--lh-row-gap:8px}
+  .lh-editor .lh-day{width:44px;height:44px;font-size:13px}
+  .lh-editor .lh-headings,.lh-editor .lh-range{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lh-editor .lh-headings{font-size:13px}
+  .lh-editor .lh-headings>:nth-child(n+3){display:none}
+  .lh-editor .lh-time{min-height:44px;padding-inline:6px;font-size:16px}
+  .lh-editor .lh-actions{grid-column:1/-1;justify-content:flex-end;gap:6px}
+  .lh-editor .lh-action{width:44px;min-height:44px}
+  .lh-editor .lh-range+.lh-range{padding-top:8px;border-top:1px solid var(--line)}
+
+  .cart .lines .lc{flex-wrap:wrap;min-width:0}
+  .cart .lines .lc .q-btn,.cart .lines .lc .ldel{flex:none;min-width:44px;min-height:44px}
+  .cart .lines .lt,.pay-card :is(.pc-name,.pay-t){min-width:0;overflow-wrap:anywhere}
+  .cart .lines .lsub,.pay-card :is(.pc-due,.pay-lm){white-space:nowrap}
+  .pay-card,.pay-card .pay-line{min-width:0}
+  .pay-card .pay-pill{min-height:44px}
+  .pay-card .pay-trash{flex:none;width:44px;height:44px}
+
+  .profile-dialog[open]{width:calc(100% - 24px);max-height:calc(100dvh - 24px);overflow:hidden}
+  .profile-dialog .member-editor{
+    max-height:calc(100dvh - 26px);overflow-y:auto;overscroll-behavior:contain;
+    padding:16px 16px 12px;scroll-padding-block-end:62px;
+  }
+  .profile-dialog .member-editor>h2{padding-inline-end:42px}
+  .profile-dialog .member-editor>button[type=submit]{
+    position:sticky;bottom:0;z-index:1;display:flex;width:100%;min-height:44px;box-shadow:0 0 0 4px #fff;
+  }
+  .profile-dialog .profile-close{width:44px;height:44px;right:8px;top:7px;z-index:2}
+
+  .dt-dialog[open]{width:min(380px,calc(100vw - 12px));max-height:calc(100dvh - 20px);padding:10px 7px}
+  .dt-dialog .dt-head{padding-inline:4px;margin-bottom:8px}
+  .dt-dialog .dt-close,.dt-dialog .dt-month button{width:44px;height:44px}
+  .dt-dialog .dt-calendar{gap:2px}
+  .dt-dialog .dt-week{font-size:12px}
+  .dt-dialog .dt-cell{min-width:0;padding:0}
+  .dt-dialog .dt-time-grid{gap:3px;max-height:min(240px,42dvh)}
+  .dt-dialog .dt-quick-btn{min-height:44px}
+}
+
+@media(max-width:480px){
+  .lh-editor .lh-days{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));max-width:210px;gap:5px}
+  .lh-editor .lh-day{grid-column:span 2;justify-self:center}
+  .lh-editor .lh-day:nth-child(5){grid-column:2/4}
+  .lh-editor .lh-day:nth-child(6){grid-column:4/6}
+  .lh-editor .lh-day:nth-child(7){grid-column:6/8}
+}
+
+.admin-title-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;margin-bottom:5px}
+.admin-title-row>h1.ph{min-width:0;margin:0;overflow-wrap:anywhere}
+#adminCountdown{
+  display:inline-flex;align-items:center;flex:none;padding:2px 8px;border-radius:999px;
+  background:#eaeaea;color:var(--muted);font-size:12px;line-height:1.55;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+#adminCountdown.is-urgent{background:#fff0df;color:var(--accent)}
+
+.roster-settings-details.card,.group-settings-details.card{padding:0}
+:is(.roster-settings-details,.group-settings-details)>summary{
+  display:flex;min-height:44px;align-items:center;justify-content:space-between;gap:12px;
+  padding:8px clamp(14px,2.2vw,20px);border-radius:inherit;color:var(--text);
+  font-size:15px;font-weight:600;line-height:1.35;list-style:none;cursor:pointer;
+}
+:is(.roster-settings-details,.group-settings-details)>summary::-webkit-details-marker{display:none}
+:is(.roster-settings-details,.group-settings-details)>summary::after{
+  content:"";flex:none;width:8px;height:8px;border:solid currentColor;border-width:0 1px 1px 0;
+  margin-inline-end:3px;color:var(--muted);transform:rotate(45deg);
+}
+:is(.roster-settings-details,.group-settings-details)[open]>summary::after{transform:rotate(225deg)}
+:is(.roster-settings-details,.group-settings-details)>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:is(.roster-settings-body,.group-settings-body){min-width:0;padding:0 clamp(14px,2.2vw,20px) clamp(14px,2.2vw,20px)}
+
+.summary-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0;margin-bottom:12px}
+.summary-actions>button,.summary-actions>a[href^="tel:"]{display:inline-flex;min-height:44px;align-items:center}
+.summary-actions>a[href^="tel:"]{gap:5px;max-width:100%;padding:4px 2px;font-size:14px;overflow-wrap:anywhere}
+@media(max-width:480px){.summary-actions>a[href^="tel:"]{font-size:13px}}
+
+#tx.admin-page-tabs{display:flex;align-items:stretch;gap:6px;overflow:visible}
+#tx.admin-page-tabs .admin-tab-group{display:flex;gap:6px;min-width:0}
+#tx.admin-page-tabs :is(a,button){min-height:44px;white-space:nowrap}
+@media(max-width:600px){
+  #tx.admin-page-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  #tx.admin-page-tabs>.admin-tab-group{display:grid;grid-column:span 3;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  #tx.admin-page-tabs :is(a,button){min-width:0;padding:4px 2px;font-size:12px}
+}
+
+/* Share content rows between the three collection cards. */
+.finance-trio>.card{
+  display:grid;grid-template-rows:repeat(4,auto);align-items:start;row-gap:4px;min-height:0;
+}
+@supports(grid-template-rows:subgrid){
+  .finance-trio:not(:has(.finance-adjust-details[open]))>.card{grid-row:span 4;grid-template-rows:subgrid}
+}
+.collection-progress .collection-compact-progress{display:contents}
+.finance-trio .card h2{grid-row:1;margin:0}
+.finance-trio .collection-card-value{
+  grid-row:2;min-width:0;margin:0;color:var(--text);font-size:clamp(16px,2.1vw,25px);
+  font-weight:600;line-height:1.25;overflow-wrap:anywhere;
+}
+.finance-trio .collection-card-note{grid-row:3;min-width:0;margin:0;color:var(--muted);font-size:12px;line-height:1.4}
+.finance-trio .collection-card-footer{grid-row:4;display:flex;align-items:center;min-width:0;min-height:44px;margin:0}
+.finance-trio .collection-card-footer :is(progress,.finance-adjust-trigger){margin-block:0}
+.finance-trio .collection-card-footer progress{
+  display:block;width:100%;height:7px;border:0;border-radius:999px;background:#ebe8e2;accent-color:#ff9b4d;
+}
+.finance-trio .collection-card-footer progress::-webkit-progress-bar{background:#ebe8e2;border-radius:999px}
+.finance-trio .collection-card-footer progress::-webkit-progress-value{background:#ff9b4d;border-radius:999px}
+.finance-trio .collection-card-footer progress::-moz-progress-bar{background:#ff9b4d;border-radius:999px}
+.finance-trio .finance-adjust-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 8px}
+.finance-trio .finance-adjust-status>span{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 4px;min-width:0;font-size:12px;color:var(--muted)}
+.finance-trio .finance-adjust-status b{font:inherit;font-size:clamp(16px,2.1vw,25px);font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.finance-trio .finance-adjust-details{margin:0;width:100%}
+.finance-trio .finance-adjust-trigger{min-height:44px}
+.finance-trio .collection-progress-meta{position:relative}
+.finance-trio .collection-progress-meta .wp-btn{margin:0;padding:0 2px;font-size:12px}
+.finance-trio .collection-progress-meta .waiting-pop{width:min(280px,calc(100vw - 52px))}
+.collection-roster-shortcut [data-go-people]{min-height:44px;font-size:13px}
+@media(max-width:600px){
+  .finance-trio .finance-adjust-status{gap:3px 5px}
+  .finance-trio .finance-adjust-status>span{flex-direction:column-reverse;align-items:flex-start}
+  .finance-trio .collection-card-note{font-size:12px}
+}
+
+/* Final mobile audit: common rows, five management actions and payment controls. */
+.finance-trio .collection-card-value,.finance-trio .collection-card-note,.finance-trio .collection-card-footer{align-self:stretch}
+.collection-toolbar .collection-roster-shortcut{margin-inline-start:auto}
+#tx.admin-page-tabs>.admin-tab-group{display:contents}
+.admin-order-short{display:none}
+@media(max-width:768px){
+  .pay-dlg .pay-x{min-width:44px;min-height:44px;width:44px;height:44px;right:9px;top:9px}
+  .pay-dlg .pay-copy{min-height:44px;flex:none}
+  .pay-dlg .pay-to{padding-inline-end:36px;min-width:0}
+  .pay-dlg .pay-to>div{min-width:0}
+  .pay-dlg .pay-to h2,.pay-dlg .pay-acct{overflow-wrap:anywhere;min-width:0}
+  .pay-dlg .pay-row>b{min-width:0;overflow-wrap:anywhere}
+}
+@media(max-width:600px){
+  #tx.admin-page-tabs{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+  #tx.admin-page-tabs :is(a,button){justify-content:center;min-height:44px;padding:4px 2px;font-size:12px}
+  .admin-order-full{display:none}.admin-order-short{display:inline}
+}
+
+@media(max-width:768px){
+  .menu .itemhit,.menu .notebtn{min-height:44px}
+  .gcard .meta .gcard-deadline{display:grid;grid-template-columns:18px minmax(0,1fr);gap:3px 6px;align-items:center}
+  .gcard .gcard-deadline-text{min-width:0;white-space:nowrap;font-size:12px}
+  .gcard .gcard-deadline>b{grid-column:2;justify-self:start}
+}
+
+.finance-trio .collection-shipping:has(progress) .collection-card-note{margin-bottom:0}
+@media(max-width:768px){
+  .menu .item .q-btn{min-height:44px!important;height:44px;min-width:44px}
+}

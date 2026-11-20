@@ -338,6 +338,7 @@
     }
     function draw() {
       if (!alive || !started || pending) return;
+      content.classList.remove('member-loading');
       var rows = Object.values(entries).flat().sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
       content.innerHTML = rows.length ? '<div class="member-orders">'+rows.map(function(row, index) {
         var order = row.order;

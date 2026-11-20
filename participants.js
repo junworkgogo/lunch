@@ -40,7 +40,8 @@
   function summaryHtml(g,orders,compact){
     var title='<section class="card participation-summary'+(compact?' collection-compact-progress':'')+'"><div><h2>訂餐進度</h2>';
     if(g.audience!=='selected'){
-      return title+(compact?'<p class="collection-progress-public">開放所有會員</p>':'<p>本團開放所有會員；指定參加名單後，就能追蹤誰還沒訂餐。</p>')+'</div></section>';
+      if(compact)return '<h2>訂餐進度</h2><strong class="collection-card-value">開放中</strong><p class="collection-card-note">所有會員</p><div class="collection-card-footer"></div>';
+      return title+'<p>本團開放所有會員；指定參加名單後，就能追蹤誰還沒訂餐。</p></div></section>';
     }
     var s=progress(g,orders);lastWaiting=s.waiting;
     // 資料重畫時維持「未訂餐」名單的開關狀態。
@@ -49,9 +50,9 @@
     }).join('')+'</ul>':'<p class="wp-empty">所有參加會員都已訂餐。</p>';
     var waiting='<span class="wp-wrap"><button type="button" class="wp-btn" data-waiting-pop aria-haspopup="dialog" aria-controls="waitingPop" aria-expanded="'+waitPopOpen+'"><b>'+n+'</b><span class="wp-label">未訂餐<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="waiting-pop" id="waitingPop" role="dialog" aria-label="誰還沒點"'+(waitPopOpen?'':' hidden')+'><div class="wp-head"><strong>誰還沒點</strong><span>'+n+' 人</span><button type="button" class="wp-close" data-waiting-close aria-label="關閉">×</button></div>'+list+(n?'<button type="button" class="text-button wp-copy" data-waiting-copy>複製名單</button>':'')+'</div></span>';
     if(compact){
-      return title+'</div><strong class="collection-progress-count" aria-label="已訂餐 '+s.done.length+' 人，共 '+s.total+' 人">'+
-        s.done.length+' / '+s.total+' 人</strong><div class="collection-progress-meta">'+waiting+'</div>'+
-        '<progress max="'+Math.max(1,s.total)+'" value="'+s.done.length+'" aria-label="訂餐進度"></progress></section>';
+      return '<h2>訂餐進度</h2><strong class="collection-progress-count collection-card-value" aria-label="已訂餐 '+s.done.length+' 人，共 '+s.total+' 人">'+
+        s.done.length+' / '+s.total+' 人</strong><div class="collection-progress-meta collection-card-note">'+waiting+'</div>'+
+        '<div class="collection-card-footer"><progress max="'+Math.max(1,s.total)+'" value="'+s.done.length+'" aria-label="訂餐進度"></progress></div>';
     }
     return title+'<p>依有效訂單即時更新，取消後會回到未訂餐。</p></div><div class="participation-numbers">'+
       '<span><b>'+s.done.length+'</b>已訂餐</span>'+waiting+'<span><b>'+s.total+'</b>參加人數</span></div></section>';
@@ -84,9 +85,9 @@
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&waitPopOpen){waitPopOpen=false;syncWaitPop(true);}});
   window.addEventListener('hashchange',function(){waitPopOpen=false;});
   function rosterSignature(g){return JSON.stringify({audience:g&&g.audience==='selected'?'selected':'all',participants:g&&g.audience==='selected'?Object.keys(g.participants||{}).sort().map(function(id){return [id,g.participants[id]];}):false});}
-  function management(mount,g,orders,gid){
+  function management(mount,g,orders,gid,initiallyOpen){
     var alive=true,current=g,currentOrders=orders,baseline=rosterSignature(g),saving=false,conflict=false;
-    mount.innerHTML='<div data-roster-status></div><section class="card roster-edit"><h2>設定參加名單</h2><p class="muted">更改名單不會刪除任何既有訂單。移出名單的會員無法再新增或修改餐點，仍可在「我的訂單」於截止前取消自己的訂單。</p><div id="adminAudience"></div><div class="actions"><button type="button" class="btn primary" data-save-audience>儲存參加名單</button><button type="button" class="btn" data-reload-audience>重新載入名單</button></div><p data-audience-status role="status" hidden></p></section>';
+    mount.innerHTML='<div data-roster-status></div><details class="card roster-edit roster-settings-details"'+(initiallyOpen?' open':'')+'><summary>設定參加名單</summary><div class="roster-settings-body"><p class="muted">更改名單不會刪除任何既有訂單。移出名單的會員無法再新增或修改餐點，仍可在「我的訂單」於截止前取消自己的訂單。</p><div id="adminAudience"></div><div class="actions"><button type="button" class="btn primary" data-save-audience>儲存參加名單</button><button type="button" class="btn" data-reload-audience>重新載入名單</button></div><p data-audience-status role="status" hidden></p></div></details>';
     var choose=picker(mount.querySelector('#adminAudience'),g),message=mount.querySelector('[data-audience-status]');
     function draw(){
       if(!alive)return;

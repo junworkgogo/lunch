@@ -84,6 +84,7 @@
   }
   function showPayment(o){
     if(closeOpen)closeOpen();
+    if(A.dismissInfoToast)A.dismissInfoToast();
     var prevFocus=document.activeElement,prevOverflow=document.body.style.overflow;
     var ov=document.createElement('div');ov.className='pay-ov';
     ov.innerHTML='<section class="pay-dlg" role="dialog" aria-modal="true" aria-labelledby="payDlgT">'+
