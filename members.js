@@ -357,7 +357,7 @@
         var charges = '餐點原價 '+money(bill.base);
         if (bill.shipping) charges+=' · 運費 '+money(bill.shipping);
         if (bill.discount) charges+=' · 折扣 '+money(bill.discount);
-        return '<article class="member-order '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">'+charges+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
+        return '<article class="member-order is-linked '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">'+charges+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
           '<div class="member-order-actions">'+payButton+groupLink+'</div></article>';
       }).join('')+'</div>' : '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
       content.onclick = function(event) {

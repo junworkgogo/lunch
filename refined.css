@@ -359,3 +359,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto
 
 /* 已付清訂單：灰色完成狀態，保留清楚可讀的文字。 */
 .member-order-actions .member-pay.is-paid:disabled{background:#e8e8e8!important;color:#555!important;border-color:#dedede!important;opacity:1;cursor:default;box-shadow:none}
+
+/* 原生連結擴展至整張訂單卡，付款按鈕維持獨立操作。 */
+.member-order.is-linked{position:relative;cursor:pointer}
+.member-order.is-linked .member-group-link{position:static}
+.member-order.is-linked .member-group-link::after{content:"";position:absolute;inset:0;border-radius:inherit}
+.member-order.is-linked .member-group-link:focus-visible{outline:none}
+.member-order.is-linked .member-group-link:focus-visible::after{outline:2px solid var(--accent);outline-offset:3px}
+.member-order.is-linked .member-pay{position:relative;z-index:1;cursor:pointer}
+.member-order.is-linked .member-pay:disabled{cursor:default}
