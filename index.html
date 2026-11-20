@@ -2135,9 +2135,14 @@ function pageAdmin(root,gid,q){
     }
     if(e.target.closest('#toggleClose')){
       if(groupClosed(group)){
-        var u={closed:false},msg='已重新開放';
-        if(now()>=group.deadline){u.deadline=now()+30*60000;msg='已重新開放，截止時間順延到 '+fmtTime(u.deadline);}
-        var reopenPatch={};if(hasAdjustment(group))reopenPatch['groups/'+gid+'/adjustment']={shipping:0,discount:0,split:group.adjustment.split||'equal'};Object.keys(u).forEach(function(k){reopenPatch['groups/'+gid+'/'+k]=u[k];});financeChangePatch(gid,group,orders,orders,reopenPatch,true).then(function(patch){if(!patch||!adminMounted())return;return DB.updateGroupAccess(gid,group,u,patch).then(function(){toast(msg);if(adminMounted())draw();});}).catch(fail);
+        if(closeBusy)return;closeBusy=true;updateCloseButton();
+        ask({title:'要重新開放這個團購嗎？',okText:'重新開放',cancelText:'先不要'}).then(function(ok){
+          if(!ok||!adminMounted()||!allowed()||!groupClosed(group))return;
+          var u={closed:false},msg='已重新開放';
+          if(now()>=group.deadline){u.deadline=now()+30*60000;msg='已重新開放，截止時間順延到 '+fmtTime(u.deadline);}
+          var reopenPatch={};if(hasAdjustment(group))reopenPatch['groups/'+gid+'/adjustment']={shipping:0,discount:0,split:group.adjustment.split||'equal'};Object.keys(u).forEach(function(k){reopenPatch['groups/'+gid+'/'+k]=u[k];});
+          return financeChangePatch(gid,group,orders,orders,reopenPatch,true).then(function(patch){if(!patch||!adminMounted()||!allowed()||!groupClosed(group))return;return DB.updateGroupAccess(gid,group,u,patch).then(function(){toast(msg);if(adminMounted())draw();});});
+        }).catch(fail).finally(function(){closeBusy=false;if(adminMounted())updateCloseButton();});
       }else{if(closeBusy)return;closeBusy=true;updateCloseButton();ask({title:'要提前結束這個團購嗎？',okText:'提前結束',cancelText:'先不要'}).then(function(ok){if(ok&&adminMounted()&&allowed()&&!groupClosed(group))return DB.updateGroupAccess(gid,group,{closed:true}).then(function(){toast('已提前截止');});}).catch(fail).finally(function(){closeBusy=false;if(adminMounted())updateCloseButton();});}
       return;
     }
