@@ -39,10 +39,18 @@ const HOURS_SCHEMA={type:'OBJECT',properties:{
  },required:['day','ranges']}},
  warnings:{type:'ARRAY',items:{type:'STRING'}}
 },required:['days']};
+// 2026-11-23 加料模式（body.kind==='toppings'）：讀飲料店菜單上的加料區（例如「+$10 珍珠 椰果」），給店家編輯頁的「加料區」用
+const TOPPINGS_PROMPT='你是台灣飲料店菜單擷取助手。只擷取圖片上「加料」「配料」「Toppings」「加購」這類可以加進飲料裡的配料，每一種配料的名稱與加價，不得猜測或補造。以 JSON 物件輸出，格式 {"toppings":[{"name":"珍珠","add":10,"note":""}],"warnings":["看不清楚的地方"]}。add 是加價的整數新台幣，圖上寫「+$10」「加10元」都填 10；一個價錢標在一整排配料前面時，那一排每一項都是這個價錢。name 只寫配料名稱，不含價錢、不含英文翻譯；名稱旁邊或下面的小字限制（例如「限冷飲」）寫在 note，沒有就填空字串。飲料品項本身、杯型、甜度、冰塊都不是配料，不要列。看不清楚價錢的配料不要猜，寫進 warnings。按圖上的順序輸出。';
+const TOPPINGS_SCHEMA={type:'OBJECT',properties:{
+ toppings:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},add:{type:'INTEGER'},note:{type:'STRING'}},required:['name','add']}},
+ warnings:{type:'ARRAY',items:{type:'STRING'}}
+},required:['toppings']};
 const KINDS={
- menu:{prompt:PROMPT,schema:SCHEMA,ok:p=>Array.isArray(p.categories)},
- hours:{prompt:HOURS_PROMPT,schema:HOURS_SCHEMA,ok:p=>Array.isArray(p.days)}
+ menu:{prompt:PROMPT,schema:SCHEMA,ok:p=>Array.isArray(p.categories),key:'categories',bad:'請上傳 1–5 張有效的菜單照片'},
+ hours:{prompt:HOURS_PROMPT,schema:HOURS_SCHEMA,ok:p=>Array.isArray(p.days),key:'days',bad:'請上傳 1–5 張有效的營業時間圖片'},
+ toppings:{prompt:TOPPINGS_PROMPT,schema:TOPPINGS_SCHEMA,ok:p=>Array.isArray(p.toppings),key:'toppings',bad:'請上傳 1–5 張有效的加料圖片'}
 };
+function pickResult(kind,parsed){const o={};o[KINDS[kind].key]=parsed[KINDS[kind].key];return o;}
 function response(res,status,json){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(json));}
 function cors(req,res){
  const origin=String(req.headers.origin||'');
@@ -191,19 +199,19 @@ module.exports=async function(req,res){
   if(!bearer||!await verifyAdmin(bearer[1])){response(res,403,{message:'只有已驗證管理員能使用雲端 AI 辨識'});return;}
   let body=req.body;
   if(typeof body==='string'){if(body.length>18000000){response(res,413,{message:'圖片過大'});return;}body=JSON.parse(body);}
-  const images=body&&body.images,kind=body&&body.kind==='hours'?'hours':'menu';
+  const images=body&&body.images,kind=body&&(body.kind==='hours'||body.kind==='toppings')?body.kind:'menu';
   if(!Array.isArray(images)||images.length<1||images.length>5||images.some(x=>typeof x!=='string'||x.length>3500000||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x))){
-   response(res,400,{message:kind==='hours'?'請上傳 1–5 張有效的營業時間圖片':'請上傳 1–5 張有效的菜單照片'});return;
+   response(res,400,{message:KINDS[kind].bad});return;
   }
   if(geminiKey){
    const g=await callGemini(images,geminiKey,deadline,kind);
    const tried=g.tried.map(t=>t.model+' '+t.status+' '+t.ms+'ms');
    console.log('gemini vision result',kind,g.parsed?'ok '+g.model:'fail '+g.fail,tried.join(' | '));
-   if(g.parsed){response(res,200,Object.assign(kind==='hours'?{days:g.parsed.days}:{categories:g.parsed.categories},{warnings:g.parsed.warnings||[],engine:'Gemini',model:g.model,tried}));return;}
+   if(g.parsed){response(res,200,Object.assign(pickResult(kind,g.parsed),{warnings:g.parsed.warnings||[],engine:'Gemini',model:g.model,tried}));return;}
    if(!openaiKey){const f=GEMINI_FAIL[g.fail]||GEMINI_FAIL.other;response(res,f[0],{message:f[1],tried});return;}
   }
   const o=await callOpenAI(images,openaiKey,deadline,kind);
   if(!o.parsed){response(res,o.status,{message:o.message});return;}
-  response(res,200,Object.assign(kind==='hours'?{days:o.parsed.days}:{categories:o.parsed.categories},{warnings:o.parsed.warnings||[],engine:'GPT'}));
+  response(res,200,Object.assign(pickResult(kind,o.parsed),{warnings:o.parsed.warnings||[],engine:'GPT'}));
  }catch(e){response(res,500,{message:'圖片辨識遇到問題，請稍後重試或使用 OCR'});}
 };
