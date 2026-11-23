@@ -136,3 +136,9 @@
     padding-inline: 0;
   }
 }
+
+/* 2026-11-23 營業時間「看圖帶入」（hours-vision.js）：按鈕＋一行狀態，放在時段下面 */
+.hv-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; }
+.hv-row .hv-btn { flex: none; }
+.hv-row .hv-status { font-size: 12.5px; line-height: 1.5; color: #6b6e78; min-width: 0; }
+.hv-row .hv-status.hv-bad { color: var(--err, #8f4500); }

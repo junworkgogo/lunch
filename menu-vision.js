@@ -196,6 +196,8 @@ function mount(form){
   });
   update();
 }
+// 2026-11-23 營業時間看圖帶入（hours-vision.js）共用這三樣
+window.LunchVision={fileToData:fileToData,loadOCR:loadOCR,API:API};
 function scan(){
   document.querySelectorAll('#app form#f').forEach(function(form){if(form.querySelector('#sm'))mount(form);});
 }
