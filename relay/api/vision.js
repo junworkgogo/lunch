@@ -30,6 +30,19 @@ const SCHEMA={type:'OBJECT',properties:{
  },required:['name','items']}},
  warnings:{type:'ARRAY',items:{type:'STRING'}}
 },required:['categories']};
+// 2026-11-23 營業時間模式（body.kind==='hours'）：同一套金鑰、模型接力與管理員驗證，只換提示詞與輸出格式
+const HOURS_PROMPT='你是台灣店家營業時間擷取助手。只根據圖片上實際看得見的文字，讀出星期一到星期日每天的營業時段，不得猜測或補造。以 JSON 物件輸出，格式 {"days":[{"day":"一","closed":false,"ranges":[{"start":"09:00","end":"21:50"}]}],"warnings":["看不清楚的地方"]}。day 只能是「一二三四五六日」其中一個字。時間一律 24 小時制 HH:MM（下午 5 點寫 17:00）。一天有中午休息就分成多段 ranges。寫「休息」「公休」「未營業」「Closed」的那天 closed=true、ranges 為空陣列。「24 小時營業」寫 00:00 到 23:59。圖上寫「週一至週五」「每日」這類範圍要展開成每一天各一筆。圖上沒有出現的星期不要列出。看不清楚的時間不要猜，寫進 warnings。';
+const HOURS_SCHEMA={type:'OBJECT',properties:{
+ days:{type:'ARRAY',items:{type:'OBJECT',properties:{
+  day:{type:'STRING'},closed:{type:'BOOLEAN'},
+  ranges:{type:'ARRAY',items:{type:'OBJECT',properties:{start:{type:'STRING'},end:{type:'STRING'}},required:['start','end']}}
+ },required:['day','ranges']}},
+ warnings:{type:'ARRAY',items:{type:'STRING'}}
+},required:['days']};
+const KINDS={
+ menu:{prompt:PROMPT,schema:SCHEMA,ok:p=>Array.isArray(p.categories)},
+ hours:{prompt:HOURS_PROMPT,schema:HOURS_SCHEMA,ok:p=>Array.isArray(p.days)}
+};
 function response(res,status,json){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(json));}
 function cors(req,res){
  const origin=String(req.headers.origin||'');
@@ -58,18 +71,18 @@ async function verifyAdmin(token){
  return values[0]==='admin'||values[1]===user.localId;
 }
 // Gemini：照片直接放進 inlineData；不支援的設定（thinking／高解析／schema）被 400 退回時拿掉重送
-function geminiPayload(images,opt){
+function geminiPayload(images,opt,kind){
  const gen={temperature:0,maxOutputTokens:16384,responseMimeType:'application/json'};
- if(opt.schema)gen.responseSchema=SCHEMA;
+ if(opt.schema)gen.responseSchema=KINDS[kind].schema;
  if(opt.thinking)gen.thinkingConfig={thinkingLevel:'MINIMAL'};
  if(opt.hires)gen.mediaResolution='MEDIA_RESOLUTION_HIGH';
- return {contents:[{role:'user',parts:[{text:PROMPT}].concat(images.map(u=>({inlineData:{mimeType:'image/jpeg',data:u.slice(u.indexOf(',')+1)}})))}],generationConfig:gen};
+ return {contents:[{role:'user',parts:[{text:KINDS[kind].prompt}].concat(images.map(u=>({inlineData:{mimeType:'image/jpeg',data:u.slice(u.indexOf(',')+1)}})))}],generationConfig:gen};
 }
-function geminiJson(data){
+function geminiJson(data,kind){
  const parts=(data&&data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts)||[];
  const text=parts.filter(p=>p&&!p.thought&&typeof p.text==='string').map(p=>p.text).join('').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
  const parsed=JSON.parse(text||'{}');
- return parsed&&Array.isArray(parsed.categories)?parsed:null;
+ return parsed&&KINDS[kind].ok(parsed)?parsed:null;
 }
 function geminiNote(tried,model,status,t0,msg){
  const ms=Date.now()-t0;
@@ -77,7 +90,7 @@ function geminiNote(tried,model,status,t0,msg){
  console.log('gemini vision',model,status,ms+'ms',String(msg||'').slice(0,160));
 }
 // 單一模型：不支援的設定被 400 退回時拿掉重送；回 {parsed} 或 {fail}
-async function geminiModel(model,images,key,signal,tried){
+async function geminiModel(model,images,key,signal,tried,kind){
  const opt={schema:true,thinking:true,hires:true};
  for(let attempt=0;attempt<4;attempt++){
   const t0=Date.now();
@@ -85,14 +98,14 @@ async function geminiModel(model,images,key,signal,tried){
   try{
    r=await fetch(GEMINI_URL+encodeURIComponent(model)+':generateContent',{
     method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
-    body:JSON.stringify(geminiPayload(images,opt)),signal
+    body:JSON.stringify(geminiPayload(images,opt,kind)),signal
    });
    try{data=await r.json();}catch(e){data=null;}
   }catch(e){geminiNote(tried,model,signal&&signal.aborted?'aborted':'network',t0);return {fail:'timeout'};}
   const msg=String((data&&data.error&&data.error.message)||'');
   geminiNote(tried,model,r.status,t0,r.status===200?'':msg);
   if(r.status===200){
-   let parsed=null;try{parsed=geminiJson(data);}catch(e){parsed=null;}
+   let parsed=null;try{parsed=geminiJson(data,kind);}catch(e){parsed=null;}
    if(parsed)return {parsed};
    console.log('gemini vision bad json',model);return {fail:'other'};
   }
@@ -110,7 +123,7 @@ async function geminiModel(model,images,key,signal,tried){
  return {fail:'other'};
 }
 // 多個模型接力＋逾時加開：失敗立刻換下一個；HEDGE_MS 還沒回就同時請下一個（最多同時 2 個）
-function callGemini(images,key,deadline){
+function callGemini(images,key,deadline,kind){
  const models=[...new Set([String(process.env.GEMINI_VISION_MODEL||'gemini-3.6-flash').trim()].concat(GEMINI_FALLBACKS))];
  const tried=[],ctrls=[];
  return new Promise(resolve=>{
@@ -133,7 +146,7 @@ function callGemini(images,key,deadline){
    const c=new AbortController();ctrls.push(c);
    clearTimeout(hedgeTimer);
    hedgeTimer=setTimeout(()=>{if(running<2)launch();},HEDGE_MS);
-   geminiModel(model,images,key,c.signal,tried).then(res=>{
+   geminiModel(model,images,key,c.signal,tried,kind).then(res=>{
     running--;
     if(done)return;
     if(res.parsed){finish({parsed:res.parsed,model});return;}
@@ -151,10 +164,10 @@ const GEMINI_FAIL={
  timeout:[504,'AI 辨識逾時，請少放幾張照片再試，已可改用 OCR'],
  other:[502,'AI 服務暫時無法辨識，已可改用 OCR']
 };
-async function callOpenAI(images,key,deadline){
+async function callOpenAI(images,key,deadline,kind){
  const remain=deadline-Date.now();
  if(remain<4000)return {status:504,message:'AI 辨識逾時，請少放幾張照片再試，已可改用 OCR'};
- const payload={model:process.env.OPENAI_VISION_MODEL||'gpt-4o-mini',temperature:0,max_tokens:6000,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:PROMPT},...images.map(url=>({type:'image_url',image_url:{url,detail:'high'}}))]}]};
+ const payload={model:process.env.OPENAI_VISION_MODEL||'gpt-4o-mini',temperature:0,max_tokens:6000,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:KINDS[kind].prompt},...images.map(url=>({type:'image_url',image_url:{url,detail:'high'}}))]}]};
  const upstream=await fetch('https://api.openai.com/v1/chat/completions',{
   method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
   body:JSON.stringify(payload),signal:AbortSignal.timeout(remain-1000)
@@ -163,7 +176,7 @@ async function callOpenAI(images,key,deadline){
  const result=await upstream.json();
  const content=result.choices&&result.choices[0]&&result.choices[0].message&&result.choices[0].message.content;
  const parsed=JSON.parse(content||'{}');
- if(!Array.isArray(parsed.categories))return {status:502,message:'AI 結果格式不符，請重試'};
+ if(!parsed||!KINDS[kind].ok(parsed))return {status:502,message:'AI 結果格式不符，請重試'};
  return {parsed};
 }
 module.exports=async function(req,res){
@@ -178,19 +191,19 @@ module.exports=async function(req,res){
   if(!bearer||!await verifyAdmin(bearer[1])){response(res,403,{message:'只有已驗證管理員能使用雲端 AI 辨識'});return;}
   let body=req.body;
   if(typeof body==='string'){if(body.length>18000000){response(res,413,{message:'圖片過大'});return;}body=JSON.parse(body);}
-  const images=body&&body.images;
+  const images=body&&body.images,kind=body&&body.kind==='hours'?'hours':'menu';
   if(!Array.isArray(images)||images.length<1||images.length>5||images.some(x=>typeof x!=='string'||x.length>3500000||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x))){
-   response(res,400,{message:'請上傳 1–5 張有效的菜單照片'});return;
+   response(res,400,{message:kind==='hours'?'請上傳 1–5 張有效的營業時間圖片':'請上傳 1–5 張有效的菜單照片'});return;
   }
   if(geminiKey){
-   const g=await callGemini(images,geminiKey,deadline);
+   const g=await callGemini(images,geminiKey,deadline,kind);
    const tried=g.tried.map(t=>t.model+' '+t.status+' '+t.ms+'ms');
-   console.log('gemini vision result',g.parsed?'ok '+g.model:'fail '+g.fail,tried.join(' | '));
-   if(g.parsed){response(res,200,{categories:g.parsed.categories,warnings:g.parsed.warnings||[],engine:'Gemini',model:g.model,tried});return;}
+   console.log('gemini vision result',kind,g.parsed?'ok '+g.model:'fail '+g.fail,tried.join(' | '));
+   if(g.parsed){response(res,200,Object.assign(kind==='hours'?{days:g.parsed.days}:{categories:g.parsed.categories},{warnings:g.parsed.warnings||[],engine:'Gemini',model:g.model,tried}));return;}
    if(!openaiKey){const f=GEMINI_FAIL[g.fail]||GEMINI_FAIL.other;response(res,f[0],{message:f[1],tried});return;}
   }
-  const o=await callOpenAI(images,openaiKey,deadline);
+  const o=await callOpenAI(images,openaiKey,deadline,kind);
   if(!o.parsed){response(res,o.status,{message:o.message});return;}
-  response(res,200,{categories:o.parsed.categories,warnings:o.parsed.warnings||[],engine:'GPT'});
+  response(res,200,Object.assign(kind==='hours'?{days:o.parsed.days}:{categories:o.parsed.categories},{warnings:o.parsed.warnings||[],engine:'GPT'}));
  }catch(e){response(res,500,{message:'圖片辨識遇到問題，請稍後重試或使用 OCR'});}
 };
