@@ -29,7 +29,7 @@
   var BACK_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   function shell(title, body, hint, back) {
     back = back || ['#/', '回首頁'];
-    return '<div class="page member-page"><a class="backlink member-backlink" href="'+esc(back[0])+'">'+BACK_ICON+esc(back[1])+'</a><div class="member-kicker">JUN胖達／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1>'+(hint?'<p>'+esc(hint)+'</p>':'')+'</div></div>'+body+'</div>';
+    return '<div class="page member-page"><a class="backlink member-backlink" href="'+esc(back[0])+'">'+BACK_ICON+esc(back[1])+'</a><div class="member-kicker">FOODJUN／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1>'+(hint?'<p>'+esc(hint)+'</p>':'')+'</div></div>'+body+'</div>';
   }
   // User-provided default photos. User-uploaded avatarImage always takes precedence.
   function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n];return key?'./assets/'+key+'.webp?v=20261118lightorange1':''; }

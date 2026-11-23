@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>JUN胖達</title>
+<title>FOODJUN</title>
 <meta name="theme-color" content="#F58220">
 <link rel="icon" type="image/png" sizes="64x64" href="./assets/jun-orange-smile-64-v5.png">
 <link rel="apple-touch-icon" sizes="180x180" href="./assets/jun-orange-smile-180-v3.png">
@@ -490,7 +490,7 @@ a{color:#394150}
 <link rel="stylesheet" href="hours-editor.css?v=20261119refined3">
 <link rel="stylesheet" href="account-tabs.css?v=20261119refined3">
 <link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
-<link rel="stylesheet" href="refined.css?v=20261120received1">
+<link rel="stylesheet" href="refined.css?v=20261123foodjun">
 <link rel="stylesheet" href="mobile-nav.css?v=20261120mobile1">
 <link rel="stylesheet" href="mascot.css?v=20261119refined3">
 <script src="members-config.js?v=20261117c"></script>
@@ -500,7 +500,7 @@ a{color:#394150}
 </head>
 <body>
 <div class="demo" id="demoBar" hidden>示範模式：資料只存在這台電腦</div>
-<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand">JUN胖達</span><img class="brand-cat" src="assets/jun-cat-vector.svg?v=20261119" alt="" width="34" height="40" aria-hidden="true"></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">首頁</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
+<header class="top"><div class="top-in"><a class="brandlink" href="#/"><span class="logo" id="logoI"></span><span class="brand"><span class="brand-en">FOODJUN</span><span class="brand-zh">美食</span></span><img class="brand-cat" src="assets/jun-cat-vector.svg?v=20261119" alt="" width="34" height="40" aria-hidden="true"></a><nav class="nav" aria-label="主選單"><a class="btn sm" href="#/">首頁</a><a class="btn sm" href="#/shops">店家</a></nav></div></header>
 <main id="app"></main>
 <div id="toast" role="status" hidden></div>
 <script>
@@ -1607,7 +1607,7 @@ function pageGroup(root,gid){
     overlay.className='order-success-overlay';
     overlay.innerHTML='<section class="order-success-dialog" role="dialog" aria-modal="true" aria-labelledby="orderSuccessTitle" aria-describedby="orderSuccessDesc">'+
       '<div class="order-success-icon" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle class="order-success-circle" cx="32" cy="32" r="25"></circle><path class="order-success-tick" d="M19 33l9 9 18-20"></path></svg></div>'+
-      '<p class="order-success-kicker">JUN胖達 · 送出確認</p>'+
+      '<p class="order-success-kicker">FOODJUN · 送出確認</p>'+
       '<h2 id="orderSuccessTitle">'+(wasEdit?'訂單已更新！':'訂單已送出！')+'</h2>'+
       '<p id="orderSuccessDesc" class="order-success-desc">已成功儲存至系統，你可以放心查看下方訂單。</p>'+
       '<div class="order-success-receipt"><span>訂購人</span><strong>'+esc(orderName)+orderDepartmentHtml(department)+'</strong><span>餐點份數</span><strong>'+quantity+' 份</strong><span>餐點金額</span><strong>'+money(total)+'</strong></div>'+
@@ -2240,7 +2240,7 @@ function parseHash(){
 }
 function route(){
   if(cleanup){try{cleanup();}catch(e){}cleanup=null;}
-  var r=parseHash(),p=r.parts;document.title='JUN胖達';
+  var r=parseHash(),p=r.parts;document.title='FOODJUN';
   window.scrollTo(0,0);
   try{
     if(routeGuard&&routeGuard(app,p,r.q,location.hash)===false)return;
@@ -2272,7 +2272,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>
 <script src="identity.js?v=20261119refined3"></script>
-<script src="members.js?v=20261120received1"></script>
+<script src="members.js?v=20261123foodjun"></script>
 <script src="mobile-nav.js?v=20261120mobile1"></script>
 </body>
 </html>

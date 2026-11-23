@@ -368,3 +368,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto
 .member-order.is-linked .member-group-link:focus-visible::after{outline:2px solid var(--accent);outline-offset:3px}
 .member-order.is-linked .member-pay{position:relative;z-index:1;cursor:pointer}
 .member-order.is-linked .member-pay:disabled{cursor:default}
+
+/* 2026-11-23 站名改 FOODJUN；「美食」小字直排放在英文大寫右邊（使用者要求）。貓咪線稿照舊在最右邊。 */
+header.top .brandlink .brand{display:inline-flex;align-items:center;gap:3px;line-height:1;letter-spacing:.02em}
+header.top .brandlink .brand-en{font-weight:700}
+header.top .brandlink .brand-zh{writing-mode:vertical-rl;text-orientation:upright;font-size:8px;line-height:1;letter-spacing:0;font-weight:600}
