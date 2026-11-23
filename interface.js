@@ -224,8 +224,8 @@
         });
       }
       model.cats.forEach(function(cat){
-        var section=el('section','editor-cat'),head=el('div','editor-cat-head');head.append(input(cat.name,'分類名稱',function(v){if(/[{}｛｝\r\n]/.test(v))return;if(cat.line<0)model.lines.unshift('{'+v+'}');else model.lines[cat.line]=model.lines[cat.line].replace(/^(\s*[{｛]\s*).*?(\s*[}｝]\s*)$/,function(_,before,after){return before+v+after;});commit(model.lines.join('\n'));}));
-        head.append(button('刪除分類',function(){confirmDel({title:'刪除分類「'+(cat.name||'未命名')+'」？',body:'這個分類和裡面 '+cat.items.length+' 道餐點會一起移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var next=model.cats[model.cats.indexOf(cat)+1],start=cat.line<0?0:cat.line;model.lines.splice(start,(next?next.line:model.lines.length)-start);commit(model.lines.join('\n'));});}));section.append(head);
+        var section=el('section','editor-cat'),head=el('div','editor-cat-head');head.append(input(cat.name,'分類名稱',function(v){if(/[{}｛｝\r\n]/.test(v))return;if(cat.line<0)model.lines.splice(cat.items.length?cat.items[0].line:0,0,'{'+v+'}');else model.lines[cat.line]=model.lines[cat.line].replace(/^(\s*[{｛]\s*).*?(\s*[}｝]\s*)$/,function(_,before,after){return before+v+after;});commit(model.lines.join('\n'));}));
+        head.append(button('刪除分類',function(){confirmDel({title:'刪除分類「'+(cat.name||'未命名')+'」？',body:'這個分類和裡面 '+cat.items.length+' 道餐點會一起移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var next=model.cats[model.cats.indexOf(cat)+1],start=cat.line<0?(cat.items.length?cat.items[0].line:0):cat.line;model.lines.splice(start,(next?next.line:model.lines.length)-start);commit(model.lines.join('\n'));});}));section.append(head);
         if(cat.options.length)section.append(el('p','editor-cat-options','共用選項（保留）\n'+cat.options.join('\n')));
         cat.items.forEach(function(it){var row=el('div','editor-item');row.append(input(it.name,'餐點名稱',function(v){if(/[,，﹐､{}｛｝\r\n]/.test(v))return;updateItem(model,it,'name',v);}));
           if(it.normal)row.append(input(it.price,'價格',function(v){updateItem(model,it,2,v);},'number'));else{

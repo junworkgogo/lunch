@@ -488,6 +488,7 @@ a{color:#394150}
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
 <link rel="stylesheet" href="glass.css?v=20261119refined3">
 <link rel="stylesheet" href="hours-editor.css?v=20261123hours1">
+<link rel="stylesheet" href="toppings.css?v=20261123tp1">
 <link rel="stylesheet" href="account-tabs.css?v=20261119refined3">
 <link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
 <link rel="stylesheet" href="refined.css?v=20261123foodjun">
@@ -725,7 +726,8 @@ function parseGroup(s){
   return {g:{n:name,req:req,o:opts}};
 }
 function parseMenu(text){
-  var cats=[],errors=[],cur=null,curItem=null,count=0;
+  // 2026-11-23 第一個分類之前的縮排選項行＝全店共用（店家編輯頁的「加料區」寫在這裡），套到每個品項；品項或分類有同名群組時以它們為準
+  var cats=[],errors=[],cur=null,curItem=null,count=0,shared=[];
   String(text||'').split(/\r?\n/).forEach(function(raw,idx){
     if(!raw.trim())return;
     var ln=idx+1;
@@ -733,8 +735,7 @@ function parseMenu(text){
     if(isIndented(raw)){
       var g=parseGroup(normLine(raw.replace(BULLET,'')));
       if(g.err){bad(g.err);return;}
-      var tgt=curItem?curItem._own:(cur?cur._cg:null);
-      if(!tgt){bad('選項群組要寫在品項下面（或分類下面），這行前面還沒有品項或分類');return;}
+      var tgt=curItem?curItem._own:(cur?cur._cg:shared);
       if(tgt.some(function(x){return x.n===g.g.n;})){bad('同一個地方已經有叫「'+g.g.n+'」的群組了');return;}
       tgt.push(g.g);return;
     }
@@ -769,14 +770,18 @@ function parseMenu(text){
     c.items.forEach(function(it){
       var g=it._own.slice();
       c._cg.forEach(function(cg){if(!it._own.some(function(o){return o.n===cg.n;}))g.push(cg);});
+      shared.forEach(function(sg){if(!g.some(function(o){return o.n===sg.n;}))g.push(sg);});
       var all=g.filter(function(x){return x.req;}).concat(g.filter(function(x){return !x.req;}));
       delete it._own;
       if(all.length)it.g=all;
     });
     delete c._cg;
   });
-  return {cats:cats.filter(function(c){return c.items.length;}),errors:errors,count:count};
+  return {cats:cats.filter(function(c){return c.items.length;}),errors:errors,count:count,shared:shared};
 }
+// 整份換掉菜單（找菜單帶入、圖片辨識菜單）時，保留原本第一個分類前的全店共用選項（加料區）；新菜單自己有的話以新的為準
+function sharedHead(text){var out=[],lines=String(text||'').split(/\r?\n/);for(var i=0;i<lines.length;i++){var raw=lines[i];if(!raw.trim())continue;if(!isIndented(raw))break;out.push(raw);}return out;}
+function keepSharedLines(oldText,newText){var keep=sharedHead(oldText);if(!keep.length||sharedHead(newText).length)return newText;return keep.join('\n')+'\n'+String(newText||'');}
 function legacyMenuText(menu){
   return menu.map(function(c){return '{'+c.c+'}\n'+c.items.map(function(it){return it.v?it.n+', '+it.v.map(function(x){return x[0]+' '+x[1];}).join(', '):it.n+', '+it.p;}).join('\n');}).join('\n');
 }
@@ -1394,7 +1399,7 @@ function impWire(root,h){ // h={sm,sa,pv,mp,isDefaultMenu}
       function apply(){
         if(!live(my))return;
         fillMetadata();
-        h.sm.value=text;h.pv();
+        h.sm.value=keepSharedLines(h.sm.value,text);h.pv();
         busy(false);b.textContent='帶入';
         var sourceUrl=impSafeUrl(s.url||c.url);
         msg('已帶入「'+esc(s.name||c.name)+'」'+r.cats.length+' 個分類、'+r.count+' 個品項（來源 '+IMP_SRC[c.src]+'）。'+(r.errors.length?'有 '+r.errors.length+' 行要手動修正（菜單框紅字）。':'')+(arr(s.warnings).length?'<br>提醒：'+arr(s.warnings).map(esc).join('；')+'<br>':'')+'請看預覽，沒問題再按「儲存店家」。'+(sourceUrl?'<br><a href="'+esc(sourceUrl)+'" target="_blank" rel="noopener noreferrer">核對原始菜單 ↗</a>':''));
@@ -1432,7 +1437,9 @@ function pageShopEdit(root,id){
       sm.classList.toggle('has-err',r.errors.length>0);
       sm.setAttribute('aria-invalid',r.errors.length?'true':'false');
       root.querySelector('#smE').innerHTML=r.errors.map(function(e){return '<li><b>第 '+e.line+' 行有問題：'+esc(e.msg)+'</b>'+esc(e.text)+'</li>';}).join('');
-      root.querySelector('#pv').innerHTML=r.count?'<p class="muted">共 '+r.cats.length+' 個分類、'+r.count+' 個品項</p>'+r.cats.map(function(c){return '<h3>'+esc(c.c)+'（'+c.items.length+'）</h3><ul>'+c.items.map(function(it){return '<li><span>'+esc(it.n)+(it.so?'<span class="stp">停售</span>':'')+'</span><b>'+money(it.p)+'</b>'+(it.g?'<span class="gl">'+it.g.map(groupLine).join('<br>')+'</span>':'')+'</li>';}).join('')+'</ul>';}).join(''):'<p class="muted">還沒有品項</p>';
+      // 全店共用的選項（加料區）在預覽最上面列一次，各品項底下不再重複
+      var sharedG=r.shared||[],ownG=function(it){return arr(it.g).filter(function(g){return sharedG.indexOf(g)<0;});};
+      root.querySelector('#pv').innerHTML=r.count?'<p class="muted">共 '+r.cats.length+' 個分類、'+r.count+' 個品項</p>'+(sharedG.length?'<p class="gl pv-shared">全店共用・'+sharedG.map(groupLine).join('<br>')+'</p>':'')+r.cats.map(function(c){return '<h3>'+esc(c.c)+'（'+c.items.length+'）</h3><ul>'+c.items.map(function(it){var og=ownG(it);return '<li><span>'+esc(it.n)+(it.so?'<span class="stp">停售</span>':'')+'</span><b>'+money(it.p)+'</b>'+(og.length?'<span class="gl">'+og.map(groupLine).join('<br>')+'</span>':'')+'</li>';}).join('')+'</ul>';}).join(''):'<p class="muted">還沒有品項</p>';
       return r;
     }
     pv();sm.addEventListener('input',pv);
@@ -1725,8 +1732,15 @@ function pageGroup(root,gid){
   function openPicker(ik,opener){
     var ref=itemIdx[ik],it=ref.it,sel=it.g.map(function(){return [];}),qn=1;
     var ov=document.createElement('div');ov.className='pk-ov';
+    function chip(o,gi,oi,plain){return '<button type="button" class="chip" data-gi="'+gi+'" data-oi="'+oi+'" aria-pressed="false"'+(plain?' aria-label="'+esc(o.n)+' 加 $'+o.add+'"':'')+'>'+esc(o.n)+(o.add&&!plain?'<span class="ad"> +$'+o.add+'</span>':'')+'</button>';}
     var gh=it.g.map(function(g,gi){
-      return '<div class="pg" data-gi="'+gi+'"><div class="pg-h"><span>'+esc(g.n)+'</span><span class="pg-tag'+(g.req?' req':'')+'">'+(g.req?'必選':'可複選')+'</span></div><div class="chips" role="group" aria-label="'+esc(g.n)+'">'+g.o.map(function(o,oi){return '<button type="button" class="chip" data-gi="'+gi+'" data-oi="'+oi+'" aria-pressed="false">'+esc(o.n)+(o.add?'<span class="ad"> +$'+o.add+'</span>':'')+'</button>';}).join('')+'</div><p class="gerr" role="alert" hidden>請選一個</p></div>';
+      // 2026-11-23 加料這類「可複選、每項都要加錢」的群組，照價錢分列（左邊 +$10、右邊品名），像店家菜單上的加料區
+      var byPrice=!g.req&&g.o.length>1&&g.o.every(function(o){return o.add>0;}),body;
+      if(byPrice){
+        var prices=[];g.o.forEach(function(o){if(prices.indexOf(o.add)<0)prices.push(o.add);});prices.sort(function(a,b){return a-b;});
+        body='<div class="pg-rows" role="group" aria-label="'+esc(g.n)+'">'+prices.map(function(p){return '<div class="pg-row"><span class="pg-price">+$'+p+'</span><div class="chips">'+g.o.map(function(o,oi){return o.add===p?chip(o,gi,oi,true):'';}).join('')+'</div></div>';}).join('')+'</div>';
+      }else body='<div class="chips" role="group" aria-label="'+esc(g.n)+'">'+g.o.map(function(o,oi){return chip(o,gi,oi,false);}).join('')+'</div>';
+      return '<div class="pg'+(byPrice?' pg-addon':'')+'" data-gi="'+gi+'"><div class="pg-h"><span>'+esc(g.n)+'</span><span class="pg-tag'+(g.req?' req':'')+'">'+(g.req?'必選':'可複選')+'</span></div>'+body+'<p class="gerr" role="alert" hidden>請選一個</p></div>';
     }).join('');
     ov.innerHTML='<div class="pk" role="dialog" aria-modal="true" aria-labelledby="pkT"><div class="pk-h"><div><h2 id="pkT">'+esc(it.n)+'</h2><p class="muted">底價 $'+it.p+'</p></div><button type="button" class="pk-x" data-x aria-label="關閉">'+I('x')+'</button></div><div class="pk-b">'+gh+'<div class="pg"><div class="pg-h"><span>備註</span><span class="pg-tag">選填</span></div><input class="pk-note" type="text" maxlength="40" placeholder="例如 不要蔥、分開裝" aria-label="備註" autocomplete="off"></div><div class="pk-q"><span class="pg-h" style="margin:0">數量</span><span class="qctl"><button type="button" class="q-btn" data-q="-" aria-label="減少數量">'+I('minus')+'</button><b id="pkN">1</b><button type="button" class="q-btn plus" data-q="+" aria-label="增加數量">'+I('plus')+'</button></span></div></div><div class="pk-f"><button type="button" class="submit" data-ok id="pkOk"></button><button type="button" class="btn" data-x>取消</button></div></div>';
     var prevOverflow=document.body.style.overflow;
@@ -1776,23 +1790,23 @@ function pageGroup(root,gid){
       }
     });
     paint();
-    var f1=ov.querySelector('.chip')||ov.querySelector('.pk-note');if(f1)f1.focus();
+    // 2026-11-23 沒有選項的品項不再自動點進備註框（現在點方格任何地方都會開這個視窗，手機每次跳鍵盤很煩），改把焦點放在視窗本身
+    var pkEl=ov.querySelector('.pk');pkEl.setAttribute('tabindex','-1');
+    var f1=ov.querySelector('.chip')||pkEl;f1.focus({preventScroll:true});
   }
 
   function wire(){
     menuEl=$('#menu');linesEl=$('#lines');
     var tabsEl=$('#tabs'),cartEl=$('#cart'),bar=$('#bar'),uname=$('#uname');
     menuEl.addEventListener('click',function(e){
-      var o=e.target.closest('[data-open]'),a=e.target.closest('[data-add]');
-      // 點品項方格的空白處（價格、留白）＝按「＋」（使用者 2026-11-18：不一定要點＋才能購買）；品名照舊開選項視窗。
-      if(!o&&!a){var card=e.target.closest('.item[data-ik]');if(card&&!e.target.closest('a,button,input,select,textarea,label'))a=card.querySelector('[data-add]');}
-      if(!o&&!a)return;
-      var btn=o||a,ik=btn.getAttribute(o?'data-open':'data-add');
+      // 2026-11-23 使用者：點品項方格任何地方（品名、價格、留白、＋）都開點餐視窗（加料、備註、數量），不再按＋直接加入
+      var card=e.target.closest('.item[data-ik]');
+      if(!card||e.target.closest('a,input,select,textarea,label'))return;
+      var btn=e.target.closest('[data-open],[data-add]')||card.querySelector('[data-add]'),ik=card.getAttribute('data-ik');
       if(groupClosed(group)){toast('這個團已截止',true);return;}
       if(!mayJoinGroup(group)){toast('你尚未列入本團參加名單',true);return;}
       var ref=itemIdx[ik],it=ref.it;
       if(sold(ik)){toast('「'+it.n+'」已停售',true);return;}
-      if(a&&!it.g.length){addLine({ik:ik,cat:ref.cat,item:it.n,base:it.p,options:[],note:'',qty:1});update();$('#cartErr').hidden=true;toast('已加入「'+it.n+'」');return;}
       openPicker(ik,btn);
     });
     linesEl.addEventListener('click',function(e){
@@ -2255,19 +2269,20 @@ function route(){
     else app.innerHTML='<div class="page">'+emptyBox('找不到這一頁。','<br><a class="btn primary" href="#/">回首頁</a>')+'</div>';
   }catch(e){app.innerHTML='<div class="page">'+emptyBox('頁面暫時無法開啟，請重新整理。','<br><a class="btn primary" href="#/">回首頁</a>')+'</div>';}
 }
-window.LunchApp={ask:ask,memberAvSlot:memberAvSlot,collectionReceiver:collectionReceiver,firebaseConfig:FIREBASE_CONFIG,initFirebase:FbDB.init,firebaseReady:FbDB.init,setRouteGuard:function(fn){routeGuard=fn;},DB:DB,LS:LS,K:K,parseMenu:parseMenu,menuOf:menuOf,settlement:settlement,orderTotal:orderTotal,lineTotal:lineTotal,lineLabel:lineLabel,liveOrders:liveOrders,peopleCount:peopleCount,groupClosed:groupClosed,now:now,esc:esc,toast:toast,dismissInfoToast:dismissInfoToast,fail:fail,shareUrl:shareUrl,parseHash:parseHash,getUser:function(){return currentUser;},setUser:function(user){currentUser=user||null;window.dispatchEvent(new CustomEvent('lunch:userchange',{detail:currentUser}));route();},registerRoute:function(name,handler){extraRoutes[name]=handler;},route:route};
+window.LunchApp={ask:ask,keepSharedLines:keepSharedLines,memberAvSlot:memberAvSlot,collectionReceiver:collectionReceiver,firebaseConfig:FIREBASE_CONFIG,initFirebase:FbDB.init,firebaseReady:FbDB.init,setRouteGuard:function(fn){routeGuard=fn;},DB:DB,LS:LS,K:K,parseMenu:parseMenu,menuOf:menuOf,settlement:settlement,orderTotal:orderTotal,lineTotal:lineTotal,lineLabel:lineLabel,liveOrders:liveOrders,peopleCount:peopleCount,groupClosed:groupClosed,now:now,esc:esc,toast:toast,dismissInfoToast:dismissInfoToast,fail:fail,shareUrl:shareUrl,parseHash:parseHash,getUser:function(){return currentUser;},setUser:function(user){currentUser=user||null;window.dispatchEvent(new CustomEvent('lunch:userchange',{detail:currentUser}));route();},registerRoute:function(name,handler){extraRoutes[name]=handler;},route:route};
 window.addEventListener('hashchange',route);
 window.__lunch={parseMenu:parseMenu,menuOf:menuOf,legacyMenuText:legacyMenuText,demo23Text:demo23Text,DEMO_MENU:DEMO_MENU,DEMO_TEA_TEXT:DEMO_TEA_TEXT};
 if(!FIREBASE_CONFIG)ensureSeed();
 if(!window.LUNCH_DEFER_BOOT)route();
 })();
 </script>
-<script src="menu-vision.js?v=20261123hours1"></script>
+<script src="menu-vision.js?v=20261123tp1"></script>
 <script src="datetime-picker.js?v=20261119click1"></script>
 <script src="hours-editor.js?v=20261119refined3"></script>
 <script src="hours-vision.js?v=20261123hours1"></script>
+<script src="toppings.js?v=20261123tp1"></script>
 <script src="happy-rain.js?v=20261119faces1"></script>
-<script src="interface.js?v=20261119collection1"></script>
+<script src="interface.js?v=20261123tp1"></script>
 <script src="participants.js?v=20261119mobile1"></script>
 <script src="pay.js?v=20261120mobile1"></script>
 <script src="mascot.js?v=20261119refined3"></script>

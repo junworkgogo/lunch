@@ -188,7 +188,8 @@ function mount(form){
     if(old&&old!=='{主食}\n範例便當, 80\n範例麵, 50\n  尺寸*: 小碗, 大碗+20'){
       if(!window.confirm('要以圖片辨識結果取代目前編輯中的菜單嗎？尚未儲存，不會立即覆蓋資料庫。'))return;
     }
-    sm.value=recognized.text;
+    // 2026-11-23 保留加料區（第一個分類前的全店共用選項）
+    sm.value=window.LunchApp&&window.LunchApp.keepSharedLines?window.LunchApp.keepSharedLines(sm.value,recognized.text):recognized.text;
     sm.dispatchEvent(new Event('input',{bubbles:true}));
     result.hidden=true;
     status(box,'✓ 已帶入 '+recognized.count+' 個品項，請檢查預覽，再按「儲存店家」');

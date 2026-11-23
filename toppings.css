@@ -1,0 +1,35 @@
+/* 2026-11-23 加料區：店家編輯頁的「加料區（全店共用）」＋點餐視窗裡照價錢分列的加料（toppings.js、index.html openPicker） */
+
+/* ---- 店家編輯頁 ---- */
+.tp-box { padding: 16px; border: 1px solid #E6E9EE; border-radius: 16px; background: #F7F8FA; display: grid; gap: 10px; min-width: 0; }
+.tp-box h3 { font-size: 17px; font-weight: 900; line-height: 1.5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tp-box .tp-tag { font-size: 11.5px; font-weight: 700; line-height: 1; padding: 4px 8px; border-radius: 999px; background: #E9EBEF; color: #394150; }
+.tp-box .tp-sub { font-size: 13px; color: #4B5563; line-height: 1.7; }
+.tp-box .tp-rows { display: grid; gap: 8px; }
+.tp-box .tp-rows:empty { display: none; }
+.tp-box .tp-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 8px; padding: 10px; background: #fff; border: 1px solid #E6E9EE; border-radius: 12px; }
+.tp-box .tp-price-l { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #394150; white-space: nowrap; min-height: 36px; }
+.tp-box .tp-price { width: 64px; min-height: 36px; padding: 4px 8px; border: 1px solid #8B909A; border-radius: 10px; font: inherit; font-size: 14px; background: #fff; }
+.tp-box .tp-names-l { min-width: 0; display: block; }
+.tp-box .tp-names { display: block; width: 100%; min-height: 36px; padding: 7px 10px; border: 1px solid #8B909A; border-radius: 10px; font: inherit; font-size: 14px; line-height: 1.5; resize: none; overflow: hidden; background: #fff; }
+.tp-box .tp-del { min-height: 36px; }
+.tp-box .tp-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tp-box .tp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tp-box .tp-status { font-size: 12.5px; line-height: 1.6; color: #6B6E78; min-height: 0; }
+.tp-box .tp-status:empty { display: none; }
+.tp-box .tp-status.tp-bad { color: var(--err, #8f4500); }
+.pv-shared { display: block; margin: 8px 0 4px; }
+@media (max-width: 520px) {
+  /* 手機：加價＋刪除放第一行，品名獨佔第二行 */
+  .tp-box .tp-row { grid-template-columns: auto 1fr; }
+  .tp-box .tp-names-l { grid-column: 1 / -1; grid-row: 2; }
+  .tp-box .tp-del { justify-self: end; }
+}
+
+/* ---- 點餐視窗：加料照價錢分列（左邊 +$10，右邊品名） ---- */
+.pk .pg-rows { display: grid; gap: 0; border: 1px solid #ECEDF0; border-radius: 14px; overflow: hidden; }
+.pk .pg-row { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; }
+.pk .pg-row + .pg-row { border-top: 1px solid #ECEDF0; }
+.pk .pg-price { font-weight: 800; font-size: 15px; color: #394150; line-height: 30px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pk .pg-row .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pk:focus { outline: none; }
