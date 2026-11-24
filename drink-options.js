@@ -77,13 +77,13 @@
     box.className = 'drink-options';
     box.setAttribute('aria-labelledby', 'drink-options-title');
     box.innerHTML = '<h3 id="drink-options-title">甜度／冰量／溫度 <span>全店共用</span></h3>' +
-      '<p id="drink-options-hint">用頓號分隔選項，留空可移除該組。店家有提供冷熱選擇時再填溫度。品項的固定糖冰或限冷、限熱，可在菜單文字裡為該品項設定同名選項。</p>' +
+      '<p id="drink-options-hint">用頓號分隔選項，留空可移除該組。店家有提供冷熱選擇時，勾選可供應的溫度。品項的固定糖冰或限冷、限熱，可在菜單文字裡為該品項設定同名選項。</p>' +
       '<div class="drink-options-fields">' + groups.map(function (group) {
         var id = 'drink-options-' + group.id;
         var placeholder = group.placeholder || '例如 ' + group.template;
         return '<div class="drink-options-field">' +
-          '<label for="' + id + '">' + group.name + '</label>' +
-          '<input type="text" id="' + id + '" aria-describedby="drink-options-hint" autocomplete="off" placeholder="' + placeholder + '">' +
+          (group.id === 'temperature' ? '<span class="drink-temperature-label" id="' + id + '-label">溫度</span><input type="hidden" id="' + id + '"><div class="drink-temperature-choices" role="group" aria-labelledby="' + id + '-label"><button type="button" data-temperature="冷" aria-pressed="false">冷</button><button type="button" data-temperature="熱" aria-pressed="false">熱</button></div>' :
+          '<label for="' + id + '">' + group.name + '</label><input type="text" id="' + id + '" aria-describedby="drink-options-hint" autocomplete="off" placeholder="' + placeholder + '">') +
           '<label class="drink-options-check"><input type="checkbox" id="' + id + '-required"> ' + group.name + '必選</label>' +
           '<p class="drink-options-warning" id="' + id + '-warning" role="status" hidden></p></div>';
       }).join('') + '</div>' +
@@ -110,6 +110,19 @@
         splitChoices(field.input.value).length === 0;
     }
 
+    function syncTemperature(field) {
+      if(field.group.id !== 'temperature')return;
+      var values=splitChoices(field.input.value),known=field.temperatureChoices||(field.temperatureChoices={});
+      values.forEach(function(value){var name=value.replace(/\s*\+\s*\$?\s*\d+\s*元?$/, '').trim();if(name==='冷'||name==='熱')known[name]=value;});
+      var unknown=values.some(function(value){return !/^(冷|熱)(?:\s*\+\s*\$?\s*\d+\s*元?)?$/.test(value);});
+      box.querySelectorAll('[data-temperature]').forEach(function(button){
+        var name=button.getAttribute('data-temperature');
+        button.disabled=field.input.disabled||field.input.readOnly||unknown;
+        button.setAttribute('aria-pressed',String(values.some(function(value){return value===name||value===known[name];})));
+      });
+      if(unknown&&!field.warning.textContent){field.warning.textContent='原有溫度包含其他設定，已保留原值，請由菜單來源確認。';field.warning.hidden=false;}
+    }
+
     function sync() {
       var lines = menu.value.split(/(\r?\n)/);
       fields.forEach(function (field) {
@@ -129,9 +142,11 @@
         field.warning.textContent = message;
         field.warning.hidden = !message;
         field.input.setAttribute('aria-describedby', 'drink-options-hint' + (message ? ' ' + field.warning.id : ''));
-        if (writing.indexOf(field) !== -1) return;
+        if (writing.indexOf(field) !== -1) { syncTemperature(field); return; }
+        if(field.group.id==='temperature')field.temperatureChoices={};
         field.input.value = current ? splitChoices(current.suffix.slice(1)).join('、') : '';
         field.required.checked = !current || current.required;
+        syncTemperature(field);
       });
       example.disabled = !fields.some(canFillTemplate);
     }
@@ -154,6 +169,15 @@
       function commitChoices() {
         apply(writeShared(menu.value, field.group, splitChoices(field.input.value), field.required.checked), [field]);
       }
+      if(field.group.id==='temperature')box.querySelectorAll('[data-temperature]').forEach(function(button){
+        button.addEventListener('click',function(){
+          if(button.disabled)return;
+          var name=button.getAttribute('data-temperature'),choice=(field.temperatureChoices||{})[name]||name;
+          var values=splitChoices(field.input.value),at=values.indexOf(choice);
+          if(at>=0)values.splice(at,1);else values.push(choice);
+          field.input.value=values.join('、');commitChoices();syncTemperature(field);
+        });
+      });
       field.input.addEventListener('input', function (event) {
         if (!event.isComposing) commitChoices();
       });
