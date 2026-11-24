@@ -498,6 +498,7 @@ a{color:#394150}
 <link rel="stylesheet" href="order-assignment.css?v=20261124avatar1">
 <link rel="stylesheet" href="mobile-nav.css?v=20261120mobile1">
 <link rel="stylesheet" href="mascot.css?v=20261124size1">
+<link rel="stylesheet" href="my-groups.css?v=20261124mygroups1">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
 <script src="group-access.js?v=20261119refined3"></script>
@@ -988,8 +989,14 @@ function copyText(text){
 function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+'</div>';}
 
 /* ---------- 首頁 ---------- */
+function homeHero(){
+  return '<section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a></div></section>';
+}
+function homeTabs(view){
+  return '<nav class="home-switch home-switch-three" aria-label="團購分類"><a href="#/"'+(view==='active'?' aria-current="page"':'')+'>進行中</a><a href="#/?view=ended"'+(view==='ended'?' aria-current="page"':'')+'>已結束</a><a href="#/my-groups"'+(view==='mine'?' aria-current="page"':'')+'>我開的團</a></nav>';
+}
 function pageHome(root,history){
-  root.innerHTML='<div class="page"><section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a></div></section><section class="home-groups"><nav class="home-switch" aria-label="團購狀態"><a href="#/"'+(!history?' aria-current="page"':'')+'>進行中</a><a href="#/?view=ended"'+(history?' aria-current="page"':'')+'>已結束</a></nav><div class="grid" id="homeGroups" aria-label="'+(history?'已結束':'進行中')+'的團購"></div></section></div>';
+  root.innerHTML='<div class="page">'+homeHero()+'<section class="home-groups">'+homeTabs(history?'ended':'active')+'<div class="grid" id="homeGroups" aria-label="'+(history?'已結束':'進行中')+'的團購"></div></section></div>';
   var groups={},orders={},orderOffs={},historyLimit=25,groupOff=null,activeOff=null,recentGroups={},activeGroups={},disposed=false,historyWatch=0;
   var indexed=FIREBASE_CONFIG&&!(window.LunchGroupAccess.adminSeesPrivate&&adminUser());
   var visibleGroups=Object.create(null),visibleOffs=Object.create(null);
@@ -1069,7 +1076,7 @@ function pageHome(root,history){
     draw();
   }
   root.querySelector('.home-switch').addEventListener('click',function(e){
-    var link=e.target.closest('a');if(!link||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();
+    var link=e.target.closest('a');if(!link||link.getAttribute('href')==='#/my-groups'||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();
     var ended=link.getAttribute('href').indexOf('view=ended')>=0;if(ended===history)return;history=ended;
     root.querySelectorAll('.home-switch a').forEach(function(a){if(a===link)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
     root.querySelector('#homeGroups').setAttribute('aria-label',(history?'已結束':'進行中')+'的團購');
@@ -2506,11 +2513,11 @@ function route(){
     else app.innerHTML='<div class="page">'+emptyBox('找不到這一頁。','<br><a class="btn primary" href="#/">回首頁</a>')+'</div>';
   }catch(e){app.innerHTML='<div class="page">'+emptyBox('頁面暫時無法開啟，請重新整理。','<br><a class="btn primary" href="#/">回首頁</a>')+'</div>';}
 }
-window.LunchApp={arr:arr,optionGroupKey:optionGroupKey,lineUnit:lineUnit,lineOpts:lineOpts,isSoldOut:isSoldOut,money:money,ask:ask,keepSharedLines:keepSharedLines,memberAvSlot:memberAvSlot,collectionReceiver:collectionReceiver,firebaseConfig:FIREBASE_CONFIG,initFirebase:FbDB.init,firebaseReady:FbDB.init,setRouteGuard:function(fn){routeGuard=fn;},DB:DB,LS:LS,K:K,parseMenu:parseMenu,menuOf:menuOf,settlement:settlement,orderTotal:orderTotal,lineTotal:lineTotal,lineLabel:lineLabel,liveOrders:liveOrders,peopleCount:peopleCount,groupClosed:groupClosed,now:now,esc:esc,toast:toast,dismissInfoToast:dismissInfoToast,fail:fail,shareUrl:shareUrl,parseHash:parseHash,getUser:function(){return currentUser;},setUser:function(user){currentUser=user||null;window.dispatchEvent(new CustomEvent('lunch:userchange',{detail:currentUser}));route();},registerRoute:function(name,handler){extraRoutes[name]=handler;},route:route};
+window.LunchApp={homeHero:homeHero,homeTabs:homeTabs,arr:arr,optionGroupKey:optionGroupKey,lineUnit:lineUnit,lineOpts:lineOpts,isSoldOut:isSoldOut,money:money,ask:ask,keepSharedLines:keepSharedLines,memberAvSlot:memberAvSlot,collectionReceiver:collectionReceiver,firebaseConfig:FIREBASE_CONFIG,initFirebase:FbDB.init,firebaseReady:FbDB.init,setRouteGuard:function(fn){routeGuard=fn;},DB:DB,LS:LS,K:K,parseMenu:parseMenu,menuOf:menuOf,settlement:settlement,orderTotal:orderTotal,lineTotal:lineTotal,lineLabel:lineLabel,liveOrders:liveOrders,peopleCount:peopleCount,groupClosed:groupClosed,now:now,esc:esc,toast:toast,dismissInfoToast:dismissInfoToast,fail:fail,shareUrl:shareUrl,parseHash:parseHash,getUser:function(){return currentUser;},setUser:function(user){currentUser=user||null;window.dispatchEvent(new CustomEvent('lunch:userchange',{detail:currentUser}));route();},registerRoute:function(name,handler){extraRoutes[name]=handler;},route:route};
 window.addEventListener('hashchange',route);
 window.__lunch={parseMenu:parseMenu,menuOf:menuOf,legacyMenuText:legacyMenuText,demo23Text:demo23Text,DEMO_MENU:DEMO_MENU,DEMO_TEA_TEXT:DEMO_TEA_TEXT};
 if(!FIREBASE_CONFIG)ensureSeed();
-if(!window.LUNCH_DEFER_BOOT)route();
+if(!window.LUNCH_DEFER_BOOT&&parseHash().parts[0]!=='my-groups')route();
 })();
 </script>
 <script src="menu-vision.js?v=20261124options1"></script>
@@ -2528,7 +2535,8 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>
 <script src="identity.js?v=20261119refined3"></script>
+<script src="my-groups.js?v=20261124mygroups1"></script>
 <script src="members.js?v=20261124assignment1"></script>
-<script src="mobile-nav.js?v=20261120mobile1"></script>
+<script src="mobile-nav.js?v=20261124mygroups1"></script>
 </body>
 </html>

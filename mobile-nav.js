@@ -73,7 +73,7 @@
         new URLSearchParams(location.hash.split('?')[1]).get('next') === '#/members/orders';
       const selected = orders || pendingOrders ? 'orders' :
         area === 'shops' ? 'shops' :
-        ['', 'g', 'new', 'history'].includes(area) ? 'home' : '';
+        ['', 'g', 'new', 'history', 'my-groups'].includes(area) ? 'home' : '';
       links.forEach((link, key) => {
         if (key === selected) link.setAttribute('aria-current', 'page');
         else link.removeAttribute('aria-current');
