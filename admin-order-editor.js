@@ -45,10 +45,6 @@
     return groups;
   }
 
-  function sameItem(ref, item) {
-    return ref && item && ref.cat === item.cat && ref.item.n === item.item;
-  }
-
   function staysOriginal(row) {
     return row.original && row.ref === row.originalRef;
   }
@@ -151,7 +147,9 @@
     var entries = menuEntries(group);
     var available = entries.filter(function (entry) { return !entry.sold; });
     var rows = originals.map(function (item) {
-      var matches = entries.filter(function (entry) { return sameItem(entry, item); });
+      var names = entries.filter(function (entry) { return entry.item.n === item.item; });
+      var exact = names.filter(function (entry) { return entry.cat === item.cat; });
+      var matches = exact.length ? exact : names;
       return makeRow(item, matches.length === 1 ? matches[0] : null, matches.length > 1);
     });
     var originalTotal = A.orderTotal(order);

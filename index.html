@@ -495,6 +495,7 @@ a{color:#394150}
 <link rel="stylesheet" href="refined.css?v=20261124options1">
 <link rel="stylesheet" href="members-orders-tabs.css?v=20261124order1">
 <link rel="stylesheet" href="admin-order-editor.css?v=20261124itemcards1">
+<link rel="stylesheet" href="order-assignment.css?v=20261124avatar1">
 <link rel="stylesheet" href="mobile-nav.css?v=20261120mobile1">
 <link rel="stylesheet" href="mascot.css?v=20261124size1">
 <script src="members-config.js?v=20261117c"></script>
@@ -753,6 +754,10 @@ function optionGroupKey(name){
   if(/^(溫度|冷熱|飲品溫度|飲料溫度|冷[／/]熱)$/.test(n))return '溫度';
   return String(name||'');
 }
+function menuCategoryLabel(name){
+  var value=String(name==null?'':name).trim();
+  return !value||/^_*(undefined|null)_*$/i.test(value)?'其他':value;
+}
 function parseMenu(text){
   // 2026-11-23 第一個分類之前的縮排選項行＝全店共用（店家編輯頁的「加料區」寫在這裡），套到每個品項；品項或分類有同名群組時以它們為準
   var cats=[],errors=[],cur=null,curItem=null,count=0,shared=[];
@@ -771,7 +776,7 @@ function parseMenu(text){
     if(s.charAt(0)==='{'){
       var m=/^\{\s*([^{}]*?)\s*\}$/.exec(s);
       if(!m||!m[1]){bad('分類要寫成 {分類名稱}，例如 {麵食}');return;}
-      cur={c:m[1],items:[],_cg:[]};cats.push(cur);curItem=null;return;
+      cur={c:menuCategoryLabel(m[1]),items:[],_cg:[]};cats.push(cur);curItem=null;return;
     }
     var parts=s.split(',').map(function(x){return x.trim();});
     if(!parts[0]){bad('這行少了品名');return;}
@@ -1600,8 +1605,8 @@ function pageGroup(root,gid){
     built=true;menu=menuOf(group.shop);itemIdx={};cart=[];builtSig=menuSig(group.shop&&group.shop.menu);menuStale=false;
     var s=group.shop,html='',tabs='';
     menu.forEach(function(cat,ci){
-      tabs+='<button type="button" class="tab" data-t="'+ci+'">'+esc(cat.c)+'</button>';
-      html+='<section class="cat" id="cat-'+ci+'"><h2>'+esc(cat.c)+'<small>'+cat.items.length+' 項</small></h2><div class="items">';
+      tabs+='<button type="button" class="tab" data-t="'+ci+'">'+esc(menuCategoryLabel(cat.c))+'</button>';
+      html+='<section class="cat" id="cat-'+ci+'"><h2>'+esc(menuCategoryLabel(cat.c))+'<small>'+cat.items.length+' 項</small></h2><div class="items">';
       cat.items.forEach(function(it,ii){
         var ik=ci+'-'+ii;itemIdx[ik]={ci:ci,cat:cat.c,it:it};
         html+='<div class="item" data-ik="'+ik+'"><div class="row"><button type="button" class="itemhit" data-open="'+ik+'"><span class="iname">'+esc(it.n)+'</span><span class="item-count" hidden></span><span class="badge off soldtag">停售</span>'+(specialNote(it)?'<span class="gnames">'+esc(specialNote(it))+'</span>':'')+'</button><span class="price">$'+it.p+'</span><button type="button" class="q-btn plus" data-add="'+ik+'" aria-label="加入 '+esc(it.n)+'">'+I('plus')+'</button></div></div>';
@@ -1649,7 +1654,11 @@ function pageGroup(root,gid){
     editingId=o?o.id:null;$('#editing').hidden=!o;if(o)$('#editWho').textContent=o.name;
     $('#submit').textContent=o?'更新訂單':'送出訂單';
   }
-  function findIk(cat,name){for(var k in itemIdx){if(itemIdx[k].cat===cat&&itemIdx[k].it.n===name)return k;}return null;}
+  function findIk(cat,name){
+    var exact=[],byName=[];
+    for(var k in itemIdx){var ref=itemIdx[k];if(ref.it.n!==name)continue;byName.push(k);if(ref.cat===cat)exact.push(k);}
+    var matches=exact.length?exact:byName;return matches.length===1?matches[0]:null;
+  }
   function loadOrder(o){
     setEditing(o);$('#uname').value=currentUser?(currentUser.name||currentUser.displayName||o.name):o.name;if(window.LunchTraditional)$('#uname').value=window.LunchTraditional($('#uname').value);
     cart=arr(o.items).map(function(it,i){
@@ -2513,8 +2522,8 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="happy-rain.js?v=20261119faces1"></script>
 <script src="interface.js?v=20261123tp1"></script>
 <script src="participants.js?v=20261119mobile1"></script>
-<script src="order-assignment.js?v=20261124assignment1"></script>
-<script src="admin-order-editor.js?v=20261124itemcards1"></script>
+<script src="order-assignment.js?v=20261124avatar1"></script>
+<script src="admin-order-editor.js?v=20261124category1"></script>
 <script src="pay.js?v=20261124assignment1"></script>
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>

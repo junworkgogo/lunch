@@ -22,6 +22,18 @@
     return profile.name + (profile.department ? '（' + profile.department + '）' : '');
   }
 
+  function memberCard(entry) {
+    var uid = entry[0], profile = entry[1];
+    var memberAvatars = window.LunchMembers;
+    var fallback = memberAvatars && memberAvatars.avatarHtml ?
+      '<span class="order-transfer-avatar-default">' + memberAvatars.avatarHtml({ name: profile.name }) + '</span>' : '';
+    return '<button type="button" class="order-transfer-person" value="' + A.esc(uid) + '" aria-pressed="false">' +
+      '<span class="order-transfer-avatar" aria-hidden="true">' + A.memberAvSlot(uid, profile.name, 'order-transfer-avatar-slot') +
+      fallback + '<span class="order-transfer-check">✓</span></span>' +
+      '<span class="order-transfer-name">' + A.esc(profile.name) + '</span>' +
+      '<span class="order-transfer-department">' + A.esc(profile.department) + '</span></button>';
+  }
+
   function choose(members, current) {
     return new Promise(function (resolve) {
       var overlay = document.createElement('div');
@@ -29,13 +41,15 @@
       overlay.className = 'modal-ov';
       overlay.innerHTML = '<form class="modal order-transfer-dialog" role="dialog" aria-modal="true" aria-labelledby="orderTransferTitle">' +
         '<h2 id="orderTransferTitle">轉讓訂單</h2><p>目前訂購人為 ' + A.esc(displayName(current)) + '。</p>' +
-        '<label for="orderTransferMember">新訂購人</label><select id="orderTransferMember" required><option value="">選擇會員</option>' +
-        members.map(function (entry) {
-          return '<option value="' + A.esc(entry[0]) + '">' + A.esc(displayName(entry[1])) + '</option>';
-        }).join('') + '</select><div class="actions"><button type="submit" class="btn primary" disabled>下一步</button>' +
-        '<button type="button" class="btn" data-transfer-cancel>取消</button></div></form>';
-      var form = overlay.querySelector('form'), select = form.querySelector('select'), next = form.querySelector('button[type="submit"]');
+        '<h3 id="orderTransferChoices">選擇新訂購人</h3><div class="order-transfer-options" role="group" aria-labelledby="orderTransferChoices">' +
+        members.map(memberCard).join('') + '</div><div class="modal-actions">' +
+        '<button type="button" class="btn" data-transfer-cancel>取消</button>' +
+        '<button type="submit" class="btn primary" disabled>下一步</button></div></form>';
+      var form = overlay.querySelector('form'), next = form.querySelector('button[type="submit"]');
+      var choices = form.querySelector('.order-transfer-options');
+      var first = choices.querySelector('.order-transfer-person');
       var cancel = form.querySelector('[data-transfer-cancel]');
+      var selected = null;
       var overflow = document.body.style.overflow;
       document.body.appendChild(overlay);
       document.body.style.overflow = 'hidden';
@@ -53,16 +67,26 @@
       function key(event) {
         if (event.key === 'Escape') { event.preventDefault(); cancelChoice(); }
         if (event.key !== 'Tab') return;
-        if (event.shiftKey && document.activeElement === select) { event.preventDefault(); cancel.focus(); }
-        else if (!event.shiftKey && document.activeElement === cancel) { event.preventDefault(); select.focus(); }
+        var last = next.disabled ? cancel : next;
+        if (!form.contains(document.activeElement) || (event.shiftKey ? document.activeElement === first : document.activeElement === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        }
       }
       document.addEventListener('keydown', key);
       window.addEventListener('hashchange', cancelChoice);
       window.addEventListener('lunch:userchange', cancelChoice);
-      select.addEventListener('change', function () { next.disabled = !select.value; });
-      form.addEventListener('submit', function (event) { event.preventDefault(); if (select.value) finish(select.value); });
+      choices.addEventListener('click', function (event) {
+        var card = event.target.closest('.order-transfer-person');
+        if (!card || card === selected) return;
+        if (selected) selected.setAttribute('aria-pressed', 'false');
+        selected = card;
+        selected.setAttribute('aria-pressed', 'true');
+        next.disabled = false;
+      });
+      form.addEventListener('submit', function (event) { event.preventDefault(); if (selected) finish(selected.value); });
       cancel.addEventListener('click', cancelChoice);
-      select.focus();
+      first.focus();
     });
   }
 
