@@ -217,6 +217,16 @@
 
     menu.addEventListener('input', sync);
     sync();
+
+    // 2026-11-24 只有「飲品」分類的店家才顯示糖冰溫度框；切回餐點只藏起來，菜單文字不動
+    function syncCategory() {
+      var picked = form.querySelector('input[name="shopCategory"]:checked');
+      box.hidden = !!picked && picked.value !== 'drink';
+    }
+    form.addEventListener('change', function (event) {
+      if (event.target && event.target.name === 'shopCategory') syncCategory();
+    });
+    syncCategory();
   }
 
   var app = document.getElementById('app');

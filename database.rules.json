@@ -339,6 +339,31 @@
         }
       }
     },
+    "ownerGroupIds": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".indexOn": [
+          "createdAt",
+          "deadline"
+        ],
+        "$gid": {
+          ".write": "auth != null && (((root.child('administration').child('ownerUid').val() === auth.uid) || root.child('roles').child(auth.uid).val() === 'admin') || root.child('groups').child($gid).child('ownerUserId').val() === auth.uid || (!root.child('groups').child($gid).exists() && newData.parent().parent().parent().child('groups').child($gid).child('ownerUserId').val() === auth.uid)) && (newData.exists() ? (newData.parent().parent().parent().child('groups').child($gid).exists() && newData.parent().parent().parent().child('groups').child($gid).child('deleted').val() !== true && newData.parent().parent().parent().child('groups').child($gid).child('ownerUserId').val() === $uid) : (!(newData.parent().parent().parent().child('groups').child($gid).exists() && newData.parent().parent().parent().child('groups').child($gid).child('deleted').val() !== true && newData.parent().parent().parent().child('groups').child($gid).child('ownerUserId').val() === $uid)))",
+          ".validate": "newData.hasChildren(['createdAt','deadline','revision']) && newData.child('createdAt').val() === (newData.parent().parent().parent().child('groups').child($gid).child('createdAt').isNumber() ? newData.parent().parent().parent().child('groups').child($gid).child('createdAt').val() : 0) && newData.child('deadline').val() === newData.parent().parent().parent().child('groups').child($gid).child('deadline').val() && newData.child('revision').val() === newData.parent().parent().parent().child('groups').child($gid).child('accessRevision').val()",
+          "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "deadline": {
+            ".validate": "newData.isNumber()"
+          },
+          "revision": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
     "identityRegistryState": {
       "ready": {
         ".read": "auth != null",

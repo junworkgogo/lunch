@@ -489,19 +489,19 @@ a{color:#394150}
 <link rel="stylesheet" href="glass.css?v=20261119refined3">
 <link rel="stylesheet" href="hours-editor.css?v=20261123hours1">
 <link rel="stylesheet" href="toppings.css?v=20261123tp1">
-<link rel="stylesheet" href="drink-options.css?v=20261124options3">
+<link rel="stylesheet" href="drink-options.css?v=20261124five1">
 <link rel="stylesheet" href="account-tabs.css?v=20261119refined3">
 <link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
 <link rel="stylesheet" href="refined.css?v=20261124options1">
 <link rel="stylesheet" href="members-orders-tabs.css?v=20261124order1">
-<link rel="stylesheet" href="admin-order-editor.css?v=20261124itemcards1">
-<link rel="stylesheet" href="order-assignment.css?v=20261124avatar1">
+<link rel="stylesheet" href="admin-order-editor.css?v=20261124five1">
+<link rel="stylesheet" href="order-assignment.css?v=20261124five1">
 <link rel="stylesheet" href="mobile-nav.css?v=20261120mobile1">
 <link rel="stylesheet" href="mascot.css?v=20261124size1">
 <link rel="stylesheet" href="my-groups.css?v=20261124mygroups1">
 <script src="members-config.js?v=20261117c"></script>
 <script src="traditional.js?v=20261117lazy"></script>
-<script src="group-access.js?v=20261119refined3"></script>
+<script src="group-access.js?v=20261124five1"></script>
 <link rel="stylesheet" href="datetime-picker.css?v=20261119click1">
 </head>
 <body>
@@ -607,7 +607,7 @@ function newId(){return Math.floor(now()).toString(36)+Math.random().toString(36
 // 2026-11-18 正在刪除的團：刪除當下自己頁面的監聽會失去讀取權，不跳「資料讀取失敗」
 var DELETING_GROUPS=Object.create(null);
 function deletingPath(p){var m=/^(?:groups|orders|paid)\/([^\/]+)/.exec(String(p||''));return !!(m&&DELETING_GROUPS[m[1]]);}
-function groupIndexPath(p){return /^(publicGroupIds\/[^/.#$\[\]]+|userGroupIds\/[^/.#$\[\]]+\/[^/.#$\[\]]+)$/.test(p);}
+function groupIndexPath(p){return /^(publicGroupIds\/[^/.#$\[\]]+|(?:userGroupIds|ownerGroupIds)\/[^/.#$\[\]]+\/[^/.#$\[\]]+)$/.test(p);}
 function okDelPath(p){return groupIndexPath(p)||/^(groups|orders|paid)\/[^\/.#$\[\]]+$/.test(p)||/^userOrders\/[^\/.#$\[\]]+\/[^\/.#$\[\]]+$/.test(p);}
 function needVal(v,where){if(v===null||v===undefined)throw new Error('不可寫入空值（'+where+'）；本系統只做軟刪除');}
 function cleanJSON(v){return JSON.parse(JSON.stringify(v));}
@@ -2343,7 +2343,8 @@ function pageAdmin(root,gid,q){
       if(!editActive()||!before[0]||before[0].deleted)throw new Error('目前無法修改這個團的訂單');
       var original=before[1]&&before[1][oid];
       if(!original||original.cancelled)throw new Error('這筆訂單已不存在或已取消');
-      var items=await window.LunchAdminOrderEditor.open({groupId:gid,orderId:oid,group:before[0],order:original,orders:before[1],paid:before[2]||{},receiver:collectionReceiver(before[0],oid),opener:opener});
+      var edited=await window.LunchAdminOrderEditor.open({groupId:gid,orderId:oid,group:before[0],order:original,orders:before[1],paid:before[2]||{},receiver:collectionReceiver(before[0],oid),opener:opener});
+      var items=Array.isArray(edited)?edited:edited&&edited.items,paidPlan=edited&&Array.isArray(edited.paid)&&edited.paid.length===(items||[]).length?edited.paid:null;
       if(!items||!editActive())return;
       var latest=await Promise.all([DB.get('groups/'+gid),DB.get('orders/'+gid),DB.get('paid/'+gid)]);
       if(!editActive()||sig(latest)!==sig(before))throw new Error('訂單、菜單或收款資料剛剛有更新，請重新開啟修改');
@@ -2353,15 +2354,22 @@ function pageAdmin(root,gid,q){
       var patch={};patch[base+'/items']=items;patch[base+'/total']=total;patch[base+'/updatedAt']=stamp;
       patch[base+'/lastAdminEdit']={byUid:userId(),at:stamp,fromOrderUpdatedAt:original.updatedAt};
       var next=Object.assign({},before[1]);next[oid]=Object.assign({},original,{items:items,total:total,updatedAt:stamp});
-      // Notes alone do not reset a settled bill; changed lines or amounts require rechecking payment.
-      var oldLines=arr(original.items),sameBilling=oldLines.length===items.length&&oldLines.every(function(it,i){return lineTotal(it)===lineTotal(items[i]);});
-      if(!sameBilling)patch['paid/'+gid+'/'+oid]=false;
+      // 2026-11-24 收款標記逐行：編輯視窗回傳每一行要不要保留已收（金額沒變的原品項保留，其餘改回未收）
+      var oldLines=arr(original.items),oldPaid=before[2]&&before[2][oid];
+      if(paidPlan){
+        var oldPlan=oldLines.map(function(_,i){return !!(oldPaid&&oldPaid[i]===true);});
+        if(JSON.stringify(oldPlan)!==JSON.stringify(paidPlan)){var po={};paidPlan.forEach(function(v,i){po[i]=!!v;});patch['paid/'+gid+'/'+oid]=paidPlan.some(Boolean)?po:false;}
+      }else{
+        var sameBilling=oldLines.length===items.length&&oldLines.every(function(it,i){return lineTotal(it)===lineTotal(items[i]);});
+        if(!sameBilling)patch['paid/'+gid+'/'+oid]=false;
+      }
       patch=await financeChangePatch(gid,before[0],before[1],next,patch,false);
       if(!patch||!editActive())return;
       var final=await Promise.all([DB.get('groups/'+gid),DB.get('orders/'+gid),DB.get('paid/'+gid)]);
       if(!editActive()||sig(final)!==sig(before))throw new Error('訂單或收款資料剛剛有更新，修改尚未儲存，請重新確認');
       await DB.update('',patch);
-      if(adminMounted())toast('訂單已修改');
+      var refund=edited&&Number(edited.refund)>0&&patch['paid/'+gid]!==false?Number(edited.refund):0;
+      if(adminMounted())toast(refund?'訂單已修改，多收了 '+money(refund)+'，記得退款':'訂單已修改');
     }catch(error){if(adminMounted())fail(error);}
     finally{adminEditBusy=false;}
   }
@@ -2525,17 +2533,17 @@ if(!window.LUNCH_DEFER_BOOT&&parseHash().parts[0]!=='my-groups')route();
 <script src="hours-editor.js?v=20261119refined3"></script>
 <script src="hours-vision.js?v=20261123hours1"></script>
 <script src="toppings.js?v=20261123tp1"></script>
-<script src="drink-options.js?v=20261124options3"></script>
+<script src="drink-options.js?v=20261124five1"></script>
 <script src="happy-rain.js?v=20261119faces1"></script>
 <script src="interface.js?v=20261123tp1"></script>
 <script src="participants.js?v=20261119mobile1"></script>
-<script src="order-assignment.js?v=20261124avatar1"></script>
-<script src="admin-order-editor.js?v=20261124category1"></script>
+<script src="order-assignment.js?v=20261124five1"></script>
+<script src="admin-order-editor.js?v=20261124five1"></script>
 <script src="pay.js?v=20261124assignment1"></script>
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>
 <script src="identity.js?v=20261119refined3"></script>
-<script src="my-groups.js?v=20261124mygroups1"></script>
+<script src="my-groups.js?v=20261124five1"></script>
 <script src="members.js?v=20261124assignment1"></script>
 <script src="mobile-nav.js?v=20261124mygroups1"></script>
 </body>

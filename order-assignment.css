@@ -46,6 +46,21 @@
   box-shadow: inset 0 0 0 1px var(--accent-bright);
 }
 
+.order-transfer-person.is-blocked {
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.order-transfer-person.is-blocked .order-transfer-avatar { opacity: .45; }
+.order-transfer-person.is-blocked .order-transfer-name { color: var(--muted); }
+
+.order-transfer-blocked {
+  margin-top: 2px;
+  color: var(--soft-ink);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .order-transfer-person:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;

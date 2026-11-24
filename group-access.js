@@ -54,6 +54,8 @@
         if (validKey(id) && people[id]) result['userGroupIds/' + id + '/' + gid] = row;
       });
     }
+    // 2026-11-24「我開的團」專用：開團人自己的索引，頁面只讀這裡，不再掃全部公開團
+    if (validKey(group.ownerUserId)) result['ownerGroupIds/' + group.ownerUserId + '/' + gid] = row;
     return result;
   }
 

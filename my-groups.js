@@ -84,7 +84,8 @@
     var reconcileQueued = false;
     var selectedShop = '';
     var shopScroll = 0;
-    var paths = ['publicGroupIds', 'userGroupIds/' + uid];
+    // 2026-11-24 改讀開團人專屬索引 ownerGroupIds/<uid>，不再逐一讀全部公開團的開團人
+    var paths = ['ownerGroupIds/' + uid];
 
     function mounted() {
       var activeUser = A.getUser();
@@ -168,20 +169,26 @@
       results.innerHTML = '<div class="my-groups-grid">' + Array.from(shops.values(), shopCard).join('') + '</div>';
     }
 
+    // 同一團的欄位會同時讀，所以每個讀取各自登記取消函式（entry.cancels），不能共用一格
+    function cancelEntry(entry) {
+      Array.from(entry.cancels).forEach(function (cancel) { cancel(); });
+    }
+
     function readField(entry, path) {
       return new Promise(function (resolve, reject) {
         var finished = false;
         var off;
+        function cancel() { finish(reject, new Error('READ_CANCELLED')); }
         function finish(settle, value) {
           if (finished) return;
           finished = true;
           window.clearTimeout(timer);
-          entry.cancelRead = null;
+          entry.cancels.delete(cancel);
           if (off) off();
           settle(value);
         }
         var timer = window.setTimeout(function () { finish(reject, new Error('READ_TIMEOUT')); }, readTimeout);
-        entry.cancelRead = function () { finish(reject, new Error('READ_CANCELLED')); };
+        entry.cancels.add(cancel);
         // Use a one-time listener so a stalled read can also be detached.
         off = A.DB.on(path, function (value) { finish(resolve, value); }, {
           onError: function (error) { finish(reject, error); }
@@ -193,13 +200,14 @@
     async function loadGroup(entry) {
       var base = 'groups/' + entry.id + '/';
       try {
-        var owner = await readField(entry, base + 'ownerUserId');
-        if (!current(entry) || owner !== uid) return;
+        // 開團人與 6 個欄位同時讀，不再一個接一個等
+        var values = await Promise.all(['ownerUserId'].concat(fields).map(function (field) {
+          return readField(entry, base + field);
+        }));
+        if (!current(entry) || values[0] !== uid) return;
         var data = {};
-        for (var field of fields) {
-          data[field] = await readField(entry, base + field);
-          if (!current(entry) || data.deleted) return;
-        }
+        fields.forEach(function (field, i) { data[field] = values[i + 1]; });
+        if (data.deleted) return;
         if (data.title == null && data['shop/name'] == null) return;
         entry.group = {
           id: entry.id, createdAt: Number(entry.row.createdAt) || 0, deadline: Number(entry.row.deadline) || 0,
@@ -207,6 +215,7 @@
           closed: data.closed
         };
       } catch (error) {
+        cancelEntry(entry);
         if (current(entry) && !window.LunchGroupAccess.permissionDenied(error)) {
           failRead('有部分團購暫時無法讀取，請重新整理後再試。');
         }
@@ -249,12 +258,12 @@
         if (rows.has(id) && sameRow(rows.get(id), entry.row)) return;
         entries.delete(id);
         pending.delete(entry);
-        if (entry.cancelRead) entry.cancelRead();
+        cancelEntry(entry);
         changed = true;
       });
       rows.forEach(function (row, id) {
         if (entries.has(id)) return;
-        var entry = { id: id, row: row, group: null, cancelRead: null };
+        var entry = { id: id, row: row, group: null, cancels: new Set() };
         entries.set(id, entry);
         pending.add(entry);
         queue.push(entry);
@@ -270,7 +279,7 @@
       unsubscribes.forEach(function (off) { off(); });
       unsubscribes = [];
       sources.clear();
-      entries.forEach(function (entry) { if (entry.cancelRead) entry.cancelRead(); });
+      entries.forEach(cancelEntry);
       entries.clear();
       pending.clear();
       queue = [];

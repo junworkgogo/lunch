@@ -168,7 +168,7 @@
         (!available.length ? ' disabled' : '') + '>新增品項</button></div>' +
         '<footer class="aoe-footer"><div class="aoe-totals" aria-live="polite"><span>原餐點金額 <b>' + A.money(originalTotal) + '</b></span>' +
         '<span>新餐點金額 <b data-aoe-total></b></span></div>' +
-        '<p>目前' + status + '。金額變動時會重新核對收款。</p>' +
+        '<p>目前' + status + '。只有金額改變的品項會改回未收款。</p>' +
         '<p class="aoe-error" role="alert" data-aoe-error hidden></p>' +
         '<div class="modal-actions aoe-actions"><button type="button" class="btn" data-aoe-cancel>取消</button>' +
         '<button type="button" class="btn primary" data-aoe-review>確認修改</button></div></footer>' +
@@ -384,8 +384,37 @@
           return;
         }
         var newTotal = result.reduce(function (sum, line) { return sum + A.lineTotal(line); }, 0);
-        confirm('儲存訂單修改？', '原餐點金額 ' + A.money(originalTotal) + '，新餐點金額 ' + A.money(newTotal) +
-          '。目前' + status + '，金額變動時會重新核對收款。', '儲存修改', button, function () { close(result); });
+        var info = paidPlan(result), refund = Math.max(0, info.paidBefore - newTotal);
+        var message = ['原餐點金額 ' + A.money(originalTotal) + '，新餐點金額 ' + A.money(newTotal) + '。'];
+        if (info.changed.length) message.push('金額有變、改回未收款：' + info.changed.join('、') + '。');
+        if (info.removed.length) message.push('移除了已收款的品項：' + info.removed.join('、') + '。');
+        if (info.paidBefore > 0 && (info.changed.length || info.removed.length || newTotal !== originalTotal)) {
+          var diff = info.paidBefore - newTotal;
+          message.push('原本已收 ' + A.money(info.paidBefore) + (diff > 0 ? '，比新金額多收 ' + A.money(diff) + '，記得退款。' :
+            diff < 0 ? '，還要再收 ' + A.money(-diff) + '。' : '，剛好等於新金額。'));
+        }
+        if (info.paidBefore > 0 && !info.changed.length && !info.removed.length) message.push('已收款的品項維持已收。');
+        confirm('儲存訂單修改？', message.join('\n'), '儲存修改', button, function () {
+          close({ items: result, paid: info.plan, refund: refund });
+        });
+      }
+
+      // 2026-11-24 收款標記逐行處理：沿用原品項且金額沒變的行保留已收，金額變了、新增的行改回未收
+      function paidPlan(result) {
+        var paidBefore = 0, changed = [], removed = [], used = {};
+        originals.forEach(function (item, j) { if (paid && paid[j] === true) paidBefore += A.lineTotal(item); });
+        var plan = rows.map(function (row, i) {
+          var j = row.original ? originals.indexOf(row.original) : -1;
+          if (j >= 0) used[j] = true;
+          var was = j >= 0 && !!paid && paid[j] === true;
+          var keep = was && A.lineTotal(result[i]) === A.lineTotal(originals[j]);
+          if (was && !keep) changed.push(A.lineLabel(result[i]) + ' ×' + result[i].qty);
+          return keep;
+        });
+        originals.forEach(function (item, j) {
+          if (!used[j] && paid && paid[j] === true) removed.push(A.lineLabel(item) + ' ×' + item.qty);
+        });
+        return { plan: plan, paidBefore: paidBefore, changed: changed, removed: removed };
       }
 
       function rowIndex(element) {

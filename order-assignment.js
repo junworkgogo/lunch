@@ -22,16 +22,26 @@
     return profile.name + (profile.department ? '（' + profile.department + '）' : '');
   }
 
+  // 2026-11-24 不能接這筆訂單的人（收款人、不在參加名單）直接標灰，不用等按「下一步」才被擋
+  function blockReason(group, oid, uid) {
+    if (!group) return '';
+    if (!eligible(group, uid)) return '不在參加名單';
+    if (A.collectionReceiver(group, oid) === uid) return '收款人不能接';
+    return '';
+  }
+
   function memberCard(entry) {
-    var uid = entry[0], profile = entry[1];
+    var uid = entry[0], profile = entry[1], reason = entry[2] || '';
     var memberAvatars = window.LunchMembers;
     var fallback = memberAvatars && memberAvatars.avatarHtml ?
       '<span class="order-transfer-avatar-default">' + memberAvatars.avatarHtml({ name: profile.name }) + '</span>' : '';
-    return '<button type="button" class="order-transfer-person" value="' + A.esc(uid) + '" aria-pressed="false">' +
+    return '<button type="button" class="order-transfer-person' + (reason ? ' is-blocked' : '') + '" value="' + A.esc(uid) + '" aria-pressed="false"' +
+      (reason ? ' disabled' : '') + '>' +
       '<span class="order-transfer-avatar" aria-hidden="true">' + A.memberAvSlot(uid, profile.name, 'order-transfer-avatar-slot') +
       fallback + '<span class="order-transfer-check">✓</span></span>' +
       '<span class="order-transfer-name">' + A.esc(profile.name) + '</span>' +
-      '<span class="order-transfer-department">' + A.esc(profile.department) + '</span></button>';
+      '<span class="order-transfer-department">' + A.esc(profile.department) + '</span>' +
+      (reason ? '<span class="order-transfer-blocked">' + A.esc(reason) + '</span>' : '') + '</button>';
   }
 
   function choose(members, current) {
@@ -47,7 +57,7 @@
         '<button type="submit" class="btn primary" disabled>下一步</button></div></form>';
       var form = overlay.querySelector('form'), next = form.querySelector('button[type="submit"]');
       var choices = form.querySelector('.order-transfer-options');
-      var first = choices.querySelector('.order-transfer-person');
+      var first = choices.querySelector('.order-transfer-person:not(:disabled)');
       var cancel = form.querySelector('[data-transfer-cancel]');
       var selected = null;
       var overflow = document.body.style.overflow;
@@ -78,7 +88,7 @@
       window.addEventListener('lunch:userchange', cancelChoice);
       choices.addEventListener('click', function (event) {
         var card = event.target.closest('.order-transfer-person');
-        if (!card || card === selected) return;
+        if (!card || card.disabled || card === selected) return;
         if (selected) selected.setAttribute('aria-pressed', 'false');
         selected = card;
         selected.setAttribute('aria-pressed', 'true');
@@ -108,10 +118,17 @@
     if (!options.ready) { A.toast('會員名單載入中，請稍後再試。', true); return; }
     var choices = Object.entries(options.members).filter(function (entry) {
       return entry[0] !== options.order.userId && validId(entry[0]) && validMember(entry[1]);
+    }).map(function (entry) {
+      return [entry[0], entry[1], blockReason(options.group, options.oid, entry[0])];
     }).sort(function (a, b) {
-      return (a[1].department + a[1].name).localeCompare(b[1].department + b[1].name, 'zh-Hant');
+      return (a[2] ? 1 : 0) - (b[2] ? 1 : 0) ||
+        (a[1].department + a[1].name).localeCompare(b[1].department + b[1].name, 'zh-Hant');
     });
     if (!choices.length) { A.toast('目前沒有其他可選會員。', true); return; }
+    if (!choices.some(function (entry) { return !entry[2]; })) {
+      A.toast('目前沒有可以接這筆訂單的會員（收款人與不在參加名單的會員不能接）。', true);
+      return;
+    }
     busy = true;
     try {
       var recipient = await choose(choices, options.order);
