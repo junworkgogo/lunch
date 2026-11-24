@@ -16,16 +16,15 @@ const HEDGE_MS=20000;   // 一個模型 20 秒還沒回，就同時請下一個
 const MIN_START_MS=6000; // 剩不到 6 秒就不再開新的呼叫
 const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/';
 const GEMINI_FALLBACKS=['gemini-3.5-flash-lite','gemini-flash-lite-latest','gemini-flash-latest'];
-const PROMPT='你是台灣餐廳菜單資料擷取助手。只根據照片上實際看得見的字與價格辨識菜單，不得猜測或補造品名、價格、選項，不要把地址、電話、營業時間或折扣當作餐點。以繁體中文輸出 JSON 物件，格式 {"categories":[{"name":"分類名稱","items":[{"name":"品名","price":80,"soldOut":false,"options":[{"name":"尺寸","required":true,"choices":[{"name":"小份","add":0},{"name":"大份","add":20}]}]}]}],"warnings":["無法辨識的品項或價格"]}。分類沒有標示時用「其他」。price 只允許確定的整數新台幣，價格不清楚就略過該品項並放 warnings。規格或加料只有照片明確列出選項及加價時才填 options；不要猜測共同選項。多個完整價格：將最便宜價格寫 price，options 各選項 add 為與最低價之差；不要把原價誤作折扣價。多張圖重複品項要去重。保持菜單原始分類、名稱順序。不要 markdown。';
+// 2026-11-24 共用選項與分類/單品限制一起辨識，不根據品名猜供應條件。
+const PROMPT='你是台灣餐廳菜單資料擷取助手。只根據照片上實際看得見的文字、圖例和價格，不得猜測或補造品名、價格、選項，不要把地址、電話、營業時間或折扣當作餐點。輸出繁體中文JSON，格式 {"sharedOptions":[{"name":"甜度","required":true,"choices":[{"name":"無糖","add":0}]}],"categories":[{"name":"分類名稱","options":[],"items":[{"name":"品名","price":80,"soldOut":false,"options":[]}]}],"warnings":[]}。所有options與sharedOptions都採用相同群組格式name/required/choices；choices每筆name/add。全店明確共用的甜度、冰量、冷熱、加料放sharedOptions；只適用某分類的放該分類options，不得將飲料選項套到餐點分類。品項的例外限制放該品項options，以同名群組覆寫共用選項。糖度/糖量統一叫甜度，冰量/冰塊統一叫冰塊，冷熱/溫度統一叫溫度。圖例明示可冷可熱時溫度選項是冷、熱；只有冷飲或只有熱飲的品項只能放對應的一個溫度選項且required=true，不得一律給所有品項冷熱。固定糖或固定冰請用同名群組只有一個選項required=true；不提供加料的品項加上同名加料群組僅一個不加料選項add=0以覆寫共用。加料旁有限冷飲等限制必保留在選項名稱括號內，價格標在整排前即適用該排每一項。只有明確列出選項及加價時才填，未列糖冰溫度不可猜，放warnings請使用者補確認；一般糖冰與冷熱沒有加價標示時add=0，有價差則照實。price只允許確定的整數新台幣，價格不清楚略過品項並警告。多個完整價格將最低價寫price，各規格add是與最低價差額。不要把原價當折扣價。多圖重複品項去重；保留原分類和品名順序，分類沒有標示用其他。不要markdown。';
+const OPTION_SCHEMA={type:'OBJECT',properties:{name:{type:'STRING'},required:{type:'BOOLEAN'},choices:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},add:{type:'INTEGER'}},required:['name','add']}}},required:['name','choices']};
 const SCHEMA={type:'OBJECT',properties:{
+ sharedOptions:{type:'ARRAY',items:OPTION_SCHEMA},
  categories:{type:'ARRAY',items:{type:'OBJECT',properties:{
-  name:{type:'STRING'},
+  name:{type:'STRING'},options:{type:'ARRAY',items:OPTION_SCHEMA},
   items:{type:'ARRAY',items:{type:'OBJECT',properties:{
-   name:{type:'STRING'},price:{type:'INTEGER'},soldOut:{type:'BOOLEAN'},
-   options:{type:'ARRAY',items:{type:'OBJECT',properties:{
-    name:{type:'STRING'},required:{type:'BOOLEAN'},
-    choices:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},add:{type:'INTEGER'}},required:['name','add']}}
-   },required:['name','choices']}}
+   name:{type:'STRING'},price:{type:'INTEGER'},soldOut:{type:'BOOLEAN'},options:{type:'ARRAY',items:OPTION_SCHEMA}
   },required:['name','price']}}
  },required:['name','items']}},
  warnings:{type:'ARRAY',items:{type:'STRING'}}
@@ -50,7 +49,7 @@ const KINDS={
  hours:{prompt:HOURS_PROMPT,schema:HOURS_SCHEMA,ok:p=>Array.isArray(p.days),key:'days',bad:'請上傳 1–5 張有效的營業時間圖片'},
  toppings:{prompt:TOPPINGS_PROMPT,schema:TOPPINGS_SCHEMA,ok:p=>Array.isArray(p.toppings),key:'toppings',bad:'請上傳 1–5 張有效的加料圖片'}
 };
-function pickResult(kind,parsed){const o={};o[KINDS[kind].key]=parsed[KINDS[kind].key];return o;}
+function pickResult(kind,parsed){const o={};o[KINDS[kind].key]=parsed[KINDS[kind].key];if(kind==='menu'&&Array.isArray(parsed.sharedOptions))o.sharedOptions=parsed.sharedOptions;return o;}
 function response(res,status,json){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(json));}
 function cors(req,res){
  const origin=String(req.headers.origin||'');
