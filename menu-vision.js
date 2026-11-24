@@ -69,24 +69,30 @@ function ocrToMenu(text){
 function safeResult(json){
   if(!json||typeof json!=='object')throw new Error('辨識回應格式不正確');
   var cats=Array.isArray(json.categories)?json.categories:[],out=[],total=0;
+  function optionLines(options){
+    var rows=[],seen={};
+    (Array.isArray(options)?options:[]).slice(0,12).forEach(function(g){
+      var gn=cleanName(g&&g.name).replace(/[:*+]/g,'');
+      if(!gn||seen[gn])return;
+      var choices=Array.isArray(g.choices)?g.choices:[],names={};
+      var values=choices.slice(0,40).map(function(o){
+        var label=cleanName(o&&o.name).replace(/[+]/g,'加'),rawAdd=o&&o.add,add=rawAdd===null||rawAdd===undefined||typeof rawAdd==='boolean'||typeof rawAdd==='string'&&!rawAdd.trim()?NaN:Number(rawAdd);
+        if(!label||names[label]||!Number.isInteger(add)||add<0||add>9999)return null;
+        names[label]=true;return label+(add?'+'+add:'');
+      }).filter(Boolean);
+      if(values.length){seen[gn]=true;rows.push('  '+gn+(g.required?'*':'')+': '+values.join(', '));}
+    });return rows;
+  }
+  out=optionLines(json.sharedOptions);
   cats.slice(0,60).forEach(function(cat){
     var rows=[],items=Array.isArray(cat.items)?cat.items:[];
     items.slice(0,160).forEach(function(it){
-      var n=cleanName(it.name),p=Number(it.price);
+      var rawPrice=it.price,n=cleanName(it.name),p=rawPrice===null||rawPrice===undefined||typeof rawPrice==='boolean'||typeof rawPrice==='string'&&!rawPrice.trim()?NaN:Number(rawPrice);
       if(!n||!Number.isInteger(p)||p<0||p>9999)return;
       rows.push(n+', '+p+(it.soldOut?', 停售':''));
-      var opts=Array.isArray(it.options)?it.options:[];
-      opts.slice(0,8).forEach(function(g){
-        var gn=cleanName(g.name).replace(/[:*+]/g,'');
-        var choices=Array.isArray(g.choices)?g.choices:[];
-        var values=choices.slice(0,15).map(function(o){
-          var label=cleanName(o.name).replace(/[+]/g,'加'),add=Number(o.add)||0;
-          return label&&Number.isInteger(add)&&add>=0&&add<=9999?label+(add?'+'+add:''):null;
-        }).filter(Boolean);
-        if(gn&&values.length)rows.push('  '+gn+(g.required?'*':'')+': '+values.join(', '));
-      });
+      rows.push.apply(rows,optionLines(it.options));total++;
     });
-    if(rows.length){out.push('{'+cleanName(cat.name||'其他')+'}');out.push.apply(out,rows);total+=items.length;}
+    if(rows.length){out.push('{'+cleanName(cat.name||'其他')+'}');out.push.apply(out,optionLines(cat.options));out.push.apply(out,rows);}
   });
   var text=out.join('\n'),parsed=parse(text);
   if(!parsed||!parsed.count)throw new Error('圖片中沒有辨識到可用的餐點與價格，請換清晰照片');
@@ -175,7 +181,7 @@ function mount(form){
       $(box,'[data-mv-title]').textContent='✓ '+data.source+' 辨識完成，共 '+data.count+' 個品項'+(data.ocr?'（AI 沒有接上，準確度較低）':'');
       $(box,'[data-mv-preview]').textContent=data.text;
       var warnings=(data.warnings||[]).map(function(w){return typeof w==='string'?w:String(w&&w.message||'');}).filter(Boolean);
-      $(box,'[data-mv-warning]').textContent=(data.ocr?'免費文字辨識常有錯字，請逐項對照原圖。':'')+(warnings.length?'請再確認不清楚的文字／價格：'+warnings.join('、'):'請確認餐點與價格是否與原圖相符，特別是規格及加價');
+      $(box,'[data-mv-warning]').textContent=(data.ocr?'免費文字辨識常有錯字，請逐項對照原圖。':'')+(warnings.length?'請再確認不清楚的文字／價格：'+warnings.join('、'):'請確認餐點與價格是否與原圖相符，特別是甜度、冰量、冷熱限制、加料及加價');
       result.hidden=false;
       status(box,'已辨識 '+data.count+' 個品項，請檢查下方結果再帶入');
     }catch(e){if(alive(box))status(box,'辨識失敗：'+(e.message||'請換較清晰的照片'),true);}

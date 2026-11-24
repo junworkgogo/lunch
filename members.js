@@ -315,9 +315,15 @@
     };
   }
   function orderView(root) {
-    var alive = true, uid = verified.uid, entries = Object.create(null), listeners = [];
+    var alive = true, uid = verified.uid, entries = Object.create(null), groupWatches = Object.create(null);
     var pending = 0, started = false, paymentGroup = '', paymentOrder = '';
     var access = window.LunchGroupAccess;
+    var orderFilter = 'unpaid';
+    var orderFilters = [
+      {key:'all',label:'ALL'},
+      {key:'unpaid',label:'未付',empty:'目前沒有未付款訂單'},
+      {key:'paid',label:'已付',empty:'目前沒有已付款訂單'}
+    ];
     function canPayRow(row) {
       if (!row || !row.group || row.order.cancelled || row.pending <= 0 || !window.LunchPay) return false;
       var receiver = A.collectionReceiver(row.group,row.oid);
@@ -333,14 +339,40 @@
     }
     function formatItems(order) {
       return Object.values(order.items || {}).map(function(item) {
-        return '<li>'+esc(typeof A.lineLabel === 'function' ? A.lineLabel(item) : item.name || item.item || '餐點')+' × '+esc(item.qty || 0)+'</li>';
+        return '<li>'+esc(typeof A.lineLabel === 'function' ? A.lineLabel(item) : item.name || item.item || '餐點')+' × '+esc(item.qty || 0)+(item.note?'<span class="member-item-note">備註：'+esc(item.note)+'</span>':'')+'</li>';
       }).join('');
     }
     function draw() {
       if (!alive || !started || pending) return;
       content.classList.remove('member-loading');
-      var rows = Object.values(entries).flat().sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
-      content.innerHTML = rows.length ? '<div class="member-orders">'+rows.map(function(row, index) {
+      var allRows = Object.values(entries).flat().sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
+      if (!allRows.length) {
+        content.innerHTML = '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
+        content.onclick = null;
+        return;
+      }
+      var buckets = {all:allRows,unpaid:[],paid:[]};
+      allRows.forEach(function(row) {
+        if (row.order.cancelled || !row.group || !row.bill) return;
+        if (row.pending > 0) buckets.unpaid.push(row);
+        else if (row.pending === 0) buckets.paid.push(row);
+      });
+      var filters = content.querySelector('.member-order-filters');
+      if (!filters) {
+        content.innerHTML = '<div class="member-order-filters" role="group" aria-label="依付款狀態篩選">'+orderFilters.map(function(filter) {
+          return '<button type="button" data-order-filter="'+filter.key+'" aria-pressed="false" aria-controls="member-order-results">'+filter.label+' <span class="member-order-filter-count"></span></button>';
+        }).join('')+'</div><div id="member-order-results"></div>';
+        filters = content.querySelector('.member-order-filters');
+      }
+      filters.dataset.active = orderFilter;
+      filters.querySelectorAll('[data-order-filter]').forEach(function(button) {
+        var key = button.dataset.orderFilter;
+        button.setAttribute('aria-pressed',String(orderFilter === key));
+        button.querySelector('.member-order-filter-count').textContent = buckets[key].length;
+      });
+      var rows = buckets[orderFilter];
+      var results = content.querySelector('#member-order-results');
+      results.innerHTML = rows.length ? '<div class="member-orders">'+rows.map(function(row, index) {
         var order = row.order;
         var date = '<p>'+esc(new Date(order.createdAt || 0).toLocaleString('zh-TW'))+'</p>';
         var identity = order.department ? '<small class="order-department">'+esc(order.name)+' · '+esc(order.department)+'</small>' : '';
@@ -359,8 +391,19 @@
         if (bill.discount) charges+=' · 折扣 '+money(bill.discount);
         return '<article class="member-order is-linked '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">'+charges+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
           '<div class="member-order-actions">'+payButton+groupLink+'</div></article>';
-      }).join('')+'</div>' : '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
+      }).join('')+'</div>' : '<div class="member-empty member-order-filter-empty"><h2>'+orderFilters.find(function(filter) {return filter.key===orderFilter;}).empty+'</h2><button type="button" class="btn" data-order-all>查看全部訂單</button></div>';
       content.onclick = function(event) {
+        var filter = event.target.closest('[data-order-filter]');
+        var showAll = event.target.closest('[data-order-all]');
+        if (filter || showAll) {
+          var next = showAll ? 'all' : filter.dataset.orderFilter;
+          if (next !== orderFilter) {
+            orderFilter = next;
+            draw();
+            if (showAll) filters.querySelector('[data-order-filter="all"]').focus();
+          }
+          return;
+        }
         var cancel = event.target.closest('[data-cancel-row]');
         var pay = event.target.closest('[data-pay-row]');
         var row = cancel ? rows[Number(cancel.dataset.cancelRow)] : pay && rows[Number(pay.dataset.payRow)];
@@ -418,7 +461,7 @@
       });
     }
     function watch(gid, ids) {
-      var revision = 0, first = true, paidValues = Object.create(null);
+      var revision = 0, first = true, watching = true, listeners = [], paidValues = Object.create(null);
       function applyReceipt(row){
         if(!row.group||!row.bill||!Object.prototype.hasOwnProperty.call(paidValues,row.oid))return;
         var p=paidValues[row.oid];
@@ -432,7 +475,7 @@
         draw();
       }
       function refresh(group, error) {
-        if (!alive) return;
+        if (!alive || !watching) return;
         var job = ++revision;
         if ((!group&&!error)||(group&&group.deleted)) {
           closePayment(gid);entries[gid]=[];if(first){first=false;pending--;}draw();return;
@@ -441,43 +484,54 @@
           closePayment(gid);delete entries[gid];draw();
         }
         if (error && !access.permissionDenied(error)) notify(root,'有一筆訂單暫時無法確認團購資料。');
-        var load = access.canView(group,verified) ? groupRows(gid,ids,group,function(){return alive&&revision===job;}).catch(function(failure){
-          if(!alive||revision!==job)return [];
+        var load = access.canView(group,verified) ? groupRows(gid,ids,group,function(){return alive&&watching&&revision===job;}).catch(function(failure){
+          if(!alive||!watching||revision!==job)return [];
           if (!access.permissionDenied(failure)) throw failure;
           if (alive && revision===job) {closePayment(gid);delete entries[gid];draw();}
           return ownRows(gid,ids);
         }) : ownRows(gid,ids);
         load.then(function(rows){
-          if (alive && revision===job) {rows.forEach(applyReceipt);entries[gid]=rows;}
+          if (alive && watching && revision===job) {rows.forEach(applyReceipt);entries[gid]=rows;}
         }).catch(function(){
-          if (alive && revision===job) {
+          if (alive && watching && revision===job) {
             closePayment(gid);delete entries[gid];notify(root,'有一筆訂單暫時無法確認金額。');
           }
         }).finally(function(){
-          if (!alive || revision!==job) return;
+          if (!alive || !watching || revision!==job) return;
           if (first) {first=false;pending--;}
           draw();
         });
       }
       listeners.push(A.DB.on('groups/'+gid,refresh,{onError:function(error){refresh(null,error);}}));
       ids.forEach(function(oid){
-        listeners.push(A.DB.on('paid/'+gid+'/'+oid,function(value){if(alive)receivePaid(oid,value);},{onError:function(){if(alive)receivePaid(oid,null);}}));
+        listeners.push(A.DB.on('paid/'+gid+'/'+oid,function(value){if(alive&&watching)receivePaid(oid,value);},{onError:function(){if(alive&&watching)receivePaid(oid,null);}}));
       });
+      return function(){watching=false;if(first){first=false;pending--;}listeners.forEach(function(off){off();});};
     }
-    A.DB.get('userOrders/'+uid).then(function(index) {
+    var stopIndex=A.DB.on('userOrders/'+uid,function(index) {
       if (!alive) return;
-      var groups = Object.keys(index||{}).filter(path).map(function(gid){
-        return {gid:gid,ids:Object.keys(index[gid]||{}).filter(function(oid){return path(oid)&&index[gid][oid];})};
-      }).filter(function(entry){return entry.ids.length;});
-      pending=groups.length;started=true;
-      groups.forEach(function(entry){watch(entry.gid,entry.ids);});
+      var groups=Object.create(null);
+      Object.keys(index||{}).filter(path).forEach(function(gid){
+        var ids=Object.keys(index[gid]||{}).filter(function(oid){return path(oid)&&index[gid][oid];}).sort();
+        if(ids.length)groups[gid]=ids;
+      });
+      Object.keys(groupWatches).forEach(function(gid){
+        var previous=groupWatches[gid],ids=groups[gid];
+        if(ids&&previous.key===JSON.stringify(ids))return;
+        if(paymentGroup===gid&&(!ids||ids.indexOf(paymentOrder)<0))closePayment(gid);
+        previous.stop();delete groupWatches[gid];delete entries[gid];
+      });
+      var fresh=Object.keys(groups).filter(function(gid){return !groupWatches[gid];});
+      pending+=fresh.length;started=true;
+      fresh.forEach(function(gid){groupWatches[gid]={key:JSON.stringify(groups[gid]),stop:watch(gid,groups[gid])};});
       draw();
-    }).catch(function(error) {
+    },{onError:function(error) {
       if (!alive) return;
+      if(paymentGroup)closePayment(paymentGroup);
       content.textContent='目前無法讀取你的訂單。';
       notify(root,errorText(error));
-    });
-    return function(){alive=false;listeners.forEach(function(off){off();});if(paymentGroup)closePayment(paymentGroup);};
+    }});
+    return function(){alive=false;stopIndex();Object.keys(groupWatches).forEach(function(gid){groupWatches[gid].stop();});if(paymentGroup)closePayment(paymentGroup);};
   }
   function collectionView(root,gid) {
     var alive=true; if (!path(gid)) { root.innerHTML=shell('找不到這個團購','<p>請從團購管理頁重新開啟。</p>'); return; }

@@ -12,8 +12,8 @@
 
 .mascot-delivery-scene .mascot-delivery-cat {
   display: block;
-  width: min(42vw, 24vh, 190px);
-  min-width: min(120px, 60vw);
+  width: min(35.7vw, 20.4vh, 161.5px);
+  min-width: min(102px, 51vw);
   max-width: 100%;
   height: auto;
 }
@@ -23,7 +23,7 @@
 }
 
 .mascot-inline .mascot-delivery-cat {
-  max-width: 145px;
+  max-width: 123.25px;
 }
 
 @media (prefers-reduced-motion: reduce) {

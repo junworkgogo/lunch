@@ -64,10 +64,13 @@
   var closeOpen=null,openSequence=0;
   function open(o){
     var sequence=++openSequence,route=location.hash,groupPath='groups/'+o.groupId;
+    var orderPath='orders/'+o.groupId+'/'+o.orderId;
     function current(){return sequence===openSequence&&location.hash===route&&A.getUser()?.uid===o.payerUid;}
-    return A.DB.get(groupPath).then(function(group){
+    return Promise.all([A.DB.get(groupPath),A.DB.get(orderPath)]).then(function(values){
       if(!current())return;
+      var group=values[0],order=values[1];
       if(!group||group.deleted)throw new Error('團購已無法查看');
+      if(!order||order.cancelled||order.userId!==o.payerUid){A.toast('這筆訂單已無法付款',true);return;}
       var uid=A.collectionReceiver(group,o.orderId);
       if(!uid||uid===o.payerUid){
         A.toast(uid?'你是這團的收款人':'這團尚未設定收款人');
@@ -77,7 +80,7 @@
         if(!current())return;
         var name=profile&&profile.name||(uid===group.ownerUserId?group.owner:'收款人');
         showPayment(Object.assign({},o,{
-          groupPath:groupPath,ownerUid:uid,ownerName:name,avatarHtml:A.memberAvSlot(uid,name,'pay-dlg-av')
+          groupPath:groupPath,orderPath:orderPath,ownerUid:uid,ownerName:name,avatarHtml:A.memberAvSlot(uid,name,'pay-dlg-av')
         }));
       });
     }).catch(function(){if(current())A.toast('讀不到實際收款人，請稍後重試',true);});
@@ -98,10 +101,11 @@
       '<div class="pay-actions"><button type="button" class="btn primary" data-pay-close>完成</button></div>'+
       '</section>';
     document.body.appendChild(ov);document.body.style.overflow='hidden';
-    var dlg=ov.querySelector('.pay-dlg'),body=ov.querySelector('[data-pay-body]'),alive=true,offGroup=null;
+    var dlg=ov.querySelector('.pay-dlg'),body=ov.querySelector('[data-pay-body]'),alive=true,offGroup=null,offOrder=null;
     function close(){
       if(!alive)return;alive=false;closeOpen=null;openSequence++;
       if(offGroup)offGroup();
+      if(offOrder)offOrder();
       document.removeEventListener('keydown',key,true);
       if(ov.parentNode)ov.parentNode.removeChild(ov);
       document.body.style.overflow=prevOverflow;
@@ -142,6 +146,15 @@
       if(!group||group.deleted||A.collectionReceiver(group,o.orderId)!==o.ownerUid)clearRecipient();
     },{onError:clearRecipient});
     if(!alive){offGroup();return;}
+    function closeOrder(){
+      if(!alive)return;
+      close();
+      A.toast('這筆訂單已無法付款',true);
+    }
+    offOrder=A.DB.on(o.orderPath,function(order){
+      if(!order||order.cancelled||order.userId!==o.payerUid)closeOrder();
+    },{onError:closeOrder});
+    if(!alive){offOrder();return;}
 
     function setState(st){
       var el=ov.querySelector('[data-pay-state]');if(!el)return;

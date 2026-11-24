@@ -216,7 +216,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto
   .lh-editor .lh-range+.lh-range{padding-top:8px;border-top:1px solid var(--line)}
 
   .cart .lines .lc{flex-wrap:wrap;min-width:0}
-  .cart .lines .lc .q-btn,.cart .lines .lc .ldel{flex:none;min-width:44px;min-height:44px}
+  .cart .lines .lc .q-btn,.cart .lines .lc .ledit,.cart .lines .lc .ldel{flex:none;min-width:44px;min-height:44px}
   .cart .lines .lt,.pay-card :is(.pc-name,.pay-t){min-width:0;overflow-wrap:anywhere}
   .cart .lines .lsub,.pay-card :is(.pc-due,.pay-lm){white-space:nowrap}
   .pay-card,.pay-card .pay-line{min-width:0}
@@ -373,3 +373,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto
 header.top .brandlink .brand{display:inline-flex;align-items:center;gap:3px;line-height:1;letter-spacing:.02em}
 header.top .brandlink .brand-en{font-weight:700}
 header.top .brandlink .brand-zh{writing-mode:vertical-rl;text-orientation:upright;font-size:8px;line-height:1;letter-spacing:0;font-weight:600}
+
+/* 2026-11-23 團主換了菜單、點餐頁還開著舊菜單時的提示（index.html refresh 的 .menu-stale） */
+.group .menu-stale{grid-column:1/-1;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid #E6E9EE;border-radius:12px;background:#F2F3F5;color:#394150;font-size:13.5px;line-height:1.6}
+.group .menu-stale span{min-width:0;flex:1 1 200px}
+.pk .chip:disabled{background:var(--dis-bg);color:var(--dis-ink);border-color:var(--dis-bg);cursor:not-allowed}
+.pay-transfer{display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:11px;background:transparent;cursor:pointer}
+.pay-transfer:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.order-transfer-dialog select{width:100%;min-height:44px;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:10px;color:var(--text);background:var(--card)}
+
+/* 2026-11-24 團購開放狀態置於標題倒數旁，與功能分頁分開。 */
+.admin-title-row .admin-status-actions{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;max-width:100%}
+.admin-title-row .admin-close-button{flex:none;min-height:40px;padding:8px 12px;font-size:14px;white-space:nowrap}
+@media(max-width:768px){.admin-title-row .admin-status-actions{gap:8px}.admin-title-row .admin-close-button{min-height:44px}}
+
+/* 2026-11-24 收錢卡逐項備註及管理編輯入口。 */
+.paycards .pay-line .pay-note{display:block;margin-top:6px;font-size:14px;line-height:1.5;color:var(--muted,#666);white-space:pre-wrap;overflow-wrap:anywhere}
+.paycards .pc-foot .pc-actions{display:inline-flex;align-items:center;gap:8px;flex:none}
+.paycards .pc-foot .pay-edit{min-height:40px;padding:6px 12px}
+@media(max-width:768px){.paycards .pc-foot .pay-edit{min-height:44px}}
