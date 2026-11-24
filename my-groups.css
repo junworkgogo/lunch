@@ -179,6 +179,15 @@
   padding: 12px 16px;
 }
 
+/* 2026-11-25 整張卡片點了進管理頁（my-groups.js 的 data-my-admin） */
+.my-groups-row.card[data-my-admin] {
+  cursor: pointer;
+}
+
+.my-groups-row.card[data-my-admin]:hover {
+  border-color: var(--accent);
+}
+
 .my-groups-row-info {
   min-width: 0;
 }

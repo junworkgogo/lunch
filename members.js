@@ -31,8 +31,11 @@
     back = back || ['#/', '回首頁'];
     return '<div class="page member-page"><a class="backlink member-backlink" href="'+esc(back[0])+'">'+BACK_ICON+esc(back[1])+'</a><div class="member-kicker">FOODJUN／會員專區</div><div class="member-heading"><div><h1>'+esc(title)+'</h1>'+(hint?'<p>'+esc(hint)+'</p>':'')+'</div></div>'+body+'</div>';
   }
-  // User-provided default photos. User-uploaded avatarImage always takes precedence.
-  function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n];return key?'./assets/'+key+'.webp?v=20261118lightorange1':''; }
+  // 2026-11-25 使用者畫的專屬頭貼（橘底線稿）：依姓名對應，只出現在「本人」的頭貼選單；選了才把圖存進自己的 avatarImage。
+  // 新增一位：assets/ 放 160×160 webp，下面 map 加一行；要當他的預設頭貼，另外把圖寫進他的 members／memberAvatars（見專案 CLAUDE.md）。
+  function memberPhotoByName(name) { var n=String(name||'').trim().toLowerCase().replace(/\s+/g,' ');var map={'江':'jiang','毛子':'maozi','eason':'eason','eason liu':'eason','eason（哥）':'eason','eason(哥)':'eason','哥':'eason'};var key=map[n]||(isJunDoodle(n)?'jun':'');return key?'./assets/'+key+'.webp?v=20261125own1':''; }
+  var ownAvatarCache={};
+  function ownAvatarData(name) { var src=memberPhotoByName(name);if(!src)return Promise.resolve('');if(!ownAvatarCache[src])ownAvatarCache[src]=fetch(src).then(function(r){if(!r.ok)throw new Error('專屬頭貼載入失敗');return r.arrayBuffer();}).then(function(buf){var b=new Uint8Array(buf),s='';for(var i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return 'data:image/webp;base64,'+btoa(s);}).catch(function(e){delete ownAvatarCache[src];throw e;});return ownAvatarCache[src]; }
   // Only replace an older fluorescent-green uploaded image. Other user-selected photos remain untouched.
   // Recolor the logged-in Jun's existing fluorescent-green avatar without recreating the artwork.
   function isJunDoodle(name) { return /^jun(?:$|[\s(（]|胖達)/i.test(String(name||'').trim()); }
@@ -76,7 +79,7 @@
     } catch(ignore) {}
     img.style.visibility='visible';
   }
-  function avatar(u, cls) { var preset=memberPhotoByName(u&&u.name);var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"'+(preset||isJunDoodle(u&&u.name)?' data-orange-avatar="'+esc(preset)+'"'+(isJunDoodle(u&&u.name)?' data-orange-jun="1"':'')+' style="visibility:hidden" onload="window.LunchMembers&&window.LunchMembers.recolorIfGreen(this)" onerror="this.style.visibility=\'visible\'"':'')+'></span>';if(preset)return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(preset)+'" alt="個人頭貼"></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
+  function avatar(u, cls) { var preset=memberPhotoByName(u&&u.name);var data=u&&typeof u.avatarImage==='string'?u.avatarImage:'';if(data && data.length<=40000 && /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(data))return '<span class="member-avatar member-avatar-photo '+(cls||'')+'"><img src="'+esc(data)+'" alt="個人頭貼"'+(preset||isJunDoodle(u&&u.name)?' data-orange-avatar="'+esc(preset)+'"'+(isJunDoodle(u&&u.name)?' data-orange-jun="1"':'')+' style="visibility:hidden" onload="window.LunchMembers&&window.LunchMembers.recolorIfGreen(this)" onerror="this.style.visibility=\'visible\'"':'')+'></span>';var av=Number(u&&u.avatar);av=Number.isInteger(av)&&av>=0&&av<avatars.length?av:0;return '<span class="member-avatar '+(cls||'')+' tone-'+av+'" aria-hidden="true">'+avatars[av]+'</span>'; }
   function notify(root, message) { var el = root.querySelector('[data-member-status]'); if (el) { el.textContent = message; el.hidden = false; } }
   function waitView(root) { root.innerHTML = '<div class="page member-page" aria-busy="true"></div>'; } // 2026-11-18 使用者要求拿掉 loading 畫面：確認登入時留白
   function finishSignIn(fn){var m=window.LunchMascot;if(m){m.show('Hi！要來點什麼');return m.finish().then(fn);}fn();return Promise.resolve();}
@@ -134,7 +137,7 @@
     });
   }
   function profileView(root) {
-    var u = verified, firstSetup = !!u.needsProfile, avatarImage=u.avatarImage||'', imageBusy=false,imageJob=0,savingProfile=false;
+    var u = verified, firstSetup = !!u.needsProfile, avatarImage=u.avatarImage||'', imageBusy=false,imageJob=0,savingProfile=false,ownSrc=memberPhotoByName(u.name),ownUrl='',avatarTouched=false;
     root.innerHTML = shell('我的帳號',
       '<div class="member-dashboard"><section class="member-profile">'+
       '<button type="button" class="member-avatar-edit" data-edit-avatar aria-label="修改自己的頭貼"><span data-profile-avatar>'+avatar(u, 'member-avatar-large')+'</span><span class="member-avatar-edit-caption">更換頭貼 ✎</span></button><hr class="member-sep" aria-hidden="true">'+
@@ -145,7 +148,8 @@
       '<div class="actions"><button class="btn" type="button" data-logout>登出</button></div></section>'+
       '<dialog class="profile-dialog" aria-labelledby="profileTitle"><button type="button" class="profile-close" data-profile-close aria-label="關閉">×</button><form class="member-editor" data-profile id="profileEdit"><h2 id="profileTitle">修改頭貼與姓名</h2><div class="profile-draft" data-draft-avatar>'+avatar(u,'member-avatar-large')+'</div>'+
       '<label class="member-upload-label" for="avatarUpload">上傳自己的頭貼</label><input id="avatarUpload" type="file" accept="image/*" data-avatar-upload><p class="member-muted" data-avatar-status>選擇照片後先預覽，儲存才會更換</p>'+ '<fieldset class="member-avatars" data-avatar-choices><legend>或選內建頭貼</legend>'+
-      avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(Number(u.avatar || 0)===i ? 'checked' : '')+'><span class="member-avatar tone-'+i+'" aria-label="'+esc(departments[i] || ('頭貼 '+(i+1)))+'頭貼" title="'+esc(departments[i] || '')+'">'+a+'</span></label>';}).join('')+
+      avatars.map(function(a,i){return '<label><input type="radio" name="avatar" value="'+i+'" '+(!u.avatarImage&&Number(u.avatar || 0)===i ? 'checked' : '')+'><span class="member-avatar tone-'+i+'" aria-label="'+esc(departments[i] || ('頭貼 '+(i+1)))+'頭貼" title="'+esc(departments[i] || '')+'">'+a+'</span></label>';}).join('')+
+      (ownSrc?'<label><input type="radio" name="avatar" value="own"><span class="member-avatar member-avatar-photo" aria-label="我的專屬頭貼" title="我的專屬頭貼"><img src="'+esc(ownSrc)+'" alt=""></span></label>':'')+
       '</fieldset><label>顯示姓名<input name="displayName" required maxlength="30" autocomplete="name" value="'+A.esc(u.name,true)+'"></label>'+
       '<label>部門'+departmentInput(u.department)+'</label>'+(firstSetup?'<p class="member-muted">請先確認姓名與部門，再開始點餐。</p>':'')+
       '<p class="member-muted member-unsaved" data-unsaved hidden>上方為預覽，尚未儲存</p>'+
@@ -167,9 +171,11 @@
     root.querySelector('[data-edit-avatar]').onclick=function(){openProfile(false);};
     root.querySelector('[data-edit-name]').onclick=function(){openProfile(true);};
     if(firstSetup)openProfile(true);
+    // 專屬頭貼：目前存的就是這張時，選單預設勾它（不是勾內建編號）
+    if(ownSrc)ownAvatarData(u.name).then(function(url){ownUrl=url;if(!form.isConnected||u.avatarImage!==url)return;form.querySelectorAll('input[name="avatar"]').forEach(function(r){r.defaultChecked=r.value==='own';if(!avatarTouched)r.checked=r.defaultChecked;});}).catch(function(){});
     function previewChanges(){
       var selected=form.querySelector('input[name="avatar"]:checked');
-      var index=selected ? Number(selected.value) : 0;
+      var index=selected&&selected.value!=='own' ? Number(selected.value) : 0;
       form.querySelector('[data-draft-avatar]').innerHTML=avatar({avatar:index,avatarImage:avatarImage},'member-avatar-large');
       root.querySelector('[data-unsaved]').hidden=false;
     }
@@ -188,7 +194,14 @@
       }).catch(function(e){if(form.isConnected&&job===imageJob)status.textContent=e.message;}).finally(function(){if(job!==imageJob)return;imageBusy=false;if(form.isConnected)submit.disabled=savingProfile;});
     });
     form.querySelectorAll('input[name="avatar"]').forEach(function(radio){
-      radio.addEventListener('change',function(){if(radio.checked){avatarImage='';form.querySelector('[data-avatar-upload]').value='';form.querySelector('[data-avatar-status]').textContent='已選內建頭貼，儲存後移除舊照片';previewChanges();}});
+      radio.addEventListener('change',function(){if(!radio.checked)return;avatarTouched=true;var status=form.querySelector('[data-avatar-status]');form.querySelector('[data-avatar-upload]').value='';
+        if(radio.value==='own'){
+          if(ownUrl){avatarImage=ownUrl;status.textContent='已選專屬頭貼，按儲存才會更換';previewChanges();return;}
+          avatarImage='';status.textContent='正在載入專屬頭貼…';
+          ownAvatarData(u.name).then(function(url){ownUrl=url;if(!form.isConnected||!radio.checked)return;avatarImage=url;status.textContent='已選專屬頭貼，按儲存才會更換';previewChanges();}).catch(function(){if(form.isConnected&&radio.checked)status.textContent='專屬頭貼載入失敗，請重新整理再試';});
+          return;
+        }
+        avatarImage='';status.textContent='已選內建頭貼，儲存後移除舊照片';previewChanges();});
     });
     form.elements.displayName.addEventListener('input',previewChanges);
     form.elements.department.addEventListener('input',previewChanges);
@@ -200,14 +213,18 @@
       if(!identity){notify(root,'請填寫姓名與部門，並確認沒有換行或控制字元。');return;}
       var selected=form.querySelector('input[name="avatar"]:checked');
       if(!selected&&!avatarImage){notify(root,'請選一個內建頭貼，或上傳自己的照片。');return;}
+      var own=!!selected&&selected.value==='own';
+      if(own&&(!ownUrl||avatarImage!==ownUrl)){notify(root,'專屬頭貼還在載入，請稍候再按儲存。');return;}
       var oldAvatar=Number(u.avatar);oldAvatar=Number.isInteger(oldAvatar)&&oldAvatar>=0&&oldAvatar<avatars.length?oldAvatar:0;
-      var p=Object.assign({},identity,{avatar:selected?Number(selected.value):oldAvatar,avatarImage:avatarImage||'',updatedAt:A.now()});
+      var p=Object.assign({},identity,{avatar:selected&&!own?Number(selected.value):oldAvatar,avatarImage:avatarImage||'',updatedAt:A.now()});
       savingProfile=true;submit.disabled=true;
       var saving=u.demo?A.DB.update('members/'+u.uid,p):window.LunchIdentity.save(A.DB,u.uid,p,u);
       saving.then(function(){
         if(!verified||verified.uid!==u.uid)return;
         Object.assign(verified,p,{needsProfile:false});
         A.setUser(verified);
+        // 關視窗會 form.reset()，先把「預設勾選」改成剛存的那個，下次打開才不會勾回舊的
+        form.querySelectorAll('input[name="avatar"]').forEach(function(r){r.defaultChecked=r===selected;});
         if(dialog.open)dialog.close();A.toast('頭貼與姓名已更新');
         if(firstSetup){var next=pendingNext;pendingNext='';go(next||'#/');}
       }).catch(function(er){

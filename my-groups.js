@@ -120,11 +120,13 @@
     function groupRow(group) {
       var id = A.esc(group.id, true);
       var ended = A.groupClosed(group);
-      return '<li class="card my-groups-row"><div class="my-groups-row-info"><h3>' + A.esc(group.title || '未命名團購') +
+      var title = group.title || '未命名團購';
+      /* 2026-11-25 使用者：自己開的團只需要管理，整張卡片點下去就進管理頁，不放「查看」 */
+      return '<li class="card my-groups-row" data-my-admin="#/g/' + id + '/admin"><div class="my-groups-row-info"><h3>' + A.esc(title) +
         '</h3><div class="my-groups-row-meta"><span class="my-groups-badge" data-my-status="' + id + '" data-ended="' +
         ended + '">' + (ended ? '已結束' : '進行中') + '</span><span>' + groupDate(group, false) +
-        '</span></div></div><div class="my-groups-links"><a class="btn" href="#/g/' + id + '">查看</a>' +
-        '<a class="btn" href="#/g/' + id + '/admin">管理</a></div></li>';
+        '</span></div></div><div class="my-groups-links">' +
+        '<a class="btn" href="#/g/' + id + '/admin" aria-label="管理：' + A.esc(title, true) + '">管理</a></div></li>';
     }
 
     function render() {
@@ -324,6 +326,12 @@
       render();
     });
     results.addEventListener('click', function (event) {
+      var row = event.target.closest('[data-my-admin]');
+      if (row && !event.target.closest('a,button')) {
+        var picked = window.getSelection ? String(window.getSelection()) : '';
+        if (!picked.trim()) location.hash = row.dataset.myAdmin;
+        return;
+      }
       var card = event.target.closest('[data-my-shop]');
       if (card) {
         selectedShop = card.dataset.myShop;
