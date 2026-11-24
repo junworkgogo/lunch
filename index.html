@@ -494,7 +494,7 @@ a{color:#394150}
 <link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
 <link rel="stylesheet" href="refined.css?v=20261124options1">
 <link rel="stylesheet" href="members-orders-tabs.css?v=20261124order1">
-<link rel="stylesheet" href="admin-order-editor.css?v=20261124edit1">
+<link rel="stylesheet" href="admin-order-editor.css?v=20261124itemcards1">
 <link rel="stylesheet" href="mobile-nav.css?v=20261120mobile1">
 <link rel="stylesheet" href="mascot.css?v=20261124size1">
 <script src="members-config.js?v=20261117c"></script>
@@ -2276,7 +2276,7 @@ function pageAdmin(root,gid,q){
           if(!latestShop||latestShop.deleted||latestShop.menuText!==sh.menuText)throw new Error('店家菜單剛剛又更新了，請重新確認後再試');
           var so=remapSoldOut(group,next.cats),patch={};
           patch['groups/'+gid+'/shop/menu']=next.cats;
-          patch['groups/'+gid+'/soldOut']=Object.keys(so).length?so:null;
+          if(Object.keys(so).length||group.soldOut)patch['groups/'+gid+'/soldOut']=Object.keys(so).length?so:false;
           return DB.update('',patch).then(function(){toast('菜單已更新');});
         });
       });
@@ -2514,7 +2514,7 @@ if(!window.LUNCH_DEFER_BOOT)route();
 <script src="interface.js?v=20261123tp1"></script>
 <script src="participants.js?v=20261119mobile1"></script>
 <script src="order-assignment.js?v=20261124assignment1"></script>
-<script src="admin-order-editor.js?v=20261124edit1"></script>
+<script src="admin-order-editor.js?v=20261124itemcards1"></script>
 <script src="pay.js?v=20261124assignment1"></script>
 <script src="mascot.js?v=20261119refined3"></script>
 <script src="account-tabs.js?v=20261119refined3"></script>

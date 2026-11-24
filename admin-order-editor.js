@@ -50,7 +50,7 @@
   }
 
   function staysOriginal(row) {
-    return row.original && (!row.ref || sameItem(row.ref, row.original));
+    return row.original && row.ref === row.originalRef;
   }
 
   function isHot(row) {
@@ -81,10 +81,12 @@
     row.groups.forEach(function (group) { group.hadSelection = group.selected.length > 0; });
   }
 
-  function makeRow(original, ref) {
+  function makeRow(original, ref, originalAmbiguous) {
     var row = {
       original: original,
       originalRef: ref,
+      originalAmbiguous: originalAmbiguous,
+      pickerOpen: !original,
       qty: original ? Number(original.qty) || 1 : 1,
       note: original && original.note != null ? String(original.note) : ''
     };
@@ -150,7 +152,7 @@
     var available = entries.filter(function (entry) { return !entry.sold; });
     var rows = originals.map(function (item) {
       var matches = entries.filter(function (entry) { return sameItem(entry, item); });
-      return makeRow(item, matches.length === 1 ? matches[0] : null);
+      return makeRow(item, matches.length === 1 ? matches[0] : null, matches.length > 1);
     });
     var originalTotal = A.orderTotal(order);
     var paid = context.paid && context.paid[context.orderId];
@@ -184,27 +186,53 @@
       var returnFocus = null;
       var main = [overlay.querySelector('.aoe-head'), overlay.querySelector('.aoe-body'), overlay.querySelector('.aoe-footer')];
 
-      function productOptions(row) {
+      function itemCard(key, name, category, price, selected) {
+        return '<button type="button" class="aoe-item-card" data-aoe-item="' + key + '" aria-pressed="' + selected + '">' +
+          '<span class="aoe-item-info"><strong>' + A.esc(name) + '</strong><small>' + A.esc(category) + '</small></span>' +
+          '<span class="aoe-item-price">' + (selected ? '<span class="aoe-item-check" aria-hidden="true">✓</span>' : '') +
+          A.money(price) + '</span></button>';
+      }
+
+      function productCards(row) {
         var original = row.original;
         var originalRef = row.originalRef;
-        var placeholder = original ? '' : '<option value="" disabled' + (!row.ref ? ' selected' : '') + '>請選擇餐點</option>';
-        var oldOption = original && (!originalRef || originalRef.sold) ? '<option value="original"' + (!row.ref || (staysOriginal(row) && row.ref.sold) ? ' selected' : '') + '>' +
-          A.esc(original.item) + '（原品項）</option>' : '';
-        return placeholder + oldOption + available.map(function (entry) {
-          return '<option value="' + entry.key + '"' + (entry === row.ref ? ' selected' : '') + '>' +
-            A.esc(entry.cat) + ' · ' + A.esc(entry.item.n) + '</option>';
+        var availability = originalRef ? '已停售' : row.originalAmbiguous ? '' : '已下架';
+        var oldCard = original && (!originalRef || originalRef.sold) ?
+          itemCard('original', original.item, [original.cat, '原品項', availability].filter(Boolean).join(' · '),
+            A.lineUnit(original), staysOriginal(row)) : '';
+        return oldCard + available.map(function (entry) {
+          var isOriginal = !!original && entry === originalRef;
+          return itemCard(entry.key, entry.item.n, isOriginal ? entry.cat + ' · 原品項' : entry.cat,
+            isOriginal ? A.lineUnit(original) : entry.item.p, entry === row.ref);
         }).join('');
+      }
+
+      function pickerAction(row) {
+        if (row.pickerOpen) return '收起';
+        return row.ref || row.original ? '更換品項' : '選擇品項';
       }
 
       function renderLine(row, index) {
         var old = staysOriginal(row);
         var label = old ? row.original.item : row.ref ? row.ref.item.n : '待選餐點';
-        var description = old && (!row.ref || row.ref.sold) ?
-          '<p class="aoe-unavailable">' + (row.ref ? '此原品項已停售。' : '此原品項目前不在菜單中。') + '</p>' : '';
-        return '<section class="aoe-line" data-aoe-line><div class="aoe-line-head"><label for="aoe-item-' + index + '">餐點</label>' +
+        var category = old ? row.original.cat : row.ref ? row.ref.cat : '';
+        var description = '';
+        if (old && (!row.ref || row.ref.sold)) {
+          var message = row.originalAmbiguous ? '菜單有同名品項，已保留原訂單品項。' :
+            row.ref ? '此原品項已停售。' : '此原品項目前不在菜單中。';
+          description = '<p class="aoe-unavailable">' + message + '</p>';
+        }
+        return '<section class="aoe-line" data-aoe-line><div class="aoe-line-head"><span>餐點</span>' +
           '<button type="button" class="btn aoe-remove" data-aoe-remove aria-label="移除 ' + A.esc(label) + '"' +
           (rows.length < 2 ? ' disabled' : '') + '>移除</button></div>' +
-          '<select id="aoe-item-' + index + '" data-aoe-item>' + productOptions(row) + '</select>' + description +
+          '<button type="button" class="aoe-picker-toggle" data-aoe-picker-toggle aria-expanded="' + row.pickerOpen +
+          '" aria-controls="aoe-items-' + index + '"><span class="aoe-item-info"><strong>' + A.esc(label) + '</strong>' +
+          (category ? '<small>' + A.esc(category) + '</small>' : '') + '</span>' +
+          '<span class="aoe-picker-aside">' + (row.ref || old ? '<strong data-aoe-unit></strong>' : '') +
+          '<span class="aoe-picker-action" data-aoe-picker-action>' + pickerAction(row) + '</span></span></button>' + description +
+          '<div class="aoe-item-grid" id="aoe-items-' + index + '" role="group" aria-label="可選品項" data-aoe-item-grid' +
+          (!row.pickerOpen ? ' hidden' : '') + '>' +
+          productCards(row) + '</div>' +
           row.groups.map(function (group, gi) {
             return '<fieldset data-aoe-group="' + gi + '"><legend>' + A.esc(group.n) + '<small data-aoe-group-kind></small></legend>' +
               '<div class="aoe-chips">' + group.choices.map(function (choice, oi) {
@@ -236,7 +264,10 @@
         el.querySelector('[data-aoe-qty]').textContent = row.qty;
         el.querySelector('[data-aoe-step="-1"]').disabled = row.qty <= 1;
         el.querySelector('[data-aoe-step="1"]').disabled = row.qty >= maxQuantity || !!(row.original && row.ref && row.ref.sold && row.qty >= Number(row.original.qty));
-        el.querySelector('[data-aoe-subtotal]').textContent = A.money(unitOf(row) * row.qty);
+        var unit = unitOf(row);
+        var unitLabel = el.querySelector('[data-aoe-unit]');
+        if (unitLabel) unitLabel.textContent = A.money(unit);
+        el.querySelector('[data-aoe-subtotal]').textContent = A.money(unit * row.qty);
         overlay.querySelector('[data-aoe-total]').textContent = A.money(rows.reduce(function (sum, line) { return sum + unitOf(line) * line.qty; }, 0));
       }
 
@@ -247,6 +278,13 @@
           element.querySelector('[data-aoe-note]').value = row.note;
           syncLine(element, row);
         });
+      }
+
+      function setPickerOpen(row, element, expanded) {
+        row.pickerOpen = expanded;
+        element.querySelector('[data-aoe-picker-toggle]').setAttribute('aria-expanded', String(expanded));
+        element.querySelector('[data-aoe-picker-action]').textContent = pickerAction(row);
+        element.querySelector('[data-aoe-item-grid]').hidden = !expanded;
       }
 
       var closed=false;
@@ -297,7 +335,7 @@
         }
         if (event.key !== 'Tab') return;
         var active = confirmAction ? confirmation : panel;
-        var focusable = Array.from(active.querySelectorAll('button:not(:disabled),select:not(:disabled),input:not(:disabled)')).filter(function (element) {
+        var focusable = Array.from(active.querySelectorAll('button:not(:disabled),input:not(:disabled)')).filter(function (element) {
           return !element.closest('[hidden]');
         });
         var first = focusable[0], last = focusable[focusable.length - 1], focused = document.activeElement;
@@ -311,7 +349,9 @@
         var invalid = null;
         rows.some(function (row, index) {
           if (!row.ref && !row.original) {
-            invalid = lines.children[index].querySelector('[data-aoe-item]');
+            var element = lines.children[index];
+            setPickerOpen(row, element, true);
+            invalid = element.querySelector('[data-aoe-item]');
             error.textContent = '請選擇新增的餐點。';
             return true;
           }
@@ -359,20 +399,6 @@
         rows[rowIndex(event.target)].note = event.target.value;
         error.hidden = true;
       });
-      overlay.addEventListener('change', function (event) {
-        if (!event.target.matches('[data-aoe-item]')) return;
-        var index = rowIndex(event.target);
-        var row = rows[index];
-        var ref = available.find(function (entry) { return entry.key === event.target.value; });
-        if (event.target.value === 'original') {
-          ref = row.originalRef;
-          if (ref && ref.sold) row.qty = Math.min(row.qty, Number(row.original.qty));
-        }
-        selectItem(row, ref);
-        render();
-        lines.children[index].querySelector('[data-aoe-item]').focus();
-        error.hidden = true;
-      });
       overlay.addEventListener('click', function (event) {
         var button = event.target.closest('button');
         if (!button || button.disabled) return;
@@ -384,18 +410,36 @@
         if (button.matches('[data-aoe-add]')) {
           rows.push(makeRow(null, null));
           render();
-          lines.lastElementChild.querySelector('[data-aoe-item]').focus();
+          lines.lastElementChild.querySelector('[data-aoe-picker-toggle]').focus();
           return;
         }
         var index = rowIndex(button);
         if (index < 0) return;
         var row = rows[index];
+        if (button.matches('[data-aoe-picker-toggle]')) {
+          setPickerOpen(row, lines.children[index], !row.pickerOpen);
+          return;
+        }
+        if (button.matches('[data-aoe-item]')) {
+          var key = button.dataset.aoeItem;
+          var ref = key === 'original' ? row.originalRef : available.find(function (entry) { return entry.key === key; });
+          if (ref !== row.ref) {
+            if (key === 'original' && ref && ref.sold) row.qty = Math.min(row.qty, Number(row.original.qty));
+            selectItem(row, ref);
+            row.pickerOpen = false;
+            render();
+          } else {
+            setPickerOpen(row, lines.children[index], false);
+          }
+          lines.children[index].querySelector('[data-aoe-picker-toggle]').focus();
+          return;
+        }
         if (button.matches('[data-aoe-remove]')) {
           var name = staysOriginal(row) ? row.original.item : row.ref ? row.ref.item.n : '待選餐點';
           return confirm('移除此品項？', '將從這張訂單移除「' + name + '」。', '移除品項', button, function () {
             rows.splice(index, 1);
             render();
-            lines.children[Math.min(index, rows.length - 1)].querySelector('[data-aoe-item]').focus();
+            lines.children[Math.min(index, rows.length - 1)].querySelector('[data-aoe-picker-toggle]').focus();
           });
         }
         if (button.matches('[data-aoe-choice]')) {
