@@ -202,3 +202,58 @@
 .account-slider-icon{position:absolute;top:-15px;left:50%;width:47px;height:47px;display:grid;place-items:center;transform:translateX(-50%);color:var(--accent,#a45b21)}
 .account-slider-icon svg{width:22px;height:22px;display:block}
 .account-tab[aria-selected="true"] .account-tab-icon{opacity:0;transform:none}
+
+/* 2026-11-25 A 一欄橫排（使用者選定）：整頁收進一個畫面、三個分頁卡片同高，內容多時只在卡片裡捲
+   refined.css 在本檔之後載入，所以下面用 .member-page:has(.account-tabs) 開頭＋!important 壓過舊規則 */
+.member-page:has(.account-tabs){padding-top:14px!important;padding-bottom:12px!important}
+.member-page:has(.account-tabs)>.member-backlink{float:left;margin:2px 14px 0 0!important}
+.member-page:has(.account-tabs)>.member-heading{margin:0 0 14px!important}
+.member-page:has(.account-tabs)>.member-heading h1{font-size:21px!important;margin:0!important;line-height:36px}
+.member-page:has(.account-tabs) .member-dashboard.account-tabs{--account-width:720px;--account-top:252px;gap:14px!important}
+.member-page:has(.account-tabs) .account-tab-list{margin-top:12px}
+.member-page:has(.account-tabs) .account-tab-panels>[role=tabpanel]>:is(section,form){box-sizing:border-box;height:clamp(200px,calc(100dvh - var(--account-top) - var(--mobile-nav-space,0px)),280px);overflow:auto;overscroll-behavior:contain;padding:18px 24px!important}
+
+/* 個人資料：頭貼在左、名字部門信箱在中、登出在右 */
+.member-page:has(.account-tabs) .account-tab-panels .member-profile{display:grid!important;grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"av name edit act" "av dept badge act" "av mail mail act";column-gap:14px;row-gap:6px;align-items:center;align-content:center;justify-items:start;text-align:left}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-sep{display:none!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-avatar-edit{grid-area:av;margin:0 10px 0 0!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile .member-avatar-large{margin:0!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>h2{grid-area:name;margin:0!important;min-width:0}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-edit-name{grid-area:edit;margin:0!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>p:not(.member-fine):not(.member-kicker){grid-area:dept;margin:0!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-verified{grid-area:badge;margin:0!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-fine{grid-area:mail;margin:0!important;min-width:0}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>.actions{grid-area:act;margin:0!important}
+
+/* 收款資料：銀行、帳號並排，儲存鈕接在後面 */
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;column-gap:12px;align-items:end;align-content:start}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>:is(h2,p){grid-column:1/-1}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>h2{grid-row:1}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>p.member-muted{grid-row:2}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>label{grid-row:3}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.btn.primary{grid-row:3;grid-column:3}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.payinfo-status{grid-row:4;margin:10px 0 0!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>h2{margin:0 0 4px!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>p.member-muted{margin:0 0 2px!important;line-height:1.6!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>label{margin-top:8px!important;min-width:0}
+.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.btn.primary{margin:0!important;white-space:nowrap}
+
+/* 會員管理：名單在卡片裡捲 */
+.member-page:has(.account-tabs) .account-tab-panels .member-role-admin{display:flex!important;flex-direction:column}
+.member-page:has(.account-tabs) .account-tab-panels .member-role-admin>h2{margin:0 0 4px!important}
+.member-page:has(.account-tabs) .account-tab-panels .member-role-admin [data-role-list]{flex:1;min-height:0;max-height:none!important;overflow:auto!important;overscroll-behavior:contain}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>:is(.member-edit-name,.member-verified){white-space:nowrap}
+.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-fine{overflow-wrap:anywhere}
+@media (max-width:560px){
+  .member-page:has(.account-tabs) .member-dashboard.account-tabs{--account-top:234px}
+  .member-page:has(.account-tabs) .account-tab-panels>[role=tabpanel]>:is(section,form){height:clamp(220px,calc(100dvh - var(--account-top) - var(--mobile-nav-space,0px)),440px);padding:18px 20px!important}
+  .member-page:has(.account-tabs) .account-tab-panels .member-profile{grid-template-columns:auto minmax(0,auto) minmax(0,1fr);grid-template-areas:"av name name" "av edit edit" "av dept badge" "mail mail act";column-gap:12px;row-gap:8px}
+  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-avatar-edit{margin:0 6px 0 0!important}
+  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-edit-name{padding-inline:0!important}
+  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-fine{margin-top:6px!important}
+  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.actions{justify-self:end;margin-top:6px!important}
+  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo{grid-template-columns:minmax(0,1fr)}
+  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>label{grid-row:auto}
+  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.btn.primary{grid-row:auto;grid-column:1/-1;margin-top:14px!important}
+  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.payinfo-status{grid-row:auto}
+}

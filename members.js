@@ -224,7 +224,7 @@
   function wirePayInfo(root,u) {
     var f=root.querySelector('[data-payinfo]'),LP=window.LunchPay;if(!f)return;
     var busy=false,ready=false,status=f.querySelector('[data-pay-status]'),submit=f.querySelector('button[type="submit"]');
-    function say(t,bad){status.textContent=t;status.classList.toggle('is-bad',!!bad);status.hidden=!t;}
+    function say(t,bad){status.textContent=t;status.classList.toggle('is-bad',!!bad);status.hidden=!t;if(t&&status.scrollIntoView)status.scrollIntoView({block:'nearest'});}
     if(!LP){say('收款功能沒有載入，請重新整理頁面。',true);return;}
     A.DB.get('payInfo/'+u.uid).then(function(v){if(!f.isConnected)return;var p=LP.clean(v);f.elements.bank.value=p.bank;f.elements.account.value=p.account;ready=true;submit.disabled=false;}).catch(function(){if(f.isConnected)say('暫時讀不到收款資料，請重新整理後再試。',true);});
     f.onsubmit=function(e){
