@@ -163,7 +163,7 @@
     dialog.addEventListener('close',function(){imageJob++;imageBusy=false;form.querySelector('button[type="submit"]').disabled=savingProfile;form.querySelector('[data-avatar-status]').textContent='選擇照片後先預覽，儲存才會更換';form.reset();avatarImage=u.avatarImage||'';form.querySelector('[data-avatar-upload]').value='';form.querySelector('[data-unsaved]').hidden=true;form.querySelector('[data-draft-avatar]').innerHTML=avatar(u,'member-avatar-large');});
     root.querySelector('[data-profile-close]').onclick=function(){dialog.close();};
     dialog.addEventListener('click',function(e){if(e.target===dialog){var r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
-    function openProfile(focusName){dialog.showModal();if(focusName){form.elements.displayName.focus();form.elements.displayName.select();}}
+    function openProfile(focusName){dialog.showModal();form.scrollTop=0;if(focusName){form.elements.displayName.focus();form.elements.displayName.select();}}
     root.querySelector('[data-edit-avatar]').onclick=function(){openProfile(false);};
     root.querySelector('[data-edit-name]').onclick=function(){openProfile(true);};
     if(firstSetup)openProfile(true);

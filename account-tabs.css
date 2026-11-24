@@ -257,3 +257,13 @@
   .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.btn.primary{grid-row:auto;grid-column:1/-1;margin-top:14px!important}
   .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.payinfo-status{grid-row:auto}
 }
+
+/* 2026-11-25「修改頭貼與姓名」視窗（桌機）：原本整個 dialog 一起捲，視窗矮時聚焦姓名會把 × 捲走。
+   改成跟手機版（refined.css ≤768px 那段）同一套：dialog 不捲、裡面的表單捲，× 固定在右上。
+   桌機儲存鈕不是滿版，黏底會疊在頭貼選項上，所以不做黏底，維持在表單最下面 */
+@media (min-width:769px){
+  .profile-dialog[open]{overflow:hidden}
+  .profile-dialog .member-editor{box-sizing:border-box;max-height:calc(85dvh - 2px);overflow-y:auto;overscroll-behavior:contain}
+  .profile-dialog .member-editor>h2{padding-inline-end:42px}
+  .profile-dialog .profile-close{z-index:2}
+}
