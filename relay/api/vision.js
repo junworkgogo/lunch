@@ -17,14 +17,14 @@ const MIN_START_MS=6000; // 剩不到 6 秒就不再開新的呼叫
 const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/';
 const GEMINI_FALLBACKS=['gemini-3.5-flash-lite','gemini-flash-lite-latest','gemini-flash-latest'];
 // 2026-11-24 共用選項與分類/單品限制一起辨識，不根據品名猜供應條件。
-const PROMPT='你是台灣餐廳菜單資料擷取助手。只根據照片上實際看得見的文字、圖例和價格，不得猜測或補造品名、價格、選項，不要把地址、電話、營業時間或折扣當作餐點。輸出繁體中文JSON，格式 {"sharedOptions":[{"name":"甜度","required":true,"choices":[{"name":"無糖","add":0}]}],"categories":[{"name":"分類名稱","options":[],"items":[{"name":"品名","price":80,"soldOut":false,"options":[]}]}],"warnings":[]}。所有options與sharedOptions都採用相同群組格式name/required/choices；choices每筆name/add。全店明確共用的甜度、冰量、冷熱、加料放sharedOptions；只適用某分類的放該分類options，不得將飲料選項套到餐點分類。品項的例外限制放該品項options，以同名群組覆寫共用選項。糖度/糖量統一叫甜度，冰量/冰塊統一叫冰塊，冷熱/溫度統一叫溫度。圖例明示可冷可熱時溫度選項是冷、熱；只有冷飲或只有熱飲的品項只能放對應的一個溫度選項且required=true，不得一律給所有品項冷熱。固定糖或固定冰請用同名群組只有一個選項required=true；不提供加料的品項加上同名加料群組僅一個不加料選項add=0以覆寫共用。加料旁有限冷飲等限制必保留在選項名稱括號內，價格標在整排前即適用該排每一項。只有明確列出選項及加價時才填，未列糖冰溫度不可猜，放warnings請使用者補確認；一般糖冰與冷熱沒有加價標示時add=0，有價差則照實。price只允許確定的整數新台幣，價格不清楚略過品項並警告。多個完整價格將最低價寫price，各規格add是與最低價差額。不要把原價當折扣價。多圖重複品項去重；保留原分類和品名順序，分類沒有標示用其他。不要markdown。';
+const PROMPT='你是台灣餐廳菜單資料擷取助手。只根據照片上實際看得見的文字、圖例和價格，不得猜測或補造品名、價格、選項，不要把地址、電話、營業時間或折扣當作餐點。輸出繁體中文JSON，格式 {"sharedOptions":[{"name":"甜度","required":true,"choices":[{"name":"無糖","add":0}]}],"categories":[{"name":"分類名稱","options":[],"note":"","hint":"","items":[{"name":"品名","price":80,"soldOut":false,"note":"","hint":"","options":[]}]}],"warnings":[]}。所有options與sharedOptions都採用相同群組格式name/required/choices；choices每筆name/add。全店明確共用的甜度、冰量、冷熱、加料放sharedOptions；只適用某分類的放該分類options，不得將飲料選項套到餐點分類。品項的例外限制放該品項options，以同名群組覆寫共用選項。糖度/糖量統一叫甜度，冰量/冰塊統一叫冰塊，冷熱/溫度統一叫溫度。圖例明示可冷可熱時溫度選項是冷、熱；只有冷飲或只有熱飲的品項只能放對應的一個溫度選項且required=true，不得一律給所有品項冷熱。固定糖或固定冰請用同名群組只有一個選項required=true；不提供加料的品項加上同名加料群組僅一個不加料選項add=0以覆寫共用。加料旁有限冷飲等限制必保留在選項名稱括號內，價格標在整排前即適用該排每一項。只有明確列出選項及加價時才填，未列糖冰溫度不可猜，放warnings請使用者補確認；一般糖冰與冷熱沒有加價標示時add=0，有價差則照實。price只允許確定的整數新台幣，價格不清楚略過品項並警告。多個完整價格將最低價寫price，各規格add是與最低價差額。不要把原價當折扣價。多圖重複品項去重；保留原分類和品名順序，分類沒有標示用其他。品項或分類的資訊放note：品項旁或下方的小字說明放該品項note，例如季節限定（夏季限定）、計價單位（每包、每斤）、套餐內容（素肉燥+大陸妹+油豆腐+泡菜）、辣或甜的小圖示（寫成辣味、甜味）；店家告知事項（例如本店採用非基改豆腐）放該分類note；只適用其中幾個品項的就分別放進那幾個品項的note。請客人點餐時要另外備註告知的提醒放hint，例如需要飯一半或不需加海苔另外備註、不辣請先告知、去奶請先告知；只適用其中幾個品項的就分別放進那幾個品項的hint，整個分類共用的放該分類hint。同一句不要同時放note和hint。只寫照片上看得到的字，不得自己補；note和hint不要重複品名和價格；沒有就填空字串。不要markdown。';
 const OPTION_SCHEMA={type:'OBJECT',properties:{name:{type:'STRING'},required:{type:'BOOLEAN'},choices:{type:'ARRAY',items:{type:'OBJECT',properties:{name:{type:'STRING'},add:{type:'INTEGER'}},required:['name','add']}}},required:['name','choices']};
 const SCHEMA={type:'OBJECT',properties:{
  sharedOptions:{type:'ARRAY',items:OPTION_SCHEMA},
  categories:{type:'ARRAY',items:{type:'OBJECT',properties:{
-  name:{type:'STRING'},options:{type:'ARRAY',items:OPTION_SCHEMA},
+  name:{type:'STRING'},note:{type:'STRING'},hint:{type:'STRING'},options:{type:'ARRAY',items:OPTION_SCHEMA},
   items:{type:'ARRAY',items:{type:'OBJECT',properties:{
-   name:{type:'STRING'},price:{type:'INTEGER'},soldOut:{type:'BOOLEAN'},options:{type:'ARRAY',items:OPTION_SCHEMA}
+   name:{type:'STRING'},price:{type:'INTEGER'},soldOut:{type:'BOOLEAN'},note:{type:'STRING'},hint:{type:'STRING'},options:{type:'ARRAY',items:OPTION_SCHEMA}
   },required:['name','price']}}
  },required:['name','items']}},
  warnings:{type:'ARRAY',items:{type:'STRING'}}
