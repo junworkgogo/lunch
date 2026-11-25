@@ -83,6 +83,12 @@ function safeResult(json){
       if(values.length){seen[gn]=true;rows.push('  '+gn+(g.required?'*':'')+': '+values.join(', '));}
     });return rows;
   }
+  // 2026-11-25 說明行：換行與 tab 變空白、連續空白收成一個、去掉開頭的 ※、截到 120 字；空的不輸出
+  function noteLine(v,hint){
+    var t=String(v==null?'':v).replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim().replace(/^[※✎\s]+/,'').trim();
+    t=Array.from(t).slice(0,hint?40:120).join('').trim();
+    return t?['  '+(hint?'✎':'※')+' '+t]:[];
+  }
   out=optionLines(json.sharedOptions);
   cats.slice(0,60).forEach(function(cat){
     var rows=[],items=Array.isArray(cat.items)?cat.items:[];
@@ -90,9 +96,10 @@ function safeResult(json){
       var rawPrice=it.price,n=cleanName(it.name),p=rawPrice===null||rawPrice===undefined||typeof rawPrice==='boolean'||typeof rawPrice==='string'&&!rawPrice.trim()?NaN:Number(rawPrice);
       if(!n||!Number.isInteger(p)||p<0||p>9999)return;
       rows.push(n+', '+p+(it.soldOut?', 停售':''));
+      rows.push.apply(rows,noteLine(it.note));rows.push.apply(rows,noteLine(it.hint,true));
       rows.push.apply(rows,optionLines(it.options));total++;
     });
-    if(rows.length){out.push('{'+cleanName(cat.name||'其他')+'}');out.push.apply(out,optionLines(cat.options));out.push.apply(out,rows);}
+    if(rows.length){out.push('{'+cleanName(cat.name||'其他')+'}');out.push.apply(out,noteLine(cat.note));out.push.apply(out,noteLine(cat.hint,true));out.push.apply(out,optionLines(cat.options));out.push.apply(out,rows);}
   });
   var text=out.join('\n'),parsed=parse(text);
   if(!parsed||!parsed.count)throw new Error('圖片中沒有辨識到可用的餐點與價格，請換清晰照片');

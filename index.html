@@ -486,7 +486,7 @@ a{color:#394150}
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
 <link rel="stylesheet" href="pos.css?v=20261117pos1">
-<link rel="stylesheet" href="glass.css?v=20261119refined3">
+<link rel="stylesheet" href="glass.css?v=20261125note">
 <link rel="stylesheet" href="hours-editor.css?v=20261123hours1">
 <link rel="stylesheet" href="toppings.css?v=20261123tp1">
 <link rel="stylesheet" href="drink-options.css?v=20261124five1">
@@ -767,6 +767,27 @@ function parseMenu(text){
     var ln=idx+1;
     function bad(msg){errors.push({line:ln,text:raw.trim(),msg:msg});}
     if(isIndented(raw)){
+      // 2026-11-25 縮排行以「※」開頭＝說明行（品項或分類的一行說明），照原樣保留標點，不經 normLine
+      var noteBody=raw.replace(BULLET,'').replace(/^[ \t　]+/,'');
+      if(noteBody.charAt(0)==='※'){
+        var nt=noteBody.replace(/^※[ \t　]*/,'').replace(/　/g,' ').trim();
+        if(!nt){bad('「※」後面沒有說明文字');return;}
+        if(Array.from(nt).length>120){bad('說明最多 120 字');return;}
+        var owner=curItem||cur;
+        if(!owner){bad('說明（※）要寫在分類或餐點下面');return;}
+        if(owner.d!==undefined){bad('每道餐點（或分類）只能有一行說明，請合併成一行');return;}
+        owner.d=nt;return;
+      }
+      // 2026-11-25 「✎」開頭＝備註提示行（點餐視窗備註框的提示字），規則同 ※，上限 40 字
+      if(noteBody.charAt(0)==='✎'){
+        var ht=noteBody.replace(/^✎[ \t　]*/,'').replace(/　/g,' ').trim();
+        if(!ht){bad('「✎」後面沒有提示文字');return;}
+        if(Array.from(ht).length>40){bad('備註提示最多 40 字');return;}
+        var hOwner=curItem||cur;
+        if(!hOwner){bad('備註提示（✎）要寫在分類或餐點下面');return;}
+        if(hOwner.h!==undefined){bad('每道餐點（或分類）只能有一行備註提示');return;}
+        hOwner.h=ht;return;
+      }
       var g=parseGroup(normLine(raw.replace(BULLET,'')));
       if(g.err){bad(g.err);return;}
       var tgt=curItem?curItem._own:(cur?cur._cg:shared);
@@ -824,13 +845,15 @@ function legacyMenuText(menu){
   return menu.map(function(c){return '{'+c.c+'}\n'+c.items.map(function(it){return it.v?it.n+', '+it.v.map(function(x){return x[0]+' '+x[1];}).join(', '):it.n+', '+it.p;}).join('\n');}).join('\n');
 }
 function menuOf(shop){
-  return arr(shop&&shop.menu).map(function(c){return {c:c.c,items:arr(c.items).map(function(it){
+  return arr(shop&&shop.menu).map(function(c){var co={c:c.c,items:arr(c.items).map(function(it){
     var o={n:it.n,p:Number(it.p)||0,so:!!it.so,g:arr(it.g).map(function(g){return {n:g.n,req:!!g.req,o:arr(g.o).map(function(x){return {n:x.n,add:Number(x.add)||0};})};})};
     if(it.v){
       var vs=arr(it.v).map(function(x){return arr(x);}),min=Math.min.apply(null,vs.map(function(x){return Number(x[1]);}));
       o.p=min;o.g=[{n:'規格',req:true,o:vs.map(function(x){return {n:x[0],add:Number(x[1])-min};})}].concat(o.g);
     }
-    return o;})};});
+    if(it.d)o.d=String(it.d);
+    if(it.h)o.h=String(it.h);
+    return o;})};if(c.d)co.d=String(c.d);if(c.h)co.h=String(c.h);return co;});
 }
 function countItems(text){return parseMenu(text).count;}
 
@@ -1491,7 +1514,7 @@ function pageShopEdit(root,id){
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
     '<div class="fld"><label for="sh">營業時間</label><textarea id="sh" rows="1" maxlength="2000">'+esc(s.hours||'')+'</textarea></div>'+
     freeShippingField('shopFreeShipping',s.freeShippingThreshold)+
-    '<div class="fld"><label for="sm">菜單（一行一個品項）</label><p class="hint">{分類名稱} 開新分類；品名, 價格；品名, 價格, 停售。縮排兩格（或行首「- 」）的行是選項：群組名*: 選項, 選項+加價（有 * 必選單選，沒有 * 可不選、可複選）。選項寫在分類下面、第一個品項前，整個分類共用。</p><div class="insrow"><button type="button" class="btn sm" id="ins1">插入：飲料（尺寸／甜度／冰塊）</button><button type="button" class="btn sm" id="ins2">插入：便當客製（飯少／飯多／不要蔥／要切）</button></div><textarea id="sm" spellcheck="false" aria-describedby="smE">'+esc(s.menuText)+'</textarea><ul class="errlist" id="smE" role="alert"></ul></div>'+
+    '<div class="fld"><label for="sm">菜單（一行一個品項）</label><p class="hint">{分類名稱} 開新分類；品名, 價格；品名, 價格, 停售。縮排兩格（或行首「- 」）的行是選項：群組名*: 選項, 選項+加價（有 * 必選單選，沒有 * 可不選、可複選）。選項寫在分類下面、第一個品項前，整個分類共用。品項或分類下一行縮排寫「※ 說明」，例如 ※ 夏季限定。✎ 開頭寫點餐備註框的提示字，例如 ✎ 不辣請先告知。</p><div class="insrow"><button type="button" class="btn sm" id="ins1">插入：飲料（尺寸／甜度／冰塊）</button><button type="button" class="btn sm" id="ins2">插入：便當客製（飯少／飯多／不要蔥／要切）</button></div><textarea id="sm" spellcheck="false" aria-describedby="smE">'+esc(s.menuText)+'</textarea><ul class="errlist" id="smE" role="alert"></ul></div>'+
     '<p class="err" id="saveE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存店家</button>'+(isNew?'':'<button type="button" class="btn danger" id="del">刪除店家</button>')+'</div></form></section>'+
     '<section class="card pv"><h2 style="font-size:18px;font-weight:900">預覽</h2><div id="pv"></div><div id="mp" style="margin-top:14px"></div></section></div></div>';
     var sm=root.querySelector('#sm'),sa=root.querySelector('#sa');var hoursField=root.querySelector('#sh');hoursField.defaultValue=hoursField.value=s.hours||'';var initialHoursValue=hoursField.value;
@@ -1502,7 +1525,7 @@ function pageShopEdit(root,id){
       root.querySelector('#smE').innerHTML=r.errors.map(function(e){return '<li><b>第 '+e.line+' 行有問題：'+esc(e.msg)+'</b>'+esc(e.text)+'</li>';}).join('');
       // 全店共用的選項（加料區）在預覽最上面列一次，各品項底下不再重複
       var sharedG=r.shared||[],ownG=function(it){return arr(it.g).filter(function(g){return sharedG.indexOf(g)<0;});};
-      root.querySelector('#pv').innerHTML=r.count?'<p class="muted">共 '+r.cats.length+' 個分類、'+r.count+' 個品項</p>'+(sharedG.length?'<p class="gl pv-shared">全店共用・'+sharedG.map(groupLine).join('<br>')+'</p>':'')+r.cats.map(function(c){return '<h3>'+esc(c.c)+'（'+c.items.length+'）</h3><ul>'+c.items.map(function(it){var og=ownG(it);return '<li><span>'+esc(it.n)+(it.so?'<span class="stp">停售</span>':'')+'</span><b>'+money(it.p)+'</b>'+(og.length?'<span class="gl">'+og.map(groupLine).join('<br>')+'</span>':'')+'</li>';}).join('')+'</ul>';}).join(''):'<p class="muted">還沒有品項</p>';
+      root.querySelector('#pv').innerHTML=r.count?'<p class="muted">共 '+r.cats.length+' 個分類、'+r.count+' 個品項</p>'+(sharedG.length?'<p class="gl pv-shared">全店共用・'+sharedG.map(groupLine).join('<br>')+'</p>':'')+r.cats.map(function(c){return '<h3>'+esc(c.c)+'（'+c.items.length+'）</h3>'+(c.d?'<p class="gl">說明：'+esc(c.d)+'</p>':'')+(c.h?'<p class="gl">備註提示：'+esc(c.h)+'</p>':'')+'<ul>'+c.items.map(function(it){var og=ownG(it);return '<li><span>'+esc(it.n)+(it.so?'<span class="stp">停售</span>':'')+'</span><b>'+money(it.p)+'</b>'+(it.d?'<span class="gl">說明：'+esc(it.d)+'</span>':'')+(it.h?'<span class="gl">備註提示：'+esc(it.h)+'</span>':'')+(og.length?'<span class="gl">'+og.map(groupLine).join('<br>')+'</span>':'')+'</li>';}).join('')+'</ul>';}).join(''):'<p class="muted">還沒有品項</p>';
       return r;
     }
     pv();sm.addEventListener('input',pv);
@@ -1613,10 +1636,10 @@ function pageGroup(root,gid){
     var s=group.shop,html='',tabs='';
     menu.forEach(function(cat,ci){
       tabs+='<button type="button" class="tab" data-t="'+ci+'">'+esc(menuCategoryLabel(cat.c))+'</button>';
-      html+='<section class="cat" id="cat-'+ci+'"><h2>'+esc(menuCategoryLabel(cat.c))+'<small>'+cat.items.length+' 項</small></h2><div class="items">';
+      html+='<section class="cat" id="cat-'+ci+'"><h2>'+esc(menuCategoryLabel(cat.c))+'<small>'+cat.items.length+' 項</small></h2>'+(cat.d?'<p class="cnote">'+esc(cat.d)+'</p>':'')+'<div class="items">';
       cat.items.forEach(function(it,ii){
         var ik=ci+'-'+ii;itemIdx[ik]={ci:ci,cat:cat.c,it:it};
-        html+='<div class="item" data-ik="'+ik+'"><div class="row"><button type="button" class="itemhit" data-open="'+ik+'"><span class="iname">'+esc(it.n)+'</span><span class="item-count" hidden></span><span class="badge off soldtag">停售</span>'+(specialNote(it)?'<span class="gnames">'+esc(specialNote(it))+'</span>':'')+'</button><span class="price">$'+it.p+'</span><button type="button" class="q-btn plus" data-add="'+ik+'" aria-label="加入 '+esc(it.n)+'">'+I('plus')+'</button></div></div>';
+        html+='<div class="item" data-ik="'+ik+'"><div class="row"><button type="button" class="itemhit" data-open="'+ik+'"><span class="iname">'+esc(it.n)+'</span><span class="item-count" hidden></span><span class="badge off soldtag">停售</span>'+(specialNote(it)?'<span class="gnames">'+esc(specialNote(it))+'</span>':'')+(it.d?'<span class="inote">'+esc(it.d)+'</span>':'')+'</button><span class="price">$'+it.p+'</span><button type="button" class="q-btn plus" data-add="'+ik+'" aria-label="加入 '+esc(it.n)+'">'+I('plus')+'</button></div></div>';
       });
       html+='</div></section>';
     });
@@ -1865,6 +1888,7 @@ function pageGroup(root,gid){
       return options;
     }
     var ov=document.createElement('div');ov.className='pk-ov';
+    var noteCat=ref&&menu[ref.ci],hintText=[it&&it.h,noteCat&&noteCat.h].filter(Boolean).join('；'),descHtml=(it&&it.d?'<p class="pk-desc">'+esc(it.d)+'</p>':'')+(noteCat&&noteCat.d?'<p class="pk-desc">'+esc(noteCat.d)+'</p>':'');
     function chip(o,gi,oi,plain){return '<button type="button" class="chip" data-gi="'+gi+'" data-oi="'+oi+'" aria-pressed="false"'+(plain?' aria-label="'+esc(o.n)+' 加 $'+o.add+'"':'')+'>'+esc(o.n)+(o.add&&!plain?'<span class="ad"> +$'+o.add+'</span>':'')+'</button>';}
     var gh=groups.map(function(g,gi){
       // 2026-11-23 加料這類「可複選、每項都要加錢」的群組，照價錢分列（左邊 +$10、右邊品名），像店家菜單上的加料區
@@ -1876,7 +1900,7 @@ function pageGroup(root,gid){
       return '<div class="pg'+(byPrice?' pg-addon':'')+'" data-gi="'+gi+'"><div class="pg-h"><span>'+esc(g.n)+'</span><span class="pg-tag'+(required[gi]?' req':'')+'">'+(required[gi]?'必選':g.req?'選填':'可複選')+'</span></div>'+body+'<p class="gerr" role="alert" hidden>請選一個</p></div>';
     }).join('');
     var toppingNotice=hasColdOnly?'<p class="muted" data-hot-addon-note role="status" hidden>熱飲不能選擇標示限冷飲的加料。</p>':'';
-    ov.innerHTML='<div class="pk" role="dialog" aria-modal="true" aria-labelledby="pkT"><div class="pk-h"><div><h2 id="pkT">'+esc(name)+'</h2><p class="muted">底價 $'+base+'</p></div><button type="button" class="pk-x" data-x aria-label="關閉">'+I('x')+'</button></div><div class="pk-b">'+gh+toppingNotice+'<div class="pg"><div class="pg-h"><span>備註</span><span class="pg-tag">選填</span></div><input class="pk-note" type="text" maxlength="40" placeholder="例如 不要蔥、分開裝" aria-label="備註" autocomplete="off"></div><div class="pk-q"><span class="pg-h" style="margin:0">數量</span><span class="qctl"><button type="button" class="q-btn" data-q="-" aria-label="減少數量">'+I('minus')+'</button><b id="pkN">1</b><button type="button" class="q-btn plus" data-q="+" aria-label="增加數量">'+I('plus')+'</button></span></div></div><div class="pk-f"><button type="button" class="submit" data-ok id="pkOk"></button><button type="button" class="btn" data-x>取消</button></div></div>';
+    ov.innerHTML='<div class="pk" role="dialog" aria-modal="true" aria-labelledby="pkT"><div class="pk-h"><div><h2 id="pkT">'+esc(name)+'</h2><p class="muted">底價 $'+base+'</p>'+descHtml+'</div><button type="button" class="pk-x" data-x aria-label="關閉">'+I('x')+'</button></div><div class="pk-b">'+gh+toppingNotice+'<div class="pg"><div class="pg-h"><span>備註</span><span class="pg-tag">選填</span></div><input class="pk-note" type="text" maxlength="40" placeholder="'+esc(hintText||'例如 不要蔥、分開裝')+'" aria-label="備註" autocomplete="off"></div><div class="pk-q"><span class="pg-h" style="margin:0">數量</span><span class="qctl"><button type="button" class="q-btn" data-q="-" aria-label="減少數量">'+I('minus')+'</button><b id="pkN">1</b><button type="button" class="q-btn plus" data-q="+" aria-label="增加數量">'+I('plus')+'</button></span></div></div><div class="pk-f"><button type="button" class="submit" data-ok id="pkOk"></button><button type="button" class="btn" data-x>取消</button></div></div>';
     var note=ov.querySelector('.pk-note');
     var hotAddonNote=ov.querySelector('[data-hot-addon-note]');
     if(line)note.value=line.note;

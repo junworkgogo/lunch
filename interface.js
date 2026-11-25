@@ -162,11 +162,18 @@
   // Keep the original source lines. Only fields explicitly changed by the user are rewritten.
   // Category option lines and item option lines are never reserialized or dropped.
   function isOptionLine(raw){return /^(?:[ \t　]{2,}|[ \t　]*[\t　]|[ \t　]*-[ \t　]+)/.test(raw);}
+  // 2026-11-25 「※ 說明」行：縮排行去掉開頭的「- 」與空白後以 ※ 開頭
+  // 同樣規則另有「✎ 備註提示」行（點餐視窗備註框的提示字）：回傳 {k:'note'|'hint',text} 或 null
+  function noteTextOf(raw){var t=String(raw).replace(/^[ \t　]*-[ \t　]+/,'').replace(/^[ \t　]+/,''),c=t.charAt(0);if(c!=='※'&&c!=='✎')return null;return {k:c==='※'?'note':'hint',text:t.slice(1).replace(/^[ \t　]*/,'').replace(/　/g,' ').trim()};}
   function sourceModel(text,errors){
     var invalid=new Set((errors||[]).map(function(e){return e.line-1;}));
     var lines=text.split(/\r?\n/),cats=[],cat=null,item=null;
     lines.forEach(function(raw,i){var s=raw.trim();if(!s)return;
-      if(isOptionLine(raw)){if(item){item.options.push(raw);item.optionLines.push(i);}else if(cat)cat.options.push(raw);return;}
+      if(isOptionLine(raw)){
+        var nt=noteTextOf(raw),owner=item||cat;
+        if(nt&&owner&&!owner[nt.k]){owner[nt.k]={line:i,text:nt.text};return;}
+        if(item){item.options.push(raw);item.optionLines.push(i);}else if(cat)cat.options.push(raw);return;
+      }
       if(invalid.has(i))return;
       var m=/^[{｛](.*?)[}｝]$/.exec(s);if(m){cat={name:m[1].trim(),line:i,items:[],options:[]};cats.push(cat);item=null;return;}
       var parts=s.split(/[,，﹐､]/);if(parts.length<2)return;var sold=parts[parts.length-1].trim()==='停售';if(sold)parts.pop();if(parts.length<2)return;
@@ -208,6 +215,17 @@
       model.lines[it.line]=parts.join('');
       commit(model.lines.join('\n'));
     }
+    // 說明行：已有就整行換成「  ※ 新文字」、清空就刪掉那行；原本沒有就插在品項（或 {分類}）那行的下一行
+    // kind 預設 'note'（※ 說明）；'hint' 是 ✎ 備註提示，新插入時若已有 ※ 行就放在 ※ 行之後
+    function setNote(model,owner,anchor,value,kind){
+      kind=kind||'note';var mark=kind==='hint'?'✎':'※',cur=owner[kind];
+      var text=String(value).replace(/[\r\n]+/g,' ').trim();
+      if(cur){if(text)model.lines[cur.line]='  '+mark+' '+text;else model.lines.splice(cur.line,1);}
+      else if(text)model.lines.splice((kind==='hint'&&owner.note?owner.note.line:anchor)+1,0,'  '+mark+' '+text);
+      else return;
+      commit(model.lines.join('\n'));
+    }
+    function noteInput(owner,anchor,model,label,kind){kind=kind||'note';var w=input(owner[kind]?owner[kind].text:'',label,function(v){setNote(model,owner,anchor,v,kind);},undefined,true);w.querySelector('input').maxLength=kind==='hint'?40:120;return w;}
     function input(value,label,change,type,allowEmpty){var wrap=el('label',null,label),x=el('input');x.type=type||'text';x.value=type==='number'?numericDisplay(value):value;x.setAttribute('aria-label',label);if(type==='number'){x.min='0';x.step='1';}x.addEventListener('change',function(){if(!x.checkValidity()||(!allowEmpty&&!x.value.trim())){x.reportValidity();return;}change(x.value);});wrap.append(x);return wrap;}
     function draw(){
       var source=ta.value,validation=parse(source),errors=validation?validation.errors:[],model=sourceModel(source,errors);
@@ -226,12 +244,14 @@
       model.cats.forEach(function(cat){
         var section=el('section','editor-cat'),head=el('div','editor-cat-head');head.append(input(cat.name,'分類名稱',function(v){if(/[{}｛｝\r\n]/.test(v))return;if(cat.line<0)model.lines.splice(cat.items.length?cat.items[0].line:0,0,'{'+v+'}');else model.lines[cat.line]=model.lines[cat.line].replace(/^(\s*[{｛]\s*).*?(\s*[}｝]\s*)$/,function(_,before,after){return before+v+after;});commit(model.lines.join('\n'));}));
         head.append(button('刪除分類',function(){confirmDel({title:'刪除分類「'+(cat.name||'未命名')+'」？',body:'這個分類和裡面 '+cat.items.length+' 道餐點會一起移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var next=model.cats[model.cats.indexOf(cat)+1],start=cat.line<0?(cat.items.length?cat.items[0].line:0):cat.line;model.lines.splice(start,(next?next.line:model.lines.length)-start);commit(model.lines.join('\n'));});}));section.append(head);
+        if(cat.line>=0){var cnRow=el('div','editor-cat-notes');cnRow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px';[noteInput(cat,cat.line,model,'分類說明（選填）'),noteInput(cat,cat.line,model,'分類備註提示（選填）','hint')].forEach(function(w){w.style.cssText='display:block;flex:1 1 220px;min-width:0';cnRow.append(w);});section.append(cnRow);}
         if(cat.options.length)section.append(el('p','editor-cat-options','共用選項（保留）\n'+cat.options.join('\n')));
         cat.items.forEach(function(it){var row=el('div','editor-item');row.append(input(it.name,'餐點名稱',function(v){if(/[,，﹐､{}｛｝\r\n]/.test(v))return;updateItem(model,it,'name',v);}));
           if(it.normal)row.append(input(it.price,'價格',function(v){updateItem(model,it,2,v);},'number'));else{
             var variants=el('div','editor-variants');it.parts.slice(1).forEach(function(part,vi){var match=/^(.*?)\s+[$＄]?([0-9０-９]+)元?$/.exec(part.trim());if(!match){variants.append(el('p','editor-note',part));return;}variants.append(input(match[2],match[1]+'價格',function(v){updateItem(model,it,(vi+1)*2,v);},'number'));});row.append(variants);
           }
-          var status=el('label','editor-status'),check=el('input');check.type='checkbox';check.checked=it.sold;status.append(check,document.createTextNode(it.sold?'已售完':'供應中'));check.addEventListener('change',function(){updateItem(model,it,'sold',check.checked);});row.append(status,button('刪除',function(){confirmDel({title:'刪除「'+(it.name||'這道餐點')+'」？',body:'這道餐點會從菜單移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var remove=new Set([it.line].concat(it.optionLines));model.lines=model.lines.filter(function(_,line){return !remove.has(line);});commit(model.lines.join('\n'));});}));
+          var status=el('label','editor-status'),check=el('input');check.type='checkbox';check.checked=it.sold;status.append(check,document.createTextNode(it.sold?'已售完':'供應中'));check.addEventListener('change',function(){updateItem(model,it,'sold',check.checked);});row.append(status,button('刪除',function(){confirmDel({title:'刪除「'+(it.name||'這道餐點')+'」？',body:'這道餐點會從菜單移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var remove=new Set([it.line].concat(it.optionLines,it.note?[it.note.line]:[],it.hint?[it.hint.line]:[]));model.lines=model.lines.filter(function(_,line){return !remove.has(line);});commit(model.lines.join('\n'));});}));
+          var nrow=el('div','editor-item-notes');nrow.style.cssText='grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px';[noteInput(it,it.line,model,'說明（選填）'),noteInput(it,it.line,model,'備註提示（選填）','hint')].forEach(function(w){w.style.cssText='display:block;flex:1 1 220px;min-width:0';nrow.append(w);});row.append(nrow);
           if(it.options.length)row.append(el('p','editor-options','規格選項（保留）\n'+it.options.join('\n')));section.append(row);
         });
         section.append(button('＋ 新增餐點',function(){var next=model.cats[model.cats.indexOf(cat)+1],at=next?next.line:model.lines.length;model.lines.splice(at,0,'新餐點, 0');commit(model.lines.join('\n'));}));panel.append(section);

@@ -324,3 +324,9 @@ a.btn.primary[href="#/new"] .hop-c{animation:hopLoop 3.2s ease-in-out infinite;a
 .home-switch{position:relative;isolation:isolate;display:inline-grid;grid-template-columns:repeat(2,minmax(0,1fr))}.home-switch::before{content:'';position:absolute;z-index:0;inset:4px auto 4px 4px;width:calc((100% - 12px)/2);border-radius:999px;background:#fff;box-shadow:0 2px 7px #0000000a;transition:transform 280ms cubic-bezier(.22,.68,0,1);transform:translateX(0);pointer-events:none}.home-switch:has(a[href="#/?view=ended"][aria-current="page"])::before{transform:translateX(calc(100% + 4px))}.home-switch a{position:relative;z-index:1}.home-switch a[aria-current="page"]{background:transparent;box-shadow:none}
 }
 @media(prefers-reduced-motion:reduce){.role-segment::before,.home-switch::before{transition:none}}
+
+/* 2026-11-25 菜單說明：品項卡片最多 2 行、分類標題下方與點餐視窗完整顯示；字級顏色跟 .menu .gnames 一致 */
+.menu .item .inote{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:11px;font-weight:400;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
+.menu .cat .cnote{margin:-4px 2px 10px;font-size:11px;font-weight:400;line-height:1.5;color:#616161;overflow-wrap:anywhere}
+.pk-h .pk-desc{margin:2px 0 0;font-size:13px;font-weight:400;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
+@media(max-width:600px){.menu .item .inote,.menu .cat .cnote{font-size:10px}.pk-h .pk-desc{font-size:12px}}
