@@ -1,0 +1,2 @@
+.connection-status{position:sticky;top:0;z-index:500;margin:0;padding:12px 20px;color:#774000;background:#fff1e7;text-align:center;font-size:14px;line-height:1.6}
+.connection-status[hidden]{display:none}

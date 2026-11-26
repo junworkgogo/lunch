@@ -129,11 +129,11 @@
     app.querySelectorAll('#tabs .tab').forEach(function(tab){var text=simplify(tab.textContent,shopName);if(tab.textContent!==text)tab.textContent=text;});
     menuList.querySelectorAll('.cat h2').forEach(function(h){var first=h.firstChild;if(first&&first.nodeType===3){var text=simplify(first.nodeValue,shopName);if(first.nodeValue!==text)first.nodeValue=text;}});
     if(!menu.querySelector('.menu-search')){
-      var search=el('div','menu-search'),input=el('input'),clear=button('清除'),empty=el('p','search-empty','找不到符合的餐點，試試其他關鍵字。');input.type='search';input.placeholder='搜尋餐點';input.setAttribute('aria-label','搜尋餐點');empty.hidden=true;empty.setAttribute('role','status');
+      var search=el('div','menu-search'),input=el('input'),clear=button('清除'),empty=el('p','search-empty','找不到符合的餐點，試試其他關鍵字。');empty.setAttribute('data-kaomoji-search-empty','');input.type='search';input.placeholder='搜尋餐點';input.setAttribute('aria-label','搜尋餐點');empty.hidden=true;empty.setAttribute('role','status');
       function filter(){var q=input.value.trim().toLocaleLowerCase(),count=0;menuList.querySelectorAll('.cat').forEach(function(cat){var visible=0;cat.querySelectorAll('.item').forEach(function(item){var name=item.querySelector('.iname');var match=!q||(name?name.textContent:item.textContent).toLocaleLowerCase().includes(q);item.hidden=!match;if(match)visible++;});cat.hidden=!visible;count+=visible;});empty.hidden=count>0;clear.hidden=!input.value;}
       input.addEventListener('input',filter);clear.addEventListener('click',function(){input.value='';filter();input.focus();});
       var tabs=app.querySelector('#tabs');if(tabs)tabs.addEventListener('click',function(e){if(e.target.closest('.tab')&&input.value){input.value='';filter();}},true);
-      clear.hidden=true;search.append(input,clear);menu.prepend(search);menuList.after(empty);
+      clear.hidden=true;search.append(input,clear);menu.prepend(search);menuList.after(empty);var face=el('span');face.setAttribute('data-lunch-kaomoji','noResults');empty.appendChild(face);
     }
   }
   var soldOpen=false;

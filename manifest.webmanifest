@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "FOODJUN",
+  "short_name": "FOODJUN",
+  "lang": "zh-Hant-TW",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#F58220",
+  "icons": [{"src":"./jun-orange-smile.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]
+}

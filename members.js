@@ -368,7 +368,7 @@
       content.classList.remove('member-loading');
       var allRows = Object.values(entries).flat().sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
       if (!allRows.length) {
-        content.innerHTML = '<div class="member-empty"><span>◒</span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
+        content.innerHTML = '<div class="member-empty"><span data-lunch-kaomoji="noHistory" data-kaomoji-size="block"></span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
         content.onclick = null;
         return;
       }
