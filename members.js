@@ -356,12 +356,8 @@
     var orderFilters = [
       {key:'all',label:'全部'},
       {key:'unpaid',label:'未付',empty:'目前沒有未付款訂單'},
-      {key:'paid',label:'已付',empty:'目前沒有已付款訂單'},
-      // 2026-11-25 使用者選：多一個「已取消」，四個數字加起來＝ALL（以前取消的只算在 ALL，卡片上的「已取消」又被 theme.css 藏起來）
-      {key:'cancelled',label:'已取消',empty:'目前沒有已取消的訂單'}
+      {key:'paid',label:'已付',empty:'目前沒有已付款訂單'}
     ];
-    // 已取消的卡片：跟「已收款」同一顆灰色標籤、同一個位置
-    var CANCELLED_TAG = '<button type="button" class="btn sm member-pay is-paid" disabled>已取消</button>';
     function canPayRow(row) {
       if (!row || !row.group || row.order.cancelled || row.pending <= 0 || !window.LunchPay) return false;
       var receiver = A.collectionReceiver(row.group,row.oid);
@@ -383,15 +379,14 @@
     function draw() {
       if (!alive || !started || pending) return;
       content.classList.remove('member-loading');
-      var allRows = Object.values(entries).flat().sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
+      var allRows = Object.values(entries).flat().filter(function(row){return row&&row.order&&!row.order.cancelled;}).sort(function(a,b) { return (b.order.createdAt || 0) - (a.order.createdAt || 0); });
       if (!allRows.length) {
         content.innerHTML = '<div class="member-empty"><span data-lunch-kaomoji="noHistory" data-kaomoji-size="block"></span><h2>目前沒有訂單</h2><p>此會員帳號尚無訂單。</p><a class="btn primary" href="#/">去看看開放中的團購</a></div>';
         content.onclick = null;
         return;
       }
-      var buckets = {all:allRows,unpaid:[],paid:[],cancelled:[]};
+      var buckets = {all:allRows,unpaid:[],paid:[]};
       allRows.forEach(function(row) {
-        if (row.order.cancelled) { buckets.cancelled.push(row); return; }
         if (!row.group || !row.bill) return;
         if (row.pending > 0) buckets.unpaid.push(row);
         else if (row.pending === 0) buckets.paid.push(row);
@@ -417,18 +412,18 @@
         var identity = order.department ? '<small class="order-department">'+esc(order.name)+' · '+esc(order.department)+'</small>' : '';
         var items = '<div class="member-order-items"><ul>'+formatItems(order)+'</ul></div>';
         if (!row.group) {
-          return '<article class="member-order '+(order.cancelled?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+(order.cancelled?'已取消':'團購已不可查看')+'</span><h2>我的餐點</h2>'+date+identity+'</div><strong>餐點原價 '+money(total(order))+'</strong>'+items+
-            (order.cancelled?'<div class="member-order-actions">'+CANCELLED_TAG+'</div>':'<p class="member-fine">收款及分攤金額請向團主確認。</p><div class="member-order-actions"><button type="button" class="btn sm member-pay" data-cancel-row="'+index+'">取消訂單（截止前）</button></div>')+'</article>';
+          return '<article class="member-order '+'is-pending'+'"><div><span class="member-kicker">'+'團購已不可查看'+'</span><h2>我的餐點</h2>'+date+identity+'</div><strong>餐點原價 '+money(total(order))+'</strong>'+items+
+            '<p class="member-fine">收款及分攤金額請向團主確認。</p><div class="member-order-actions"><button type="button" class="btn sm member-pay" data-cancel-row="'+index+'">刪除訂單（截止前）</button></div>'+'</article>';
         }
         var bill = row.bill;
-        var state = order.cancelled ? '已取消 · 不計入總計' : row.pending === 0 ? '已收齊' : row.received > 0 ? '部分收款' : '待付款';
-        var payButton = order.cancelled ? CANCELLED_TAG : bill.due > 0 && row.pending <= 0 ? '<button type="button" class="btn sm member-pay is-paid" disabled>已收款</button>' : canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
+        var state = row.pending === 0 ? '已收齊' : row.received > 0 ? '部分收款' : '待付款';
+        var payButton = bill.due > 0 && row.pending <= 0 ? '<button type="button" class="btn sm member-pay is-paid" disabled>已收款</button>' : canPayRow(row) ? '<button type="button" class="btn sm primary member-pay" data-pay-row="'+index+'">付款</button>' : '';
         var groupLink = '<a class="member-group-link" href="#/g/'+esc(row.gid)+'" aria-label="查看團購" title="查看團購">'+
           '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l8-8M4 4h8v8"/></svg></a>';
         var charges = '餐點原價 '+money(bill.base);
         if (bill.shipping) charges+=' · 運費 '+money(bill.shipping);
         if (bill.discount) charges+=' · 折扣 '+money(bill.discount);
-        return '<article class="member-order is-linked '+(order.cancelled||row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">'+charges+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
+        return '<article class="member-order is-linked '+(row.pending===0?'is-ok':'is-pending')+'"><div><span class="member-kicker">'+state+'</span><h2>'+esc(row.group.title || '未命名團購')+'</h2>'+date+identity+'</div><strong>應付 '+money(bill.due)+'</strong>'+items+'<p class="member-fine">'+charges+'</p><p>已收 '+money(row.received)+' · 待付 '+money(row.pending)+'</p>'+
           '<div class="member-order-actions">'+payButton+groupLink+'</div></article>';
       }).join('')+'</div>' : '<div class="member-empty member-order-filter-empty"><h2>'+orderFilters.find(function(filter) {return filter.key===orderFilter;}).empty+'</h2><button type="button" class="btn" data-order-all>查看全部訂單</button></div>';
       content.onclick = function(event) {
@@ -448,7 +443,7 @@
         var row = cancel ? rows[Number(cancel.dataset.cancelRow)] : pay && rows[Number(pay.dataset.payRow)];
         if (cancel && row && !row.group && !row.order.cancelled) {
           cancel.disabled = true;
-          A.ask({title:'取消這筆訂單？',body:'取消後團主就不會幫你叫餐。',okText:'取消訂單',cancelText:'先不要',danger:true}).then(function(ok) {
+          A.ask({title:'刪除這筆餐點？',body:'刪除後會從訂單清單移除，團主不會幫你叫餐。',okText:'刪除餐點',cancelText:'先不要',danger:true}).then(function(ok) {
             if (!ok || !alive) return;
             var patch = {};
             patch['orders/'+row.gid+'/'+row.oid+'/cancelled'] = true;
@@ -457,7 +452,7 @@
             patch['paid/'+row.gid+'/'+row.oid] = false;
             return A.DB.update('',patch).then(function(){
               if (!alive) return;
-              row.order.cancelled = true;draw();A.toast('訂單已取消');
+              row.order.cancelled = true;draw();A.toast('餐點已從訂單清單移除');
             });
           }).catch(function() {
             if (alive) notify(root,'無法取消這筆訂單，團購可能已截止。若有疑問請聯絡團主。');
@@ -551,7 +546,7 @@
       if (!alive) return;
       var groups=Object.create(null);
       Object.keys(index||{}).filter(path).forEach(function(gid){
-        var ids=Object.keys(index[gid]||{}).filter(function(oid){return path(oid)&&index[gid][oid];}).sort();
+        var ids=Object.keys(index[gid]||{}).filter(function(oid){return path(oid)&&index[gid][oid]&&index[gid][oid].cancelled!==true;}).sort();
         if(ids.length)groups[gid]=ids;
       });
       Object.keys(groupWatches).forEach(function(gid){

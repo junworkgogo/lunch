@@ -28,3 +28,179 @@ body #app :is(.tabsx,.tabs)>:is(button,a){position:relative;z-index:1;height:30p
 @media(prefers-reduced-motion:reduce){body #app :is(.home-switch,.shop-categories,.member-order-filters,.shop-category-choice,.tabsx,.tabs)::before{transition:none}}
 body #app .tabsx>.admin-tab-group{display:contents}
 body #app .tabsx>.admin-tab-group>button{position:relative;z-index:1;box-sizing:border-box;flex:none;min-width:0;height:30px;min-height:30px;padding:4px 11px;border:0;border-radius:7px;background:transparent;box-shadow:none;font-size:13px;line-height:22px;white-space:nowrap}
+
+/* Compact action controls, without shrinking card-sized hit areas or avatars. */
+body .btn{min-height:34px;padding:6px 12px;font-size:13px;line-height:20px}
+body .btn.sm{min-height:30px;padding:4px 9px;font-size:12px;line-height:20px}
+body #app .admin-navigation{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:8px 0 20px}
+body #app .admin-navigation #tx{margin:0;max-width:100%}
+body #app .admin-navigation>.admin-order-link{flex:none;margin:0;min-height:34px;padding:6px 14px;background:var(--accent-bright,#ffb75e);color:#252525;border-color:transparent}
+body #app .summary-copy-panel{margin:0 0 24px}
+body #app .summary-copy-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+body #app .summary-copy-fields{display:flex;align-items:center;flex:1;flex-wrap:wrap;gap:4px 14px;min-width:min(100%,240px);padding:0;border:0;margin:0}
+body #app .summary-copy-fields legend{float:left;width:100%;font-size:12px;color:var(--muted);margin-bottom:4px}
+body #app .summary-copy-fields label{display:inline-flex;align-items:center;gap:6px;min-height:30px;font-size:13px;white-space:nowrap;cursor:pointer}
+body #app .summary-copy-fields input{appearance:auto;flex:none;width:15px;height:15px;min-height:0;margin:0;padding:0;border-radius:3px;accent-color:var(--accent)}
+body #app .summary-copy-fields .is-unavailable{color:#999;cursor:default}
+body #app .summary-copy-values{display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:12px;max-width:780px}
+body #app .summary-copy-values .fld{gap:5px}
+body #app .summary-copy-values label{font-size:12px;font-weight:500}
+body #app .summary-copy-values input{min-height:38px;padding:7px 10px;font-size:14px}
+body #app .summary-copy-panel>.hint{margin:8px 0;color:var(--muted);font-size:12px}
+body #app .summary-copy-preview{font-size:12px;color:var(--muted);margin:10px 0}
+body #app .summary-copy-preview summary{cursor:pointer;width:fit-content;padding:4px 0}
+body #app .summary-copy-preview pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;color:var(--text);line-height:1.7}
+body #app .sumcat>ul{margin:0 0 18px;padding:0;list-style:none}
+body #app .sumcat>ul>li{padding:14px 0;border-bottom:1px solid var(--line)}
+body #app .sumcat .sumline{font-size:15px;font-weight:600}
+body #app .sumcat .sumvariants{list-style:none;padding:6px 0 0 16px;margin:0}
+body #app .sumcat .sumvariants>li{border:0;padding:5px 0}
+body #app .sumvariant-line{display:flex;align-items:baseline;gap:14px;font-size:13px;line-height:1.6}
+body #app .sumvariant-line>span{min-width:0;overflow-wrap:anywhere}
+body #app .sumvariant-line>b{flex:none;font-size:12px;font-weight:600;white-space:nowrap}
+body #app .sumvariants .sumnote{padding:0;margin:3px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+body .copy-icon,body #app .btn.copy-icon,body .pay-copy.copy-icon{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:none;width:32px;min-width:32px;height:32px;min-height:32px;padding:0;border-radius:8px;line-height:1}
+body .copy-icon>svg{display:block;width:16px;height:16px;flex:none}
+body .copy-icon:not(.primary){border-color:transparent;background:transparent;color:var(--muted)}
+body .copy-icon:not(.primary):hover{background:#00000008;color:var(--text)}
+body #app .share-row>.copy-icon{flex:0 0 32px}
+@media(min-width:769px){
+  body :is(.modal-actions,.pay-actions,.order-success-actions,.my-groups,.menu-search,.aoe-panel) .btn,
+  body .finance-trio .finance-adjust .btn{min-height:34px;padding:6px 12px;font-size:13px;line-height:20px}
+  body .pay-actions .btn{min-width:0}
+  body #app #tx.admin-page-tabs :is(a,button){height:30px;min-height:30px;padding:4px 11px;font-size:13px;line-height:22px}
+  body :is(.cart,.pk) .submit{min-height:38px;padding:8px 14px;font-size:14px;line-height:20px}
+  body :is(.finance-trio .finance-adjust-trigger,.collection-progress .wp-btn,.collection-roster-shortcut [data-go-people],.maplink){min-height:32px;font-size:13px}
+  body .dt-trigger{min-height:38px;padding:7px 12px;font-size:14px}
+  body .dt-confirm{min-height:34px;padding:6px 12px;font-size:13px}
+  body .dt-cell,body .dt-calendar .dt-cell,body .dt-time-grid .dt-cell{min-height:32px;height:32px;font-size:13px}
+  body :is(.pk,.aoe-panel) .chip,body .drink-options .drink-temperature-choices button{min-height:32px;padding:5px 12px;font-size:13px}
+  body .qctl .q-btn,body .pk-x{width:34px;height:34px;min-height:34px;min-width:34px}
+}
+@media(max-width:768px){
+  body .btn{min-height:40px;padding:8px 12px;font-size:13px}
+  body .btn.sm{min-height:36px;padding:6px 10px}
+  body .copy-icon,body #app .btn.copy-icon,body .pay-copy.copy-icon{height:40px;min-height:40px;width:40px;min-width:40px;padding:0}
+  body #app .share-row>.copy-icon{flex-basis:40px}
+  body #app .summary-copy-values{grid-template-columns:minmax(0,1fr)}
+  body #app .summary-copy-values input{font-size:16px}
+  body #app .summary-copy-fields{gap:4px 12px}
+  body #app .summary-copy-fields label{min-height:36px;font-size:12px}
+  body #app .admin-navigation{gap:10px}
+  body #app .admin-navigation>.admin-order-link{min-height:38px}
+  body #app #tx.admin-page-tabs :is(a,button){min-height:30px;padding:4px 10px;font-size:13px;line-height:22px}
+}
+
+/* Keep the confirmation compact while retaining the original small celebration. */
+body .order-success-dialog{width:min(100%,400px);padding:24px;border-radius:18px}
+body .order-success-icon{width:48px;height:48px;margin:0 auto 10px}
+body .order-success-dialog h2{font-size:22px;margin:0 0 6px}
+body .order-success-dialog [data-lunch-kaomoji="orderSuccess"]{font-size:16px;line-height:1.3;margin:8px 0 12px}
+body .order-success-desc{font-size:13px;margin-bottom:14px}
+body .order-success-receipt{gap:8px 14px;padding:14px;font-size:13px}
+body .order-success-receipt>strong{font-size:14px}
+body .order-success-notice{margin:12px 0 16px;font-size:12px}
+body .order-success-actions{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+body .order-success-actions .btn{min-height:36px;padding:7px 12px;font-size:13px;line-height:20px}
+body .order-confetti{z-index:2}
+body .order-confetti i{width:6px;height:3px}
+body .order-confetti i.dot{width:4px;height:4px}
+@media(max-width:768px){body .order-success-dialog{padding:22px 20px}body .order-success-actions .btn{min-height:40px}}
+@media(min-width:769px){
+  body .dt-trigger{line-height:22px}
+  body .dt-value{min-height:38px;padding:4px 12px;font-size:22px!important;line-height:28px}
+  body .dt-month button,body .dt-close{width:32px;height:32px}
+  body .dt-month button{font-size:20px}
+  body .dt-quick-btn{min-height:32px;padding:5px 10px}
+  body .sw{min-height:32px}
+}
+@media(min-width:769px){
+  body .collection-progress .wp-btn{flex-direction:row;align-items:center;gap:6px;padding:4px 8px;min-height:32px;line-height:20px}
+  body .collection-progress .wp-btn>.wp-label{font-size:12px;line-height:20px}
+  body .dt-value,body .dt-confirm{border:0}
+  body .dt-confirm{line-height:20px}
+}
+@media(max-width:768px){
+  body .dt-trigger{min-height:44px;padding:10px 12px;line-height:22px}
+  body .dt-value{min-height:44px;padding:8px 12px;border:0;font-size:22px!important;line-height:28px}
+  body .dt-confirm{min-height:40px;padding:10px 12px;border:0;line-height:20px}
+  body :is(.cart,.pk) .submit{min-height:44px;padding:10px 14px;font-size:14px;line-height:20px}
+}
+/* Compact group settings in the same order as the organizer's workflow. */
+body #app .admin-settings{display:grid;gap:12px;max-width:1040px}
+body #app .admin-settings>.card,body #app .admin-settings #peopleView>.card{margin:0;border-radius:14px}
+body #app .admin-settings>.share{display:flex;align-items:center;gap:16px;padding:14px 18px}
+body #app .admin-settings>.share>h2{flex:none;margin:0;font-size:14px;font-weight:600}
+body #app .admin-settings>.share>p{display:none}
+body #app .admin-settings>.share .share-row{flex:1;min-width:0;margin:0}
+body #app .admin-settings>.share input{min-height:36px;padding:6px 10px;font-size:12px}
+body #app .admin-settings .group-settings-details{padding:0}
+body #app .admin-settings :is(.group-settings-details,.roster-settings-details,.supply-settings-details)>summary{display:flex;align-items:center;justify-content:space-between;min-height:42px;padding:12px 18px;list-style:none;font-size:14px;font-weight:600;cursor:pointer}
+body #app .admin-settings .supply-settings-details{padding:0}
+body #app .supply-settings-details>summary::-webkit-details-marker{display:none}
+body #app .supply-settings-details>summary::after{content:'';width:7px;height:7px;flex:none;border:solid var(--muted);border-width:0 1px 1px 0;transform:rotate(45deg);margin-right:3px}
+body #app .supply-settings-details[open]>summary::after{transform:rotate(225deg)}
+body #app .admin-settings :is(.group-settings-body,.roster-settings-body,.supply-settings-body){padding:0 18px 18px}
+body #app .settings-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 16px;align-items:end}
+body #app .settings-fields>.settings-title{grid-column:span 3}
+body #app .settings-fields>.settings-shipping{grid-column:span 2}
+body #app .settings-fields>.settings-save,body #app .settings-fields>#sE{grid-column:1/-1;margin:0;padding:0}
+body #app .settings-fields label{font-size:12px;font-weight:500}
+body #app .settings-fields input{min-height:38px;padding:7px 10px;font-size:14px}
+body #app .admin-settings .roster-edit{margin-top:0}
+body #app .admin-settings .roster-settings-body>p{font-size:12px;line-height:1.6;margin:0 0 12px}
+body #app .admin-settings .audience-picker{padding:12px;border-radius:10px}
+body #app .admin-settings .audience-modes{gap:10px}
+body #app .admin-settings .audience-modes>label{padding:10px 12px;min-height:0}
+body #app .admin-settings .audience-members{max-height:280px;overflow:auto;overscroll-behavior:contain}
+body #app .admin-settings .supply-settings-body>p{margin:0 0 10px;font-size:12px}
+body #app .admin-settings #solds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;align-items:start;max-height:360px;overflow:auto;overscroll-behavior:contain}
+body #app .supply-category{min-width:0}
+body #app .supply-category>h3{margin:0 0 4px;font-size:13px;font-weight:600}
+body #app .supply-category .sold-row{padding:7px 0;gap:12px}
+body #app .supply-category .sn{font-size:13px;line-height:1.5}
+body #app .supply-category .sw{min-width:92px;min-height:30px;font-size:12px}
+body #app .settings-danger{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 18px;border-top:1px solid var(--line);margin-top:4px}
+body #app .settings-danger h2{font-size:14px;font-weight:500;margin:0 0 4px}
+body #app .settings-danger p{margin:0;font-size:12px;color:var(--muted)}
+body #app .settings-danger>.btn{flex:none}
+body #app .menu-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+body #app .menu-heading>h2{margin:0;font-size:17px;font-weight:600}
+body #app .menu-heading>.btn{min-height:30px;padding:4px 10px;font-size:12px;flex:none}
+body #app .menu-heading>.btn[hidden]{display:none}
+body #app .shop-contact-qr-editor input[type=file]{box-sizing:border-box;width:100%;min-height:44px;padding:6px 10px;line-height:30px;font-size:13px}
+body #app .shop-contact-qr-editor input[type=file]::file-selector-button{box-sizing:border-box;height:30px;padding:4px 10px;margin:0 10px 0 0;border:1px solid var(--line);border-radius:7px;font:inherit;line-height:20px;vertical-align:middle;cursor:pointer}
+body #app .shop-contact-qr-editor input[type=file]::-webkit-file-upload-button{box-sizing:border-box;height:30px;padding:4px 10px;margin:0 10px 0 0;border:1px solid var(--line);border-radius:7px;font:inherit;line-height:20px;vertical-align:middle;cursor:pointer}
+@media(max-width:768px){
+  body #app .settings-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  body #app .settings-fields>.settings-title,body #app .settings-fields>.settings-owner{grid-column:1/-1}
+  body #app .settings-fields input{font-size:16px}
+  body #app .admin-settings>.share{align-items:flex-start;flex-direction:column;gap:8px}
+  body #app .admin-settings>.share .share-row{width:100%}
+  body #app .admin-settings #solds{grid-template-columns:minmax(0,1fr);max-height:50vh}
+  body #app .settings-danger{align-items:flex-start;flex-wrap:wrap}
+  body #app .menu-heading>.btn{min-height:36px}
+}
+/* One compact item row, with secondary text available on demand. */
+body #app .editor-cat-head{display:flex;align-items:flex-end;gap:10px;margin-bottom:12px}
+body #app .editor-cat-head>label{flex:1;min-width:0;font-size:12px}
+body #app .editor-cat-head input{min-height:38px;padding:7px 10px;font-size:14px}
+body #app .editor-cat-head>.btn{flex:none;margin-bottom:0}
+body #app .editor-item{grid-template-columns:minmax(0,1fr) 96px auto auto;gap:8px 10px;padding:10px 0}
+body #app .editor-item>label{font-size:12px}
+body #app .editor-item>label>input:not([type=checkbox]){min-height:36px;padding:6px 9px!important;font-size:14px}
+body #app .editor-item .editor-status{min-width:0;min-height:32px;font-size:12px;gap:5px;align-self:end;padding-bottom:4px}
+body #app .editor-status>input{width:15px;height:15px;min-height:0;margin:0;accent-color:var(--accent)}
+body #app .editor-item>.btn{align-self:end}
+body #app .editor-item-extras{grid-column:1/-1;margin:0;padding:0;border:0}
+body #app .editor-item-extras>summary{width:fit-content;padding:3px 0;color:var(--muted);font-size:12px;cursor:pointer}
+body #app .editor-item-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:8px 0 2px}
+body #app .editor-item-notes>label{display:block;min-width:0;font-size:12px}
+body #app .editor-item-notes input{min-height:36px;padding:6px 9px;font-size:13px}
+body #app .shop-free-shipping .fld{margin:0}
+@media(max-width:600px){
+  body #app .editor-item{grid-template-columns:minmax(0,1fr) 82px}
+  body #app .editor-item .editor-status{justify-self:start;align-self:center}
+  body #app .editor-item-notes{grid-template-columns:minmax(0,1fr)}
+  body #app .editor-item input:not([type=checkbox]){font-size:16px}
+}

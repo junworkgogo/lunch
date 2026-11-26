@@ -85,13 +85,15 @@
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&waitPopOpen){waitPopOpen=false;syncWaitPop(true);}});
   window.addEventListener('hashchange',function(){waitPopOpen=false;});
   function rosterSignature(g){return JSON.stringify({audience:g&&g.audience==='selected'?'selected':'all',participants:g&&g.audience==='selected'?Object.keys(g.participants||{}).sort().map(function(id){return [id,g.participants[id]];}):false});}
-  function management(mount,g,orders,gid,initiallyOpen){
+  function management(mount,g,orders,gid,initiallyOpen,options){
+    options=options||{};
     var alive=true,current=g,currentOrders=orders,baseline=rosterSignature(g),saving=false,conflict=false;
-    mount.innerHTML='<div data-roster-status></div><details class="card roster-edit roster-settings-details"'+(initiallyOpen?' open':'')+'><summary>設定參加名單</summary><div class="roster-settings-body"><p class="muted">更改名單不會刪除任何既有訂單。移出名單的會員無法再新增或修改餐點，仍可在「我的訂單」於截止前取消自己的訂單。</p><div id="adminAudience"></div><div class="actions"><button type="button" class="btn primary" data-save-audience>儲存參加名單</button><button type="button" class="btn" data-reload-audience>重新載入名單</button></div><p data-audience-status role="status" hidden></p></div></details>';
+    mount.innerHTML=(options.hideProgress?'':'<div data-roster-status></div>')+'<details class="card roster-edit roster-settings-details"'+(initiallyOpen?' open':'')+'><summary>'+esc(options.label||'設定參加名單')+'</summary><div class="roster-settings-body"><p class="muted">更改名單不會刪除任何既有訂單。移出名單的會員無法再新增或修改餐點，仍可在「我的訂單」於截止前取消自己的訂單。</p><div id="adminAudience"></div><div class="actions"><button type="button" class="btn primary" data-save-audience>儲存參加名單</button><button type="button" class="btn" data-reload-audience>重新載入名單</button></div><p data-audience-status role="status" hidden></p></div></details>';
     var choose=picker(mount.querySelector('#adminAudience'),g),message=mount.querySelector('[data-audience-status]');
     function draw(){
       if(!alive)return;
       var target=mount.querySelector('[data-roster-status]');
+      if(!target)return;
       target.innerHTML=summaryHtml(current,currentOrders);
       if(current.audience!=='selected')return;
       var s=progress(current,currentOrders);

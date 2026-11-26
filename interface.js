@@ -139,7 +139,7 @@
   var soldOpen=false;
   function settings(){
     var solds=app.querySelector('#solds'),share=app.querySelector('#body .share');
-    if(solds&&share){var card=solds.closest('.card');
+    if(solds&&share&&!share.closest('.admin-settings')){var card=solds.closest('.card');
       // 分享連結搬到供應狀態前面，連同原本的 16px 間隔一起搬，兩張卡不再黏在一起（2026-11-18）。
       if(card&&!share.dataset.moved){var gap=share.previousElementSibling;card.before(share);if(gap&&gap.getAttribute('style')==='height:16px')share.after(gap);share.dataset.moved='1';}
       var p=card&&card.querySelector('p');if(p&&p.textContent!=='切換為已售完後，同事將無法再加入這項餐點。')p.textContent='切換為已售完後，同事將無法再加入這項餐點。';
@@ -184,7 +184,7 @@
   function editor(){
     var ta=app.querySelector('#sm');if(!ta||ta.dataset.visualEditor)return;ta.dataset.visualEditor='true';
     var field=ta.closest('.fld'),details=el('details','menu-editor-details'),summary=el('summary','menu-editor-summary'),toolbar=el('div','editor-toolbar'),panel=el('div','menu-editor'),undo=button('復原上一步');
-    var history=[],lastValue=ta.value,syncing=false;
+    var history=[],lastValue=ta.value,syncing=false,openExtras=new Set();
     field.querySelectorAll('label[for="sm"], .hint, .insrow').forEach(function(e){e.hidden=true;});
     toolbar.append(undo);details.append(summary,toolbar,panel);ta.before(details);ta.hidden=true;
 
@@ -241,17 +241,19 @@
           panel.append(input(model.lines[line],'修正第 '+error.line+' 行',function(v){model.lines[line]=v;commit(model.lines.join('\n'));},undefined,true));
         });
       }
-      model.cats.forEach(function(cat){
+      model.cats.forEach(function(cat,catIndex){
         var section=el('section','editor-cat'),head=el('div','editor-cat-head');head.append(input(cat.name,'分類名稱',function(v){if(/[{}｛｝\r\n]/.test(v))return;if(cat.line<0)model.lines.splice(cat.items.length?cat.items[0].line:0,0,'{'+v+'}');else model.lines[cat.line]=model.lines[cat.line].replace(/^(\s*[{｛]\s*).*?(\s*[}｝]\s*)$/,function(_,before,after){return before+v+after;});commit(model.lines.join('\n'));}));
         head.append(button('刪除分類',function(){confirmDel({title:'刪除分類「'+(cat.name||'未命名')+'」？',body:'這個分類和裡面 '+cat.items.length+' 道餐點會一起移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var next=model.cats[model.cats.indexOf(cat)+1],start=cat.line<0?(cat.items.length?cat.items[0].line:0):cat.line;model.lines.splice(start,(next?next.line:model.lines.length)-start);commit(model.lines.join('\n'));});}));section.append(head);
-        if(cat.line>=0){var cnRow=el('div','editor-cat-notes');cnRow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px';[noteInput(cat,cat.line,model,'分類說明（選填）'),noteInput(cat,cat.line,model,'分類備註提示（選填）','hint')].forEach(function(w){w.style.cssText='display:block;flex:1 1 220px;min-width:0';cnRow.append(w);});section.append(cnRow);}
         if(cat.options.length)section.append(el('p','editor-cat-options','共用選項（保留）\n'+cat.options.join('\n')));
-        cat.items.forEach(function(it){var row=el('div','editor-item');row.append(input(it.name,'餐點名稱',function(v){if(/[,，﹐､{}｛｝\r\n]/.test(v))return;updateItem(model,it,'name',v);}));
+        cat.items.forEach(function(it,itemIndex){var row=el('div','editor-item');row.append(input(it.name,'餐點名稱',function(v){if(/[,，﹐､{}｛｝\r\n]/.test(v))return;updateItem(model,it,'name',v);}));
           if(it.normal)row.append(input(it.price,'價格',function(v){updateItem(model,it,2,v);},'number'));else{
             var variants=el('div','editor-variants');it.parts.slice(1).forEach(function(part,vi){var match=/^(.*?)\s+[$＄]?([0-9０-９]+)元?$/.exec(part.trim());if(!match){variants.append(el('p','editor-note',part));return;}variants.append(input(match[2],match[1]+'價格',function(v){updateItem(model,it,(vi+1)*2,v);},'number'));});row.append(variants);
           }
-          var status=el('label','editor-status'),check=el('input');check.type='checkbox';check.checked=it.sold;status.append(check,document.createTextNode(it.sold?'已售完':'供應中'));check.addEventListener('change',function(){updateItem(model,it,'sold',check.checked);});row.append(status,button('刪除',function(){confirmDel({title:'刪除「'+(it.name||'這道餐點')+'」？',body:'這道餐點會從菜單移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var remove=new Set([it.line].concat(it.optionLines,it.note?[it.note.line]:[],it.hint?[it.hint.line]:[]));model.lines=model.lines.filter(function(_,line){return !remove.has(line);});commit(model.lines.join('\n'));});}));
-          var nrow=el('div','editor-item-notes');nrow.style.cssText='grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px';[noteInput(it,it.line,model,'說明（選填）'),noteInput(it,it.line,model,'備註提示（選填）','hint')].forEach(function(w){w.style.cssText='display:block;flex:1 1 220px;min-width:0';nrow.append(w);});row.append(nrow);
+          var status=el('label','editor-status'),check=el('input');check.type='checkbox';check.checked=it.sold;check.setAttribute('aria-label','停售：'+it.name);status.append(check,document.createTextNode('停售'));check.addEventListener('change',function(){updateItem(model,it,'sold',check.checked);});row.append(status,button('刪除',function(){confirmDel({title:'刪除「'+(it.name||'這道餐點')+'」？',body:'這道餐點會從菜單移除；按「儲存店家」才會正式存檔。'},function(){if(ta.value!==source)return;var remove=new Set([it.line].concat(it.optionLines,it.note?[it.note.line]:[],it.hint?[it.hint.line]:[]));model.lines=model.lines.filter(function(_,line){return !remove.has(line);});commit(model.lines.join('\n'));});}));
+          var extraKey=catIndex+':'+itemIndex,extras=el('details','editor-item-extras'),extraSummary=el('summary',null,'補充內容'+(it.note||it.hint?'（已填）':'')),nrow=el('div','editor-item-notes');
+          extras.open=openExtras.has(extraKey);extras.append(extraSummary,nrow);
+          extras.addEventListener('toggle',function(){if(!extras.isConnected)return;if(extras.open)openExtras.add(extraKey);else openExtras.delete(extraKey);});
+          [noteInput(it,it.line,model,'餐點說明'),noteInput(it,it.line,model,'備註欄提示','hint')].forEach(function(w){nrow.append(w);});row.append(extras);
           if(it.options.length)row.append(el('p','editor-options','規格選項（保留）\n'+it.options.join('\n')));section.append(row);
         });
         section.append(button('＋ 新增餐點',function(){var next=model.cats[model.cats.indexOf(cat)+1],at=next?next.line:model.lines.length;model.lines.splice(at,0,'新餐點, 0');commit(model.lines.join('\n'));}));panel.append(section);

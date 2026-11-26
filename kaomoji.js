@@ -25,7 +25,16 @@
     orderSuccess: [
       ['(＾▽＾)', '餐點點好啦。'],
       ['(＾ω＾)', '可以開始期待午餐了。'],
-      ['(・∀・)ノ', '期待今天這一餐。']
+      ['(・∀・)ノ', '期待今天這一餐。'],
+      ['ヽ(•‿•)ノ', '餐點點好啦。'],
+      ['(๑´ㅂ`๑)', '可以開始期待午餐了。'],
+      ['(｡◕‿◕｡)', '期待今天這一餐。'],
+      ['(o´罒`o)', '餐點點好啦。'],
+      ['٩(ˊᗜˋ*)و', '可以開始期待午餐了。'],
+      ['(*´ω`*)', '期待今天這一餐。'],
+      ['(ﾉ◕ヮ◕)ﾉ', '餐點點好啦。'],
+      ['(⁰▿⁰)', '可以開始期待午餐了。'],
+      ['(๑˃̵ᴗ˂̵)', '期待今天這一餐。']
     ],
     closed: [
       ['( ˘ω˘ )', '下次開團再見。'],
@@ -190,6 +199,15 @@
     if (!MutationObserver) return;
     const selection = createSelection();
     const mounted = new WeakMap();
+    let lastOrderSuccess = '';
+    try { lastOrderSuccess = window.sessionStorage.getItem('lunch_last_success_face') || ''; } catch (_) {}
+    function nextOrderSuccess() {
+      const candidates = faces.orderSuccess.filter(entry => entry[0] !== lastOrderSuccess);
+      const entry = candidates[Math.floor(Math.random() * candidates.length)];
+      lastOrderSuccess = entry[0];
+      try { window.sessionStorage.setItem('lunch_last_success_face', lastOrderSuccess); } catch (_) {}
+      return { entry, changed: false };
+    }
 
     function show(element, animate = false) {
       if (element.matches(greetingSlot)) {
@@ -213,8 +231,8 @@
         return;
       }
       const kind = element.getAttribute('data-lunch-kaomoji');
-      const choice = selection.get(kind);
       let view = mounted.get(element);
+      const choice = kind === 'orderSuccess' ? (view?.kind === kind ? view.choice : nextOrderSuccess()) : selection.get(kind);
       if (!choice) {
         if (view) {
           mounted.delete(element);
@@ -248,7 +266,7 @@
         element.classList.toggle('kaomoji-success', success.has(kind));
         if (control) element.replaceChildren(control, copy);
         else element.replaceChildren(face);
-        view = { kind, interactive, face, copy };
+        view = { kind, interactive, face, copy, choice };
         mounted.set(element, view);
       }
 

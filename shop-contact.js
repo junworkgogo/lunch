@@ -17,21 +17,14 @@
     resting: '目前休息',
     unknown: '營業時間待確認'
   };
-  var deliveryFields = [
-    {key: 'deliveryMinimum', label: '最低外送金額', placeholder: '外送最低金額'},
-    {key: 'deliveryFee', label: '外送運費', placeholder: '填 0 表示免運費'},
-    {key: 'deliveryNote', label: '外送注意事項', note: true}
-  ];
   var fields = [
     {key: 'lineId', label: 'LINE ID', limit: 80, placeholder: '例如 @foodshop'},
     {key: 'lineUrl', label: 'LINE 官方連結', limit: 1000, url: true},
-    {key: 'closedDays', label: '公休日', limit: 120, placeholder: '例如 每週一、國定假日'},
     {key: 'mapsUrl', label: 'Google Maps 連結', limit: 1000, url: true},
     {key: 'websiteUrl', label: '官網', limit: 1000, url: true},
     {key: 'facebookUrl', label: 'Facebook', limit: 1000, url: true},
     {key: 'instagramUrl', label: 'Instagram', limit: 1000, url: true},
     {key: 'orderUrl', label: '線上訂餐網址', limit: 1000, url: true},
-    {key: 'contactNote', label: '訂餐注意事項', limit: 500, multiline: true}
   ];
 
   function valueOf(value) {
@@ -70,51 +63,13 @@
     return /^\d+$/.test(text) && Number.isInteger(amount) && amount <= 1000000 ? amount : NaN;
   }
 
-  function deliveryEditorHtml(shop, esc) {
-    return '<div class="shop-delivery-fields">' + deliveryFields.map(function (field) {
-      var id = 'shop-' + field.key, label = '<label for="' + id + '">' + field.label + '</label>';
-      var value = field.note ? valueOf(shop[field.key]) : deliveryAmount(shop[field.key]);
-      if (Number.isNaN(value)) value = '';
-      var control = field.note ? '<textarea id="' + id + '" rows="2" maxlength="500">' + esc(value) + '</textarea>' :
-        '<input id="' + id + '" inputmode="numeric" maxlength="7" value="' + esc(value) + '" placeholder="' + field.placeholder + '">';
-      return '<div class="fld">' + label + control + '</div>';
-    }).join('') + '</div>';
-  }
-
-  function deliveryPatch(form, saveError) {
-    var patch = {};
-    for (var field of deliveryFields) {
-      var input = form.querySelector('#shop-' + field.key), text = valueOf(input.value);
-      if (input.value === input.defaultValue) continue;
-      var value = field.note ? text : deliveryAmount(text);
-      if (Number.isNaN(value)) {
-        saveError.textContent = field.label + '請填 0–1,000,000 的整數，或留白。';
-        saveError.hidden = false;
-        input.focus();
-        return null;
-      }
-      patch[field.key] = value;
-    }
-    return patch;
-  }
-
+  function deliveryEditorHtml() { return ''; }
+  function deliveryPatch() { return {}; }
   function deliveryInfo(shop, money) {
-    var lines = [], minimum = deliveryAmount(shop.deliveryMinimum), fee = deliveryAmount(shop.deliveryFee);
     var threshold = deliveryAmount(shop.freeShippingThreshold);
-    if (Number.isFinite(minimum)) lines.push('最低外送金額 ' + money(minimum));
-    if (Number.isFinite(fee)) lines.push(fee === 0 ? '免運費' : '外送運費 ' + money(fee));
-    if (threshold > 0) lines.push('滿 ' + money(threshold) + ' 免運');
-    return lines;
+    return threshold > 0 ? ['滿 ' + money(threshold) + ' 免運'] : [];
   }
-
-  function deliverySnapshot(shop) {
-    var result = {};
-    deliveryFields.forEach(function (field) {
-      var value = field.note ? valueOf(shop[field.key]).slice(0, 500) : deliveryAmount(shop[field.key]);
-      if (value !== '' && !Number.isNaN(value)) result[field.key] = value;
-    });
-    return result;
-  }
+  function deliverySnapshot() { return {}; }
 
   function safeUrl(value, type) {
     var text = valueOf(value), url;
@@ -327,8 +282,6 @@
       info += '<p class="shop-contact-line-id">LINE ID <code>' + esc(contact.lineId, true) + '</code>' +
         copyButton(contact.lineId, '複製 ID', 'LINE ID', esc) + '</p>';
     }
-    if (contact.closedDays) info += '<p>公休日 <span>' + esc(contact.closedDays) + '</span></p>';
-    if (contact.contactNote) info += '<p class="shop-contact-note">訂餐注意事項 <span>' + esc(contact.contactNote) + '</span></p>';
     var mapUrl = !(options && options.hideMap) && (contact.mapsUrl || options && safeUrl(options.mapUrl, 'mapsUrl'));
     if (mapUrl) actions += externalLink(mapUrl, '開啟店家地圖', esc);
     if (contact.lineUrl) actions += externalLink(contact.lineUrl, '開啟 LINE', esc) + copyButton(contact.lineUrl, '複製 LINE 連結', 'LINE 連結', esc);
