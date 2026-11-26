@@ -7,7 +7,7 @@
     {key: 'bento', label: '便當', icon: 'shopBento'},
     {key: 'noodle', label: '麵食', icon: 'shopNoodle'},
     {key: 'drink', label: '飲料', icon: 'shopDrink'},
-    {key: 'breakfast', label: '早餐', icon: 'shopBreakfast'},
+    {key: 'breakfast', label: '早午餐', icon: 'shopBreakfast'},
     {key: 'dessert', label: '甜點', icon: 'shopDessert'},
     {key: 'healthy', label: '健康餐', icon: 'shopHealthy'},
     {key: 'other', label: '其他', icon: 'store'}
@@ -40,6 +40,17 @@
 
   function cuisineOf(value) {
     return cuisines.find(function (cuisine) { return cuisine.key === value; }) || cuisines[cuisines.length - 1];
+  }
+
+  function cuisinesOf(shop) {
+    var values=shop&&Array.isArray(shop.cuisines)?shop.cuisines:[];
+    var keys=values.filter(function(key,i){return cuisines.some(function(c){return c.key===key;})&&values.indexOf(key)===i;});
+    return keys.length?keys:[cuisineOf(shop&&shop.cuisine).key];
+  }
+
+  function cuisineLabel(shop,key) {
+    var detail=shop&&typeof shop.otherCuisine==='string'?shop.otherCuisine.trim().slice(0,20):'';
+    return cuisineOf(key).label+(key==='other'&&detail?'・'+detail:'');
   }
 
   function stateOf(shop) {
@@ -371,7 +382,7 @@
   window.LunchShopContact = {
     editorHtml: editorHtml, bindEditor: bindEditor, snapshot: snapshot,
     phoneHtml: phoneHtml, contactHtml: contactHtml, bindActions: bindActions,
-    cuisines: cuisines, cuisineOf: cuisineOf, states: states, stateOf: stateOf, isOrderable: isOrderable,
+    cuisines: cuisines, cuisineOf: cuisineOf, cuisinesOf: cuisinesOf, cuisineLabel: cuisineLabel, states: states, stateOf: stateOf, isOrderable: isOrderable,
     deliveryEditorHtml: deliveryEditorHtml, deliveryPatch: deliveryPatch, deliveryInfo: deliveryInfo, deliverySnapshot: deliverySnapshot,
     mapUrl: function (value) { return safeUrl(value, 'mapsUrl'); }
   };
