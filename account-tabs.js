@@ -34,10 +34,31 @@
     });
     if (available.length < 2) return;
 
+    var sidebar = document.createElement('aside');
+    sidebar.className = 'account-sidebar';
+    var identity = document.createElement('div');
+    identity.className = 'account-identity';
+    var sourceAvatar = dashboard.querySelector('[data-profile-avatar]');
+    if (sourceAvatar) { var sidebarAvatar = sourceAvatar.cloneNode(true); sidebarAvatar.removeAttribute('data-profile-avatar'); identity.appendChild(sidebarAvatar); }
+    var identityText = document.createElement('div');
+    var identityName = document.createElement('strong');
+    identityName.textContent = user.name || '午餐夥伴';
+    var identityDepartment = document.createElement('span');
+    identityDepartment.textContent = user.department || '尚未設定部門';
+    identityText.append(identityName, identityDepartment);
+    identity.appendChild(identityText);
+    sidebar.appendChild(identity);
     var tablist = document.createElement('div');
     tablist.className = 'account-tab-list';
     tablist.setAttribute('role', 'tablist');
     tablist.setAttribute('aria-label', '我的帳號');
+    tablist.setAttribute('aria-orientation', matchMedia('(max-width: 768px)').matches ? 'horizontal' : 'vertical');
+    var media = matchMedia('(max-width: 768px)');
+    function orientation() {
+      if (!tablist.isConnected) { media.removeEventListener('change', orientation); return; }
+      tablist.setAttribute('aria-orientation', media.matches ? 'horizontal' : 'vertical');
+    }
+    media.addEventListener('change', orientation);
     tablist.style.setProperty('--account-tab-count', available.length);
 
     var indicator = document.createElement('span');
@@ -60,8 +81,12 @@
       tab.addEventListener('click', function () { select(index); });
       tab.addEventListener('keydown', function (event) {
         var next = index;
+        if (media.matches && /^(ArrowUp|ArrowDown)$/.test(event.key)) return;
+        if (!media.matches && /^(ArrowLeft|ArrowRight)$/.test(event.key)) return;
         switch (event.key) {
+          case 'ArrowUp':
           case 'ArrowLeft': next = (index + available.length - 1) % available.length; break;
+          case 'ArrowDown':
           case 'ArrowRight': next = (index + 1) % available.length; break;
           case 'Home': next = 0; break;
           case 'End': next = available.length - 1; break;
@@ -70,6 +95,7 @@
         event.preventDefault();
         select(next);
         available[next].tab.focus({preventScroll: true});
+        if (media.matches) available[next].tab.scrollIntoView({block: 'nearest', inline: 'nearest'});
       });
 
       var panel = document.createElement('div');
@@ -84,7 +110,7 @@
     });
 
     function select(index) {
-      indicator.innerHTML='<span class="account-slider-icon">'+available[index].tab.querySelector('.account-tab-icon').innerHTML+'</span>';
+
       tablist.style.setProperty('--account-active-tab', index);
       available.forEach(function (view, tabIndex) {
         var selected = index === tabIndex;
@@ -96,7 +122,8 @@
 
     select(0);
     available.forEach(function (view) { panels.appendChild(view.panel); });
-    dashboard.prepend(tablist, panels);
+    sidebar.appendChild(tablist);
+    dashboard.prepend(sidebar, panels);
     dashboard.classList.add('account-tabs');
   }
 

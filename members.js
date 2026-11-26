@@ -264,18 +264,27 @@
     var managerUid=verified.uid,route=location.hash,loadedOwner='',revision=0,members={},roles={};
     var rosterMarkup=null,loadSequence=0;
     var panel=document.createElement('section');panel.className='card member-role-admin';
-    panel.innerHTML='<h2>會員權限</h2><p data-role-status role="status">讀取會員中…</p><div data-role-list></div>';
+    panel.innerHTML='<div class="member-management-heading"><h2>會員管理</h2><span class="member-total" data-member-total></span></div><p class="member-muted">搜尋會員、查看部門，並管理帳號的使用權限。</p><div class="member-management-filters"><label>搜尋會員<input type="search" data-member-search placeholder="姓名或部門" autocomplete="off"></label><label>部門<select data-member-department><option value="">全部部門</option></select></label></div><p data-role-status role="status">讀取會員中…</p><p class="member-result-count" data-member-results role="status"></p><div class="member-list-heading" aria-hidden="true"><span>會員</span><span>部門</span><span>權限</span></div><div data-role-list></div>';
     root.querySelector('.member-dashboard').appendChild(panel);
     var status=panel.querySelector('[data-role-status]'),list=panel.querySelector('[data-role-list]');
     function active(){return panel.isConnected&&location.hash===route&&verified&&verified.uid===managerUid&&verified.roleManager;}
+    var search=panel.querySelector('[data-member-search]'),department=panel.querySelector('[data-member-department]');
+    function normalize(value){return String(value||'').normalize('NFKC').trim().toLocaleLowerCase('zh-TW');}
+    search.disabled=department.disabled=true;
+    search.oninput=draw;department.onchange=draw;
     function draw(){
-      if(!active())return;status.textContent='';status.hidden=true;
-      var markup=Object.keys(members).filter(path).map(function(id){
+      if(!active())return;
+      var focusedRole=list.contains(document.activeElement)&&document.activeElement.dataset.roleUser;
+      var all=Object.keys(members).filter(path),query=normalize(search.value);
+      var filtered=all.filter(function(id){var m=members[id];return (!department.value||(m.department||'')===department.value)&&(!query||normalize((m.name||'')+' '+(m.department||'')).includes(query));});
+      panel.querySelector('[data-member-total]').textContent=all.length+' 位會員';
+      panel.querySelector('[data-member-results]').textContent=(query||department.value)?'顯示 '+filtered.length+' / '+all.length+' 位會員':'';
+      var markup=filtered.map(function(id){
         var member=members[id],isOwner=id===loadedOwner,name=esc(member.name||'午餐夥伴');
         var choices=verified.roleOwner?['member','admin','owner']:['member','admin'];
-        var control=isOwner&&!verified.roleOwner?'<span class="role-owner-badge">最高管理者</span>':'<span class="role-segment'+(verified.roleOwner?' role-three':'')+'" data-role-user="'+esc(id)+'" role="group" aria-label="'+name+'的權限">'+choices.map(function(choice){var label={member:'會員',admin:'管理者',owner:'最高管理者'}[choice];return '<button type="button" data-role-choice="'+choice+'" aria-label="'+name+'：'+label+'"'+(isOwner?' disabled':'')+'>'+label+'</button>';}).join('')+'</span>';
-        return '<div class="role-row">'+avatar(member)+'<div><b>'+name+'</b><small>'+esc(member.department)+'</small></div>'+control+'</div>';
-      }).join('');
+        var control=isOwner?'<span class="role-owner-badge">最高管理者</span>':'<select class="member-role-select" data-role-user="'+esc(id)+'" aria-label="'+name+'的權限">'+choices.map(function(choice){var label={member:'會員',admin:'管理者',owner:'最高管理者'}[choice];return '<option value="'+choice+'">'+label+'</option>';}).join('')+'</select>';
+        return '<div class="role-row">'+avatar(member)+'<div class="member-list-name"><b>'+name+'</b></div><span class="member-list-department">'+esc(member.department||'未設定部門')+'</span>'+control+'</div>';
+      }).join('') || '<p class="member-list-empty">沒有符合條件的會員，試試其他姓名或部門。</p>';
       if(markup!==rosterMarkup){list.innerHTML=markup;rosterMarkup=markup;}
       list.querySelectorAll('[data-role-user]').forEach(function(segment){
         var id=segment.dataset.roleUser,pending=roleWrites.get(id),isOwner=id===loadedOwner;
@@ -283,11 +292,10 @@
         var row=segment.closest('.role-row');
         if(pending)row.setAttribute('aria-busy','true');else row.removeAttribute('aria-busy');
         segment.dataset.role=role;
-        segment.querySelectorAll('button').forEach(function(button){
-          button.disabled=isOwner||Boolean(pending);
-          button.setAttribute('aria-pressed',String(button.dataset.roleChoice===role));
-        });
+        segment.disabled=isOwner||Boolean(pending);
+        segment.value=role;
       });
+      if(focusedRole)restoreFocus(focusedRole);
     }
     function load(){
       var sequence=++loadSequence;
@@ -295,18 +303,25 @@
         if(!active()||sequence!==loadSequence)return;
         members=values[0]||{};roles=values[1]||{};loadedOwner=values[2]&&values[2].ownerUid;revision=values[2]&&values[2].revision;
         if(!loadedOwner||!Number.isInteger(revision))throw new Error('權限設定尚未完成');
+        status.textContent='';status.hidden=true;search.disabled=department.disabled=false;
+        var previousDepartment=department.value;
+        var departments=Array.from(new Set(Object.keys(members).filter(path).map(function(id){return members[id].department||'';}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'zh-TW');});
+        department.innerHTML='<option value="">全部部門</option>'+departments.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>';}).join('');
+        department.value=departments.includes(previousDepartment)?previousDepartment:'';
         draw();
       });
     }
+    function restoreFocus(id){if(!active())return;var control=Array.from(list.querySelectorAll('[data-role-user]')).find(function(el){return el.dataset.roleUser===id;});if(control&&!control.disabled&&control.getClientRects().length)control.focus({preventScroll:true});}
     function error(){if(!active())return;status.hidden=false;status.textContent='權限未更新，請重新整理後再試。';}
     load().catch(error);
-    list.onclick=function(event){
-      var button=event.target.closest('[data-role-choice]');if(!button||button.disabled||!active())return;
-      var segment=button.closest('[data-role-user]'),id=segment.dataset.roleUser,next=button.dataset.roleChoice,previous=segment.dataset.role;
+    list.onchange=function(event){
+      var segment=event.target.closest('select[data-role-user]');if(!segment||segment.disabled||!active())return;
+      var id=segment.dataset.roleUser,next=segment.value,previous=segment.dataset.role;
+      segment.value=previous;
       if(next===previous||id===loadedOwner||roleWrites.has(id)||!['member','admin','owner'].includes(next))return;
       if(next==='owner'&&!verified.roleOwner)return;
-      var write={next:next,previous:previous};roleWrites.set(id,write);segment.closest('.role-row').setAttribute('aria-busy','true');segment.querySelectorAll('button').forEach(function(b){b.disabled=true;});
-      var confirmation=next==='owner'?A.ask({title:'轉讓最高管理者？',body:'將最高管理者轉讓給「'+(members[id].name||'午餐夥伴')+'」'+(members[id].department?'（'+members[id].department+'）':'')+'。轉讓後，你會成為一般管理者，無法自行取回最高管理者權限。',okText:'確認轉讓',cancelText:'取消'}):Promise.resolve(true);
+      var write={next:next,previous:previous};roleWrites.set(id,write);segment.closest('.role-row').setAttribute('aria-busy','true');segment.disabled=true;
+      var confirmation=next==='owner'?A.ask({title:'轉讓最高管理者？',body:'將最高管理者轉讓給「'+(members[id].name||'午餐夥伴')+'」'+(members[id].department?'（'+members[id].department+'）':'')+'。轉讓後，你會成為一般管理者，無法自行取回最高管理者權限。',okText:'確認轉讓',cancelText:'取消'}):A.ask({title:'確認變更會員權限？',body:'將「'+(members[id].name||'午餐夥伴')+'」的權限由「'+({member:'會員',admin:'管理者'}[previous])+'」改為「'+({member:'會員',admin:'管理者'}[next])+'」。',okText:'確認變更',cancelText:'取消'});
       write.done=confirmation.then(function(ok){
         if(!ok)return false;
         if(!active()||!verified.roleManager)throw new Error('權限已變更');
@@ -321,11 +336,13 @@
         if(!active())return;
         if(saved&&next!=='owner')roles[id]=next;
         draw();
+        restoreFocus(id);
         load().catch(error);
       },function(){
         roleWrites.delete(id);
         if(!active())return;
         draw();
+        restoreFocus(id);
         error();
         load().catch(error);
       });
@@ -337,7 +354,7 @@
     var access = window.LunchGroupAccess;
     var orderFilter = 'unpaid';
     var orderFilters = [
-      {key:'all',label:'ALL'},
+      {key:'all',label:'全部'},
       {key:'unpaid',label:'未付',empty:'目前沒有未付款訂單'},
       {key:'paid',label:'已付',empty:'目前沒有已付款訂單'},
       // 2026-11-25 使用者選：多一個「已取消」，四個數字加起來＝ALL（以前取消的只算在 ALL，卡片上的「已取消」又被 theme.css 藏起來）
@@ -616,3 +633,4 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
+

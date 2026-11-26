@@ -1,269 +1,93 @@
-.member-dashboard.account-tabs {
-  --account-width: 610px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
-  inline-size: min(100%, var(--account-width));
-  margin-inline: auto;
-  color: #292929;
+/* FOODJUN account: natural content height, aligned sidebar and compact navigation. */
+.member-page:has(.account-tabs){box-sizing:border-box;width:min(100%,1200px);max-width:1200px;margin-inline:auto;padding:24px 28px 32px}
+.member-page:has(.account-tabs)>.member-backlink{float:none;display:inline-flex;margin:0 0 12px}
+.member-page:has(.account-tabs)>.member-heading{margin:0 0 24px}
+.member-page:has(.account-tabs)>.member-heading h1{font-size:26px;line-height:1.25;margin:0}
+.member-page .member-dashboard.account-tabs{display:grid;grid-template-columns:224px minmax(0,1fr);gap:36px;align-items:start;width:100%;max-width:none;margin:0;color:#292929}
+.account-sidebar{min-width:0;padding-top:2px}
+.account-identity{display:flex;align-items:center;gap:12px;padding:0 12px 22px;margin-bottom:14px;border-bottom:1px solid #dedede}
+.account-identity>div{min-width:0}
+.account-identity strong{display:block;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.account-identity>div>span{display:block;color:#737373;font-size:12px;margin-top:4px;overflow-wrap:anywhere}
+.account-identity .member-avatar-large{width:44px;height:44px;font-size:28px;margin:0;flex:none}
+.account-tab-list{display:flex;flex-direction:column;gap:4px;padding:0;margin:0;border:0;background:transparent;box-shadow:none;border-radius:0}
+.account-tab-slider{display:none}
+.account-tab-list .account-tab{box-sizing:border-box;position:relative;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:40px;width:100%;padding:9px 12px;border:0;border-radius:9px;background:transparent;box-shadow:none;color:#686868;font:inherit;font-size:14px;font-weight:400;line-height:22px;letter-spacing:0;white-space:nowrap;cursor:pointer;transition:background 200ms ease,color 200ms ease}
+.account-tab-list .account-tab[aria-selected=true]{background:#e8e8e8;color:#252525;font-weight:600}
+.account-tab-list .account-tab[aria-selected=true]::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:3px;background:var(--accent,#ba682a)}
+.account-tab-icon{display:grid;place-items:center;width:18px;height:18px;flex:none;transform:none;opacity:1}
+.account-tab-icon svg{display:block;width:18px;height:18px}
+.account-tab:focus-visible,.account-tab-panels>[role=tabpanel]:focus-visible{outline:2px solid #9a521c;outline-offset:3px}
+.account-tab-panels{min-width:0}
+.account-tab-panels>[role=tabpanel][hidden]{display:none!important}
+.member-page .account-tab-panels>[role=tabpanel]>:is(section,form){box-sizing:border-box;min-width:0;height:auto;max-height:none;overflow:visible;margin:0;padding:28px;border:1px solid #e2e2e2;border-radius:14px;background:#fff;box-shadow:0 2px 5px #00000003;font-size:14px;letter-spacing:0}
+.member-page .account-tab-panels h2{margin:0 0 8px;font-size:20px;line-height:1.4;font-weight:600;letter-spacing:0}
+.account-tab-panels .member-muted,.account-tab-panels .member-fine{font-size:13px;line-height:1.65;overflow-wrap:anywhere}
+.member-page .account-tab-panels .member-profile{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:'av name edit act' 'av dept badge act' 'av mail mail act';column-gap:14px;row-gap:8px;align-items:center;align-content:start;justify-items:start;text-align:left}
+.account-tab-panels .member-profile>.member-sep,.account-tab-panels .member-profile>.member-kicker{display:none}
+.account-tab-panels .member-profile>.member-avatar-edit{grid-area:av;margin:0 8px 0 0}
+.account-tab-panels .member-profile .member-avatar-large{width:64px;height:64px;font-size:40px;margin:0}
+.account-tab-panels .member-profile>h2{grid-area:name;margin:0;overflow-wrap:anywhere}
+.account-tab-panels .member-profile>.member-edit-name{grid-area:edit;margin:0;white-space:nowrap}
+.account-tab-panels .member-profile>p:not(.member-fine):not(.member-kicker){grid-area:dept;margin:0;overflow-wrap:anywhere}
+.account-tab-panels .member-profile>.member-verified{grid-area:badge;margin:0;white-space:nowrap}
+.account-tab-panels .member-profile>.member-fine{grid-area:mail;margin:0;min-width:0}
+.account-tab-panels .member-profile>.actions{grid-area:act;margin:0}
+.member-page .account-tab-panels .member-payinfo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 16px;align-items:start}
+.account-tab-panels .member-payinfo>:is(h2,p){grid-column:1/-1;margin:0}
+.account-tab-panels .member-payinfo>label{display:grid;gap:7px;margin:0;min-width:0;font-size:13px}
+.account-tab-panels .member-payinfo>.btn.primary{grid-column:1/-1;justify-self:start;margin:0}
+.account-tab-panels .member-payinfo>.payinfo-status{order:1}
+.account-tab-panels .member-role-admin>p.member-muted{margin:0 0 22px}
+.member-management-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.member-page .member-management-heading h2{margin:0}
+.member-total{color:#696969;font-size:12px;white-space:nowrap}
+.member-management-filters{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:14px;margin-bottom:18px}
+.member-management-filters label{display:grid;gap:7px;min-width:0;font-size:12px;color:#636363}
+.member-management-filters input,.member-management-filters select{box-sizing:border-box;min-width:0;width:100%;height:38px;padding:7px 10px;border:1px solid #dcdcdc;border-radius:8px;background:#fafafa;color:#303030;font:inherit;font-size:14px}
+.member-result-count{font-size:12px;color:#696969;margin:0 0 10px}
+.member-result-count:empty{display:none}
+.member-list-heading{display:grid;grid-template-columns:minmax(0,1fr) 120px 130px;gap:16px;padding:0 0 10px 48px;font-size:12px;color:#727272}
+.member-page .account-tab-panels [data-role-list]{max-height:none;overflow:visible}
+.member-page .account-tab-panels .role-row{display:grid;grid-template-columns:32px minmax(0,1fr) 120px 130px;gap:16px;align-items:center;padding:14px 0;border-top:1px solid #eee;min-width:0}
+.member-page .role-row>.member-avatar{width:32px;height:32px;font-size:22px}
+.member-list-name{min-width:0}
+.member-list-name b{font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.member-list-department{font-size:13px;color:#737373;overflow-wrap:anywhere}
+.member-page .role-row .member-role-select{box-sizing:border-box;width:130px;max-width:100%;min-height:32px;margin:0;padding:5px 28px 5px 10px;border:1px solid #dedede;border-radius:7px;background-color:#fafafa;color:#444;font:inherit;font-size:13px;cursor:pointer}
+.member-role-select:disabled{opacity:.6;cursor:wait}
+.member-page .role-row .role-owner-badge{padding:6px 10px;border-radius:7px;background:#f5efe9;font-size:12px;color:#885224;text-align:center}
+.member-list-empty{margin:0;padding:28px 0;border-top:1px solid #eee;font-size:14px;color:#696969}
+.account-tab-panels [data-role-status]{font-size:13px;line-height:1.6;color:#7b4231}
+@media(min-width:769px){.profile-dialog[open]{overflow:hidden}.profile-dialog .member-editor{box-sizing:border-box;max-height:calc(85dvh - 2px);overflow-y:auto;overscroll-behavior:contain}.profile-dialog .member-editor>h2{padding-inline-end:42px}.profile-dialog .profile-close{z-index:2}}
+@media(max-width:1000px){.member-page .member-dashboard.account-tabs{grid-template-columns:190px minmax(0,1fr);gap:24px}.member-page .account-tab-panels .member-profile{grid-template-columns:auto minmax(0,auto) minmax(0,1fr);grid-template-areas:'av name edit' 'av dept badge' 'mail mail act'}.member-page .account-tab-panels .role-row{grid-template-columns:32px minmax(0,1fr) 90px 116px;gap:10px}.member-list-heading{grid-template-columns:minmax(0,1fr) 90px 116px;gap:10px;padding-left:42px}.member-page .role-row .member-role-select{width:116px}}
+@media(max-width:768px){
+.member-page:has(.account-tabs){width:100%;padding:18px 18px calc(24px + var(--mobile-nav-space,0px))}
+.member-page:has(.account-tabs)>.member-heading{margin-bottom:18px}
+.member-page:has(.account-tabs)>.member-heading h1{font-size:24px}
+.member-page .member-dashboard.account-tabs{grid-template-columns:minmax(0,1fr);gap:18px}
+.account-identity{display:none}
+.account-tab-list{flex-direction:row;gap:2px;width:max-content;max-width:100%;padding:4px;border-radius:10px;background:#e8e8e8;overflow-x:auto;scrollbar-width:none}
+.account-tab-list .account-tab{width:auto;min-height:32px;padding:5px 10px;gap:6px;border-radius:7px;font-size:13px;line-height:22px;flex:none}
+.account-tab-list .account-tab[aria-selected=true]{background:#fff}
+.account-tab-list .account-tab[aria-selected=true]::before{display:none}
+.account-tab-icon,.account-tab-icon svg{width:16px;height:16px}
+.member-page .account-tab-panels>[role=tabpanel]>:is(section,form){padding:20px;border-radius:12px}
+.member-page .account-tab-panels .member-profile{grid-template-columns:auto minmax(0,1fr);grid-template-areas:'av name' 'av edit' 'dept badge' 'mail mail' 'act act';gap:10px 12px}
+.account-tab-panels .member-profile>.actions{margin-top:4px}
+.account-tab-panels .member-profile>.member-edit-name{padding-left:0;min-height:32px}
+.member-page .account-tab-panels .member-payinfo{grid-template-columns:minmax(0,1fr);gap:16px}
+.member-management-filters{grid-template-columns:minmax(0,1fr) 108px;gap:10px}
+.member-management-filters input,.member-management-filters select{font-size:16px;height:40px}
+.member-list-heading{display:none}
+.member-page .account-tab-panels .role-row{grid-template-columns:32px minmax(0,1fr) 112px;grid-template-rows:auto auto;gap:3px 10px;padding:14px 0}
+.member-page .role-row>.member-avatar{grid-column:1;grid-row:1/3}
+.member-list-name{grid-column:2;grid-row:1}
+.member-list-department{grid-column:2;grid-row:2;font-size:12px}
+.member-page .role-row .member-role-select,.member-page .role-row .role-owner-badge{grid-column:3;grid-row:1/3;width:112px}
+.member-page .role-row .member-role-select{min-height:36px;font-size:16px;padding-inline:8px 22px}
 }
+@media(prefers-reduced-motion:reduce){.account-tab-list .account-tab{transition:none}}
 
-.account-tab-list {
-  --account-tab-count: 2;
-  --account-active-tab: 0;
-  --account-tab-inset: 5px;
-  --account-float: -15px;
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: repeat(var(--account-tab-count), minmax(0, 1fr));
-  align-items: stretch;
-  margin-top: 14px;
-  padding: var(--account-tab-inset);
-  border: 1px solid #e5e5e5;
-  border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 5px 20px rgb(0 0 0 / 5%);
-}
-
-.account-tab-slider {
-  position: absolute;
-  z-index: 0;
-  inset: var(--account-tab-inset) auto var(--account-tab-inset) var(--account-tab-inset);
-  width: calc((100% - var(--account-tab-inset) * 2) / var(--account-tab-count));
-  border-radius: 999px;
-  background: #f0f0f0;
-  transform: translateX(calc(100% * var(--account-active-tab)));
-  transition: transform 280ms cubic-bezier(.22, .68, 0, 1);
-  pointer-events: none;
-}
-
-.account-tab-slider::before {
-  content: "";
-  position: absolute;
-  top: -15px;
-  left: 50%;
-  width: 43px;
-  height: 43px;
-  border: 2px solid var(--accent-bright, #ffb867);
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 3px 12px rgb(0 0 0 / 9%);
-  transform: translateX(-50%);
-}
-
-.account-tab-list .account-tab {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 2px;
-  min-width: 0;
-  min-height: 59px;
-  padding: 7px 4px 6px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: #585858;
-  box-shadow: none;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: .04em;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: color 180ms ease;
-}
-
-.account-tab-list .account-tab[aria-selected="true"] {
-  color: #242424;
-  font-weight: 600;
-}
-
-.account-tab-list .account-tab:focus-visible,
-.account-tab-panels > [role="tabpanel"]:focus-visible {
-  outline: 2px solid #353535;
-  outline-offset: 3px;
-}
-
-.account-tab-icon {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  transition: transform 280ms cubic-bezier(.22, .68, 0, 1);
-}
-
-.account-tab-icon svg {
-  display: block;
-  width: 22px;
-  height: 22px;
-}
-
-.account-tab[aria-selected="true"] .account-tab-icon {
-  transform: translateY(var(--account-float));
-}
-
-.account-tab-panels {
-  min-width: 0;
-}
-
-.account-tab-panels > [role="tabpanel"] > :is(section, form) {
-  min-width: 0;
-  margin: 0;
-  padding: clamp(19px, 4vw, 28px);
-  border: 1px solid #e8e8e8;
-  border-radius: 21px;
-  background: #fff;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 4%);
-  color: #292929;
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: .02em;
-}
-
-.account-tab-panels > [role="tabpanel"][hidden] {
-  display: none !important;
-}
-
-.account-tab-panels > [role="tabpanel"] h2 {
-  margin-top: 0;
-  font-size: clamp(18px, 3vw, 22px);
-  font-weight: 650;
-  letter-spacing: 0;
-}
-
-.account-tab-panels .member-profile > [data-profile-name] {
-  margin-top: 8px;
-  overflow-wrap: anywhere;
-}
-
-.account-tab-panels .member-profile > .member-kicker {
-  display: none;
-}
-
-.account-tab-panels .member-profile > .member-sep {
-  margin-block: 12px;
-}
-
-.account-tab-panels .member-profile > .member-fine {
-  overflow-wrap: anywhere;
-}
-
-.account-tab-panels .member-muted,
-.account-tab-panels [data-role-status],
-.account-tab-panels .member-payinfo > label {
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.account-tab-panels [data-role-status] {
-  margin: 0 0 14px;
-  color: #575757;
-  line-height: 1.65;
-}
-
-.account-tab-panels [data-role-list] {
-  max-height: clamp(185px, 42vh, 330px);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-
-.account-tab-panels [data-role-list] .role-row b {
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 480px) {
-  .member-dashboard.account-tabs {
-    gap: 14px;
-  }
-
-  .account-tab-list .account-tab {
-    letter-spacing: .02em;
-  }
-
-  .account-tab-panels [data-role-list] .role-row {
-    gap: 8px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .account-tab-slider,
-  .account-tab-list .account-tab,
-  .account-tab-icon {
-    transition: none;
-  }
-}
-
-.account-slider-icon{position:absolute;top:-15px;left:50%;width:47px;height:47px;display:grid;place-items:center;transform:translateX(-50%);color:var(--accent,#a45b21)}
-.account-slider-icon svg{width:22px;height:22px;display:block}
-.account-tab[aria-selected="true"] .account-tab-icon{opacity:0;transform:none}
-
-/* 2026-11-25 A 一欄橫排（使用者選定）：整頁收進一個畫面、三個分頁卡片同高，內容多時只在卡片裡捲
-   refined.css 在本檔之後載入，所以下面用 .member-page:has(.account-tabs) 開頭＋!important 壓過舊規則 */
-.member-page:has(.account-tabs){padding-top:14px!important;padding-bottom:12px!important}
-.member-page:has(.account-tabs)>.member-backlink{float:left;margin:2px 14px 0 0!important}
-.member-page:has(.account-tabs)>.member-heading{margin:0 0 14px!important}
-.member-page:has(.account-tabs)>.member-heading h1{font-size:21px!important;margin:0!important;line-height:36px}
-.member-page:has(.account-tabs) .member-dashboard.account-tabs{--account-width:720px;--account-top:252px;gap:14px!important}
-.member-page:has(.account-tabs) .account-tab-list{margin-top:12px}
-.member-page:has(.account-tabs) .account-tab-panels>[role=tabpanel]>:is(section,form){box-sizing:border-box;height:clamp(200px,calc(100dvh - var(--account-top) - var(--mobile-nav-space,0px)),280px);overflow:auto;overscroll-behavior:contain;padding:18px 24px!important}
-
-/* 個人資料：頭貼在左、名字部門信箱在中、登出在右 */
-.member-page:has(.account-tabs) .account-tab-panels .member-profile{display:grid!important;grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"av name edit act" "av dept badge act" "av mail mail act";column-gap:14px;row-gap:6px;align-items:center;align-content:center;justify-items:start;text-align:left}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-sep{display:none!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-avatar-edit{grid-area:av;margin:0 10px 0 0!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile .member-avatar-large{margin:0!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>h2{grid-area:name;margin:0!important;min-width:0}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-edit-name{grid-area:edit;margin:0!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>p:not(.member-fine):not(.member-kicker){grid-area:dept;margin:0!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-verified{grid-area:badge;margin:0!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-fine{grid-area:mail;margin:0!important;min-width:0}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>.actions{grid-area:act;margin:0!important}
-
-/* 收款資料：銀行、帳號並排，儲存鈕接在後面 */
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;column-gap:12px;align-items:end;align-content:start}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>:is(h2,p){grid-column:1/-1}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>h2{grid-row:1}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>p.member-muted{grid-row:2}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>label{grid-row:3}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.btn.primary{grid-row:3;grid-column:3}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.payinfo-status{grid-row:4;margin:10px 0 0!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>h2{margin:0 0 4px!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>p.member-muted{margin:0 0 2px!important;line-height:1.6!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>label{margin-top:8px!important;min-width:0}
-.member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.btn.primary{margin:0!important;white-space:nowrap}
-
-/* 會員管理：名單在卡片裡捲 */
-.member-page:has(.account-tabs) .account-tab-panels .member-role-admin{display:flex!important;flex-direction:column}
-.member-page:has(.account-tabs) .account-tab-panels .member-role-admin>h2{margin:0 0 4px!important}
-.member-page:has(.account-tabs) .account-tab-panels .member-role-admin [data-role-list]{flex:1;min-height:0;max-height:none!important;overflow:auto!important;overscroll-behavior:contain}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>:is(.member-edit-name,.member-verified){white-space:nowrap}
-.member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-fine{overflow-wrap:anywhere}
-@media (max-width:560px){
-  .member-page:has(.account-tabs) .member-dashboard.account-tabs{--account-top:234px}
-  .member-page:has(.account-tabs) .account-tab-panels>[role=tabpanel]>:is(section,form){height:clamp(220px,calc(100dvh - var(--account-top) - var(--mobile-nav-space,0px)),440px);padding:18px 20px!important}
-  .member-page:has(.account-tabs) .account-tab-panels .member-profile{grid-template-columns:auto minmax(0,auto) minmax(0,1fr);grid-template-areas:"av name name" "av edit edit" "av dept badge" "mail mail act";column-gap:12px;row-gap:8px}
-  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-avatar-edit{margin:0 6px 0 0!important}
-  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-edit-name{padding-inline:0!important}
-  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.member-fine{margin-top:6px!important}
-  .member-page:has(.account-tabs) .account-tab-panels .member-profile>.actions{justify-self:end;margin-top:6px!important}
-  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo{grid-template-columns:minmax(0,1fr)}
-  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>label{grid-row:auto}
-  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.btn.primary{grid-row:auto;grid-column:1/-1;margin-top:14px!important}
-  .member-page:has(.account-tabs) .account-tab-panels .member-payinfo>.payinfo-status{grid-row:auto}
-}
-
-/* 2026-11-25「修改頭貼與姓名」視窗（桌機）：原本整個 dialog 一起捲，視窗矮時聚焦姓名會把 × 捲走。
-   改成跟手機版（refined.css ≤768px 那段）同一套：dialog 不捲、裡面的表單捲，× 固定在右上。
-   桌機儲存鈕不是滿版，黏底會疊在頭貼選項上，所以不做黏底，維持在表單最下面 */
-@media (min-width:769px){
-  .profile-dialog[open]{overflow:hidden}
-  .profile-dialog .member-editor{box-sizing:border-box;max-height:calc(85dvh - 2px);overflow-y:auto;overscroll-behavior:contain}
-  .profile-dialog .member-editor>h2{padding-inline-end:42px}
-  .profile-dialog .profile-close{z-index:2}
-}
+@media(max-width:768px){.account-tab-list{position:relative;isolation:isolate}.account-tab-list::before{content:'';position:absolute;z-index:0;inset:4px auto 4px 0;width:var(--segment-width,0px);transform:translateX(var(--segment-x,4px));border-radius:7px;background:#fff;pointer-events:none;transition:transform 200ms ease,width 200ms ease}.account-tab-list .account-tab{z-index:1}.account-tab-list .account-tab[aria-selected=true]{background:transparent}}
+@media(prefers-reduced-motion:reduce){.account-tab-list::before{transition:none}}
