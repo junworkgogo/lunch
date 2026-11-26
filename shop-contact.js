@@ -53,13 +53,14 @@
     return cuisineOf(key).label+(key==='other'&&detail?'・'+detail:'');
   }
 
-  function stateOf(shop) {
+  function stateOf(shop, timestamp) {
     var clock=window.LunchApp&&window.LunchApp.now;
-    return window.LunchShopHours ? window.LunchShopHours.stateOf(shop, clock ? clock() : Date.now()) : 'unknown';
+    if (timestamp === undefined) timestamp = clock ? clock() : Date.now();
+    return window.LunchShopHours ? window.LunchShopHours.stateOf(shop, timestamp) : 'unknown';
   }
 
-  function isOrderable(shop) {
-    return !!shop && !shop.deleted && stateOf(shop) !== 'resting';
+  function isOrderable(shop, timestamp) {
+    return !!shop && !shop.deleted && stateOf(shop, timestamp) !== 'resting';
   }
 
   function deliveryAmount(value) {

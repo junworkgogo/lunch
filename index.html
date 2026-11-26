@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="pwa.css?v=20261126release1">
 <link rel="stylesheet" href="shop-contact.css?v=20261126hours2">
 <script src="shop-hours.js?v=20261126hours1"></script>
-<script src="shop-contact.js?v=20261126multi1"></script>
+<script src="shop-contact.js?v=20261126deadline1"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="./assets/jun-orange-smile-64-v5.png">
 <link rel="apple-touch-icon" sizes="180x180" href="./assets/jun-orange-smile-180-v3.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -487,7 +487,7 @@ a{color:#394150}
 .group-card-title:focus-visible::after{outline:2px solid var(--accent);outline-offset:3px}
 .order-department{display:block;margin-top:2px;color:var(--muted);font-size:11px;font-weight:400;line-height:1.35;overflow-wrap:anywhere}
 </style>
-<link rel="stylesheet" href="interface.css?v=20261117pos1">
+<link rel="stylesheet" href="interface.css?v=20261126scroll1">
 <link rel="stylesheet" href="members.css?v=20261125own2">
 <link rel="stylesheet" href="theme.css?v=20261117smile">
 <link rel="stylesheet" href="menu-vision.css?v=20261117a">
@@ -498,7 +498,7 @@ a{color:#394150}
 <link rel="stylesheet" href="drink-options.css?v=20261124five1">
 <link rel="stylesheet" href="account-tabs.css?v=20261126a">
 <link rel="stylesheet" href="happy-rain.css?v=20261119faces1">
-<link rel="stylesheet" href="refined.css?v=20261124options1">
+<link rel="stylesheet" href="refined.css?v=20261126compact1">
 <link rel="stylesheet" href="members-orders-tabs.css?v=20261125cancel1">
 <link rel="stylesheet" href="admin-order-editor.css?v=20261124five1">
 <link rel="stylesheet" href="order-assignment.css?v=20261124five1">
@@ -1152,7 +1152,7 @@ function pageShops(root){
   function draw(){
     var shops=allShops,ids=Object.keys(shops).filter(function(k){return shops[k]&&!shops[k].deleted&&(category==='all'||C.cuisinesOf(shops[k]).includes(category));}).sort(function(a,b){return (shops[b].updatedAt||0)-(shops[a].updatedAt||0);});
     root.querySelector('#list').innerHTML=ids.length?ids.map(function(k){var s=shops[k],c=C.cuisineOf(s.cuisine),status=C.stateOf(s);
-      var start=C.isOrderable(s)?'<a class="btn primary" href="#/new?shop='+esc(k)+'">用這家開團</a>':'<button class="btn" type="button" disabled>目前無法開團</button>';
+      var start='<a class="btn primary" href="#/new?shop='+esc(k)+'">用這家開團</a>';
       return '<article class="card gcard" data-shop-id="'+esc(k,true)+'"><div class="shop-card-category"><span class="shop-category-label">'+C.cuisinesOf(s).map(function(key){return I(C.cuisineOf(key).icon,16)+esc(C.cuisineLabel(s,key));}).join(' · ')+'</span><span class="shop-business-state" data-state="'+status+'">'+C.states[status]+'</span></div><h3>'+esc(s.name)+'</h3><ul class="info" style="margin:0">'+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'<li>'+I('list2')+'<span>'+shopMenuInfo(s)+'</span></li><li>'+I('clock')+'<span>菜單更新 '+shopMenuDate(s)+'</span></li></ul>'+shopDeliveryHtml(s)+'<div class="actions">'+start+(!secureMode()||adminUser()?'<a class="btn" href="#/shops/'+esc(k)+'">編輯</a>':'')+'</div></article>';}).join(''):'<p class="home-empty">'+(category==='all'?'還沒有店家。':'這個分類還沒有店家。')+'</p>';
     root.querySelector('[data-add-shop]').href='#/shops/new'+(category==='all'?'':'?cuisine='+category);
   }
@@ -1648,21 +1648,32 @@ function pageNew(root,q){
   function currentShopIds(){
     return Object.keys(shops).filter(function(k){return shops[k]&&!shops[k].deleted;}).sort(function(a,b){return (shops[b].updatedAt||0)-(shops[a].updatedAt||0);});
   }
-  function shopOptions(ids,sel){
+  function deadlineValue(){
+    var date=root.querySelector('#gd'),time=root.querySelector('#gm');
+    return date&&time?parseDT(date.value,time.value):NaN;
+  }
+  function deadlineState(shop, timestamp){
+    return C.stateOf(shop,timestamp===undefined?deadlineValue():timestamp);
+  }
+  function availabilityMessage(shop,timestamp){
+    if(!shop||shop.deleted)return '請選擇一間正常供應的店家。';
+    return deadlineState(shop,timestamp)==='resting'?'店家在截止時間休息，請調整截止日期／時間，或選其他店家。':'截止時間的營業狀況待確認，開團前請先向店家確認。';
+  }
+  function shopOptions(ids,sel,timestamp){
     return ids.map(function(k){
-      var s=shops[k],orderable=C.isOrderable(s);
-      return '<option value="'+esc(k,true)+'"'+(k===sel?' selected':'')+(orderable?'':' disabled')+'>'+esc(s.name)+(orderable?'':'（'+C.states[C.stateOf(s)]+'）')+'</option>';
+      var s=shops[k],state=deadlineState(s,timestamp),orderable=C.isOrderable(s,timestamp);
+      return '<option value="'+esc(k,true)+'"'+(k===sel?' selected':'')+(orderable?'':' disabled')+'>'+esc(s.name)+(orderable?'':'（'+(state==='resting'?'截止時間休息':C.states[state])+'）')+'</option>';
     }).join('');
   }
   function build(){
     var ids=currentShopIds();
     if(!ids.length){root.innerHTML='<div class="page">'+emptyBox('還沒有店家，請先新增一家。','<br><a class="btn primary" href="#/shops/new">新增店家</a>')+'</div>';return;}
     built=true;
-    var sel=ids.includes(q.shop)?q.shop:ids.find(function(k){return C.isOrderable(shops[k]);})||ids[0];
     var dl=parseDT(dateVal(now()),'11:00');
     if(dl<=now())dl=now()+3600000;
+    var sel=ids.includes(q.shop)?q.shop:ids.find(function(k){return C.isOrderable(shops[k],dl);})||ids[0];
     root.innerHTML='<div class="page"><section><a class="backlink" href="#/">'+I('back',15)+'回首頁</a><h1 class="ph">開新團</h1></section><section class="card"><form class="form" id="f" novalidate>'+
-    '<div class="fld"><label for="gs">店家</label><select id="gs" aria-describedby="gsStatus">'+shopOptions(ids,sel)+'</select><p class="shop-availability-warning" id="gsStatus" role="status" hidden></p></div>'+
+    '<div class="fld"><label for="gs">店家</label><select id="gs" aria-describedby="gsStatus">'+shopOptions(ids,sel,dl)+'</select><p class="shop-availability-warning" id="gsStatus" role="status" hidden></p></div>'+
     '<div class="fld"><label for="gt">團名</label><input id="gt" maxlength="40" autocomplete="off"></div>'+
     '<div class="fld"><label for="go">負責人（必填）</label><input id="go" maxlength="20" autocomplete="off" placeholder="你的名字" value="'+esc(LS.get(K.owner,''))+'"><p class="err" id="goE" role="alert" hidden>請輸入負責人名字</p></div>'+
     '<div class="row2"><div class="fld"><label for="gd">截止日期</label><input id="gd" type="date" value="'+dateVal(dl)+'"></div><div class="fld"><label for="gm">截止時間</label><input id="gm" type="time" value="'+fmtTime(dl)+'"></div></div>'+
@@ -1675,9 +1686,10 @@ function pageNew(root,q){
     function syncTitle(){if(!titleTouched)gt.value=defTitle(shops[gs.value]&&shops[gs.value].name);}
     function syncShipping(){var threshold=parseFreeShippingThreshold(shops[gs.value]&&shops[gs.value].freeShippingThreshold);root.querySelector('#gfs').value=Number.isFinite(threshold)&&threshold>0?String(threshold):'';}
     function syncStatus(){
-      var selected=shops[gs.value],available=C.isOrderable(selected);
-      gsStatus.hidden=available&&C.stateOf(selected)!=='unknown';
-      gsStatus.textContent=available?(C.stateOf(selected)==='unknown'?'營業時間待確認，開團前請先向店家確認。':''):selected&&!selected.deleted?C.states[C.stateOf(selected)]+'，請選其他店家。':'請選擇一間正常供應的店家。';
+      var selected=shops[gs.value],timestamp=deadlineValue(),valid=Number.isFinite(timestamp),state=deadlineState(selected,timestamp);
+      var available=valid&&C.isOrderable(selected,timestamp);
+      gsStatus.hidden=available&&state!=='unknown';
+      gsStatus.textContent=valid?availabilityMessage(selected,timestamp):'請選好截止日期與時間，以確認店家營業狀況。';
       submit.disabled=busy||!available;
     }
     syncTitle();syncShipping();syncStatus();
@@ -1685,23 +1697,26 @@ function pageNew(root,q){
     gt.addEventListener('input',function(){titleTouched=true;});
     syncShopOptions=function(){
       var old=gs.value,list=currentShopIds();
-      gs.innerHTML=shopOptions(list,old);
+      gs.innerHTML=shopOptions(list,old,deadlineValue());
       if(!list.includes(old))gs.selectedIndex=-1;
       syncStatus();
     };
+    ['#gd','#gm'].forEach(function(selector){
+      ['input','change'].forEach(function(event){root.querySelector(selector).addEventListener(event,function(){syncShopOptions();});});
+    });
     form.addEventListener('submit',function(e){
       e.preventDefault();
       if(busy)return;
       var fE=root.querySelector('#fE');fE.hidden=true;
       var selected=gs.value,sh=shops[selected];
-      if(!C.isOrderable(sh)){syncStatus();return;}
-      var owner=root.querySelector('#go').value.trim(),title=gt.value.trim()||defTitle(sh.name);
+      var owner=root.querySelector('#go').value.trim(),title=gt.value.trim()||defTitle(sh&&sh.name);
       var dls=parseDT(root.querySelector('#gd').value,root.querySelector('#gm').value);
       root.querySelector('#goE').hidden=!!owner;
       function er(m){fE.textContent=m;fE.hidden=false;}
       if(!owner){root.querySelector('#go').focus();return;}
       if(isNaN(dls)){er('請選好截止日期與時間');return;}
       if(dls<=now()){er('截止時間已經過了，請選之後的時間');return;}
+      if(!C.isOrderable(sh,dls)){syncStatus();return;}
 
       var freeShippingThreshold=parseFreeShippingThreshold(root.querySelector('#gfs').value);
       if(!Number.isFinite(freeShippingThreshold)){er('免運門檻請填 0–1,000,000 的整數，或留白');root.querySelector('#gfs').focus();return;}
@@ -1709,7 +1724,10 @@ function pageNew(root,q){
       busy=true;gs.disabled=true;syncStatus();
       DB.get('shops/'+selected).then(function(latest){
         if(!alive)return;
-        if(!C.isOrderable(latest)){er(latest&&!latest.deleted?C.states[C.stateOf(latest)]+'，請選其他店家。':'這家店目前無法開團，請選其他店家。');return;}
+        if(latest)shops[selected]=latest;else delete shops[selected];
+        syncShopOptions();
+        if(deadlineValue()!==dls){er('截止日期或時間已變更，請確認後重新送出。');return;}
+        if(!C.isOrderable(latest,dls)){er(availabilityMessage(latest,dls));return;}
         if(dls<=now()){er('截止時間已經過了，請選之後的時間');return;}
         var menu=parseMenu(latest.menuText);
         if(!menu.count){er('這家店還沒有菜單，請先到店家頁補上品項');return;}
@@ -2194,8 +2212,21 @@ function pageGroup(root,gid){
           cancelOrder(gid,id,orders[id],group,orders).then(function(saved){if(saved)toast('訂單已取消');}).catch(fail);});}
     });
     function setActive(){var cur=0;menu.forEach(function(c,i){var el=document.getElementById('cat-'+i);if(el&&el.getBoundingClientRect().top<=90)cur=i;});Array.prototype.forEach.call(tabsEl.children,function(b,i){b.setAttribute('aria-current',String(i===cur));});}
-    window.addEventListener('scroll',setActive,{passive:true});scrollOff=function(){window.removeEventListener('scroll',setActive);};
-    setActive();update();
+    var sideEl=$('.side'),sideFrame=0;
+    function fitSide(){
+      sideFrame=0;
+      if(sideEl&&sideEl.isConnected&&window.innerWidth>=900){
+        sideEl.style.setProperty('--side-viewport-top',Math.max(24,sideEl.getBoundingClientRect().top)+'px');
+      }
+    }
+    function scheduleSideFit(){if(!sideFrame)sideFrame=requestAnimationFrame(fitSide);}
+    function onPageScroll(){setActive();scheduleSideFit();}
+    var sideObserver=typeof ResizeObserver==='function'?new ResizeObserver(scheduleSideFit):null;
+    if(sideObserver){[document.querySelector('header.top'),document.getElementById('demoBar')].forEach(function(el){if(el)sideObserver.observe(el);});}
+    window.addEventListener('scroll',onPageScroll,{passive:true});
+    window.addEventListener('resize',scheduleSideFit);
+    scrollOff=function(){window.removeEventListener('scroll',onPageScroll);window.removeEventListener('resize',scheduleSideFit);cancelAnimationFrame(sideFrame);if(sideObserver)sideObserver.disconnect();};
+    setActive();scheduleSideFit();update();
   }
   var scrollOff=null,orderOff=null;
   function revokeAccess(){

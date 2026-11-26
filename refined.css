@@ -384,7 +384,7 @@ header.top .brandlink .brand-zh{writing-mode:vertical-rl;text-orientation:uprigh
 
 /* 2026-11-24 團購開放狀態置於標題倒數旁，與功能分頁分開。 */
 .admin-title-row .admin-status-actions{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;max-width:100%}
-.admin-title-row .admin-close-button{flex:none;min-height:40px;padding:8px 12px;font-size:14px;white-space:nowrap}
+.admin-title-row .admin-close-button{flex:none;min-height:32px;padding:5px 10px;font-size:13px;line-height:20px;border-radius:8px;white-space:nowrap}
 @media(max-width:768px){.admin-title-row .admin-status-actions{gap:8px}.admin-title-row .admin-close-button{min-height:44px}}
 
 /* 2026-11-24 收錢卡逐項備註及管理編輯入口。 */
