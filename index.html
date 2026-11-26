@@ -8,8 +8,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="kaomoji.css?v=20261126release1">
 <link rel="stylesheet" href="pwa.css?v=20261126release1">
-<link rel="stylesheet" href="shop-contact.css?v=20261126release1">
-<script src="shop-contact.js?v=20261126release1"></script>
+<link rel="stylesheet" href="shop-contact.css?v=20261126hours2">
+<script src="shop-hours.js?v=20261126hours1"></script>
+<script src="shop-contact.js?v=20261126hours1"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="./assets/jun-orange-smile-64-v5.png">
 <link rel="apple-touch-icon" sizes="180x180" href="./assets/jun-orange-smile-180-v3.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1151,11 +1152,14 @@ function pageShops(root){
     var shops=allShops,ids=Object.keys(shops).filter(function(k){return shops[k]&&!shops[k].deleted&&(category==='all'||C.cuisineOf(shops[k].cuisine).key===category);}).sort(function(a,b){return (shops[b].updatedAt||0)-(shops[a].updatedAt||0);});
     root.querySelector('#list').innerHTML=ids.length?ids.map(function(k){var s=shops[k],c=C.cuisineOf(s.cuisine),status=C.stateOf(s);
       var start=C.isOrderable(s)?'<a class="btn primary" href="#/new?shop='+esc(k)+'">用這家開團</a>':'<button class="btn" type="button" disabled>目前無法開團</button>';
-      return '<article class="card gcard"><div class="shop-card-category"><span class="shop-category-label">'+I(c.icon,18)+c.label+'</span><span class="shop-business-state" data-state="'+status+'">'+C.states[status]+'</span></div><h3>'+esc(s.name)+'</h3><ul class="info" style="margin:0">'+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'<li>'+I('list2')+'<span>'+shopMenuInfo(s)+'</span></li><li>'+I('clock')+'<span>菜單更新 '+shopMenuDate(s)+'</span></li></ul>'+shopDeliveryHtml(s)+'<div class="actions">'+start+(!secureMode()||adminUser()?'<a class="btn" href="#/shops/'+esc(k)+'">編輯</a>':'')+'</div></article>';}).join(''):'<p class="home-empty">'+(category==='all'?'還沒有店家。':'這個分類還沒有店家。')+'</p>';
+      return '<article class="card gcard" data-shop-id="'+esc(k,true)+'"><div class="shop-card-category"><span class="shop-category-label">'+I(c.icon,18)+c.label+'</span><span class="shop-business-state" data-state="'+status+'">'+C.states[status]+'</span></div><h3>'+esc(s.name)+'</h3><ul class="info" style="margin:0">'+(s.address?'<li>'+I('pin')+'<span>'+esc(s.address)+'</span></li>':'')+(s.hours?'<li>'+I('clock')+'<span>營業時間 '+esc(s.hours)+'</span></li>':'')+(s.tags?'<li>'+I('tag')+'<span>'+esc(s.tags)+'</span></li>':'')+'<li>'+I('list2')+'<span>'+shopMenuInfo(s)+'</span></li><li>'+I('clock')+'<span>菜單更新 '+shopMenuDate(s)+'</span></li></ul>'+shopDeliveryHtml(s)+'<div class="actions">'+start+(!secureMode()||adminUser()?'<a class="btn" href="#/shops/'+esc(k)+'">編輯</a>':'')+'</div></article>';}).join(''):'<p class="home-empty">'+(category==='all'?'還沒有店家。':'這個分類還沒有店家。')+'</p>';
     root.querySelector('[data-add-shop]').href='#/shops/new'+(category==='all'?'':'?cuisine='+category);
   }
   root.querySelector('.shop-categories').addEventListener('click',function(e){var b=e.target.closest('[data-shop-category]');if(!b)return;category=b.getAttribute('data-shop-category');root.querySelectorAll('[data-shop-category]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});draw();});
-  return DB.on('shops',function(v){allShops=v||{};draw();});
+  var off=DB.on('shops',function(v){allShops=v||{};draw();});
+  function refreshStates(){var changed=false;root.querySelectorAll('[data-shop-id]').forEach(function(card){var shop=allShops[card.dataset.shopId],el=card.querySelector('.shop-business-state');if(shop&&el.dataset.state!==C.stateOf(shop))changed=true;});if(changed)draw();}
+  var timer=setInterval(refreshStates,30000);document.addEventListener('visibilitychange',refreshStates);
+  return function(){off();clearInterval(timer);document.removeEventListener('visibilitychange',refreshStates);};
 }
 P.list2='<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>';
 P.trash='<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
@@ -1539,13 +1543,12 @@ function pageShopEdit(root,id){
   root.innerHTML='<div class="page"><p class="muted">載入中…</p></div>';
   function build(){
     var s=cur||{name:'',address:'',phone:'',tags:'',hours:'',promos:'',menuText:DEFAULT_MENU},C=window.LunchShopContact;
-    var q=parseHash().q,initialCuisine=C.cuisineOf(isNew?q.cuisine:s.cuisine).key,initialState=C.stateOf(s);
+    var q=parseHash().q,initialCuisine=C.cuisineOf(isNew?q.cuisine:s.cuisine).key;
     var initialCategory=isNew?(initialCuisine==='drink'||q.category==='drink'?'drink':'meal'):shopCategory(s);
-    root.innerHTML='<div class="page"><section><a class="backlink" href="#/shops">'+I('back',15)+'回店家清單</a><h1 class="ph">'+(isNew?'新增店家':'編輯店家')+'</h1></section><div class="two"><section class="card"><form class="form" id="f" novalidate>'+
+    root.innerHTML='<div class="page"><section><a class="backlink" href="#/shops">'+I('back',15)+'回店家清單</a><h1 class="ph">'+(isNew?'新增店家':'編輯店家')+'</h1></section><section class="card shop-menu-search" aria-label="找店家菜單">'+
     '<div class="fld imp" role="group" aria-labelledby="iqL"><label id="iqL" for="iq">找店家菜單（選填）</label><div class="imp-row"><input id="iq" maxlength="2000" autocomplete="off" enterkeyhint="search" placeholder="店名、地址或菜單網址"><button type="button" class="btn" id="ib">找菜單</button></div><div id="ir" aria-live="polite"></div></div>'+
-    '<div class="fld"><label for="sn">店名（必填）</label><input id="sn" value="'+esc(s.name)+'" maxlength="40" autocomplete="off"><p class="err" id="snE" role="alert" hidden>請輸入店名</p></div>'+
-    '<div class="row2"><div class="fld"><label for="shopCuisine">店家分類</label><select id="shopCuisine">'+C.cuisines.map(function(c){return '<option value="'+c.key+'"'+(c.key===initialCuisine?' selected':'')+'>'+c.label+'</option>';}).join('')+'</select></div>'+
-    '<div class="fld"><label for="shopBusinessStatus">店家狀態</label><select id="shopBusinessStatus">'+Object.keys(C.states).map(function(k){return '<option value="'+k+'"'+(k===initialState?' selected':'')+'>'+C.states[k]+'</option>';}).join('')+'</select></div></div>'+
+    '</section><div class="two"><section class="card"><form class="form" id="f" novalidate><div class="fld"><label for="sn">店名（必填）</label><input id="sn" value="'+esc(s.name)+'" maxlength="40" autocomplete="off"><p class="err" id="snE" role="alert" hidden>請輸入店名</p></div>'+
+    '<fieldset class="fld shop-cuisine-picker" id="shopCuisine"><legend>店家分類</legend><div class="shop-cuisine-options">'+C.cuisines.map(function(c){return '<label><input type="radio" name="shopCuisine" value="'+c.key+'"'+(c.key===initialCuisine?' checked':'')+'><span>'+I(c.icon,16)+'<span>'+c.label+'</span></span></label>';}).join('')+'</div></fieldset>'+
     '<fieldset class="fld shop-category-field"><legend>菜單類型</legend><div class="shop-category-choice"><label><input type="radio" name="shopCategory" value="meal"'+(initialCategory!=='drink'?' checked':'')+'><span>餐點</span></label><label><input type="radio" name="shopCategory" value="drink"'+(initialCategory==='drink'?' checked':'')+'><span>飲品</span></label></div></fieldset>'+
     '<div class="fld"><label for="sa">地址</label><input id="sa" value="'+esc(s.address)+'" maxlength="100" autocomplete="off" placeholder="填了就會顯示 地圖"></div>'+
     '<div class="row2"><div class="fld"><label for="sp">電話</label><input id="sp" value="'+esc(s.phone)+'" maxlength="30" inputmode="tel" autocomplete="off"></div><div class="fld"><label for="st">類型</label><input id="st" value="'+esc(s.tags)+'" maxlength="30" placeholder="例如 便當・麵食" autocomplete="off"></div></div>'+
@@ -1555,11 +1558,13 @@ function pageShopEdit(root,id){
     '<div class="fld"><label for="sm">菜單（一行一個品項）</label><p class="hint">{分類名稱} 開新分類；品名, 價格；品名, 價格, 停售。縮排兩格（或行首「- 」）的行是選項：群組名*: 選項, 選項+加價（有 * 必選單選，沒有 * 可不選、可複選）。選項寫在分類下面、第一個品項前，整個分類共用。品項或分類下一行縮排寫「※ 說明」，例如 ※ 夏季限定。✎ 開頭寫點餐備註框的提示字，例如 ✎ 不辣請先告知。</p><div class="insrow"><button type="button" class="btn sm" id="ins1">插入：飲料（尺寸／甜度／冰塊）</button><button type="button" class="btn sm" id="ins2">插入：便當客製（飯少／飯多／不要蔥／要切）</button></div><textarea id="sm" spellcheck="false" aria-describedby="smE">'+esc(s.menuText)+'</textarea><ul class="errlist" id="smE" role="alert"></ul></div>'+
     '<p class="err" id="saveE" role="alert" hidden></p><div class="actions"><button type="submit" class="btn primary">儲存店家</button>'+(isNew?'':'<button type="button" class="btn danger" id="del">刪除店家</button>')+'</div></form></section>'+
     '<section class="card pv"><h2 style="font-size:18px;font-weight:900">預覽</h2><div id="pv"></div><div id="mp" style="margin-top:14px"></div></section></div></div>';
-    var sm=root.querySelector('#sm'),sa=root.querySelector('#sa'),cuisineField=root.querySelector('#shopCuisine'),stateField=root.querySelector('#shopBusinessStatus');
+    var sm=root.querySelector('#sm'),sa=root.querySelector('#sa'),cuisineField=root.querySelector('#shopCuisine');
     var hoursField=root.querySelector('#sh');hoursField.defaultValue=hoursField.value=s.hours||'';var initialHoursValue=hoursField.value,initialMenuText=sm.value;
+    function selectedCuisine(){return cuisineField.querySelector('input:checked').value;}
     cuisineField.addEventListener('change',function(){
-      if(cuisineField.value==='other')return;
-      root.querySelector('input[name=shopCategory][value="'+(cuisineField.value==='drink'?'drink':'meal')+'"]').checked=true;
+      if(selectedCuisine()==='other')return;
+      var categoryRadio=root.querySelector('input[name=shopCategory][value="'+(selectedCuisine()==='drink'?'drink':'meal')+'"]');
+      if(!categoryRadio.checked){categoryRadio.checked=true;categoryRadio.dispatchEvent(new Event('change',{bubbles:true}));}
     });
     function pv(){
       var r=parseMenu(sm.value);
@@ -1592,8 +1597,7 @@ function pageShopEdit(root,id){
         f.menuText=sm.value;
         if(!isNew||sm.value.trim())f.menuUpdatedAt=stamp;
       }
-      if(isNew||initialCuisine!==cuisineField.value)f.cuisine=C.cuisineOf(cuisineField.value).key;
-      if(isNew||initialState!==stateField.value)f.businessStatus=C.stateOf({businessStatus:stateField.value});
+      if(isNew||initialCuisine!==selectedCuisine())f.cuisine=C.cuisineOf(selectedCuisine()).key;
       if(!isNew&&root.querySelector('#sh').value===initialHoursValue)delete f.hours;
       var contact=contactEditor.collect(saveE);if(!contact)return;
       var delivery=C.deliveryPatch(shopForm,saveE);if(!delivery)return;
@@ -1657,8 +1661,8 @@ function pageNew(root,q){
     function syncShipping(){var threshold=parseFreeShippingThreshold(shops[gs.value]&&shops[gs.value].freeShippingThreshold);root.querySelector('#gfs').value=Number.isFinite(threshold)&&threshold>0?String(threshold):'';}
     function syncStatus(){
       var selected=shops[gs.value],available=C.isOrderable(selected);
-      gsStatus.hidden=available;
-      gsStatus.textContent=available?'':selected&&!selected.deleted?C.states[C.stateOf(selected)]+'，請選其他店家。':'請選擇一間正常供應的店家。';
+      gsStatus.hidden=available&&C.stateOf(selected)!=='unknown';
+      gsStatus.textContent=available?(C.stateOf(selected)==='unknown'?'營業時間待確認，開團前請先向店家確認。':''):selected&&!selected.deleted?C.states[C.stateOf(selected)]+'，請選其他店家。':'請選擇一間正常供應的店家。';
       submit.disabled=busy||!available;
     }
     syncTitle();syncShipping();syncStatus();
@@ -1712,7 +1716,10 @@ function pageNew(root,q){
     });
   }
   var off=DB.on('shops',function(v){shops=v||{};if(!built)build();else syncShopOptions();});
-  return function(){alive=false;off();if(audiencePicker)audiencePicker.destroy();};
+  var timer=setInterval(function(){if(built&&!busy)syncShopOptions();},30000);
+  function refreshAvailability(){if(built&&!busy)syncShopOptions();}
+  document.addEventListener('visibilitychange',refreshAvailability);
+  return function(){alive=false;off();clearInterval(timer);document.removeEventListener('visibilitychange',refreshAvailability);if(audiencePicker)audiencePicker.destroy();};
 }
 
 /* ---------- 點餐頁 ---------- */

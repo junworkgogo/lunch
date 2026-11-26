@@ -13,9 +13,9 @@
     {key: 'other', label: '其他', icon: 'store'}
   ];
   var states = {
-    active: '正常供應',
-    resting: '店家休息',
-    paused: '暫停接單'
+    active: '營業中',
+    resting: '目前休息',
+    unknown: '營業時間待確認'
   };
   var deliveryFields = [
     {key: 'deliveryMinimum', label: '最低外送金額', placeholder: '外送最低金額'},
@@ -43,11 +43,12 @@
   }
 
   function stateOf(shop) {
-    return shop && Object.prototype.hasOwnProperty.call(states, shop.businessStatus) ? shop.businessStatus : 'active';
+    var clock=window.LunchApp&&window.LunchApp.now;
+    return window.LunchShopHours ? window.LunchShopHours.stateOf(shop, clock ? clock() : Date.now()) : 'unknown';
   }
 
   function isOrderable(shop) {
-    return !!shop && !shop.deleted && stateOf(shop) === 'active';
+    return !!shop && !shop.deleted && stateOf(shop) !== 'resting';
   }
 
   function deliveryAmount(value) {

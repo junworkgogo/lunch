@@ -93,3 +93,16 @@
 @media (max-width: 520px) {
   .shop-contact-fields, .shop-delivery-fields { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Store editing: independent menu search and directly selectable categories. */
+.shop-menu-search { margin-bottom: 24px; }
+.shop-menu-search .imp { margin: 0; padding: 0; border: 0; background: transparent; }
+.shop-cuisine-picker { min-width: 0; border: 0; padding: 0; margin: 0; }
+.shop-cuisine-picker legend { margin-bottom: 8px; }
+.shop-cuisine-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(86px,1fr)); gap: 6px; }
+.shop-cuisine-options label { position: relative; cursor: pointer; min-width: 0; }
+.shop-cuisine-options input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.shop-cuisine-options label > span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 8px; border: 1px solid var(--line,#e4e7eb); border-radius: 12px; font-size: 13px; color: var(--muted,#62656b); }
+.shop-cuisine-options input:checked + span { color: #a34a12; background: #fff5eb; border-color: #e99152; }
+.shop-cuisine-options input:focus-visible + span { outline: 2px solid #a34a12; outline-offset: 3px; }
+.shop-business-state[data-state="unknown"] { color: var(--muted,#62656b); background: #f1f2f3; }
