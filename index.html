@@ -2470,7 +2470,7 @@ function pageAdmin(root,gid,q){
   var savedCopy=LS.get(copyKey,{});
   if(!savedCopy||typeof savedCopy!=='object'||Array.isArray(savedCopy))savedCopy={};
   var copyChoices=Object.assign({groupTitle:false,shopName:true,shopPhone:false,shopAddress:false,deliveryAddress:false,items:true,contactName:false,contactPhone:false,totals:true,orderers:false},savedCopy.choices||{});
-  var copyValues={deliveryAddress:typeof savedCopy.deliveryAddress==='string'?savedCopy.deliveryAddress.slice(0,300):'',contactPhone:typeof savedCopy.contactPhone==='string'?savedCopy.contactPhone.slice(0,60):''};
+  var copyValues={deliveryAddress:typeof savedCopy.deliveryAddress==='string'&&savedCopy.deliveryAddress.trim()?savedCopy.deliveryAddress.slice(0,300):'臺中市西屯區惠來里市政路500號11樓-3號',contactPhone:typeof savedCopy.contactPhone==='string'&&savedCopy.contactPhone.trim()?savedCopy.contactPhone.slice(0,60):'04 2254 5358'};
   var copyFields=[['groupTitle','團名'],['shopName','店家名稱'],['shopPhone','店家電話'],['shopAddress','店家地址'],['deliveryAddress','送達地址＋地圖'],['items','點餐清單'],['contactName','聯絡人'],['contactPhone','聯絡電話'],['totals','數量與金額'],['orderers','訂購人']];
   function copyFieldAvailable(key){
     if(key==='shopPhone')return !!group.shop.phone;
