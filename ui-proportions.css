@@ -63,6 +63,8 @@ body .copy-icon,body #app .btn.copy-icon,body .pay-copy.copy-icon{box-sizing:bor
 body .copy-icon>svg{display:block;width:16px;height:16px;flex:none}
 body .copy-icon:not(.primary){border-color:transparent;background:transparent;color:var(--muted)}
 body .copy-icon:not(.primary):hover{background:#00000008;color:var(--text)}
+/* 2026-11-28 使用者：分享連結按鈕沒對齊——網址框比按鈕高時按鈕只貼齊上緣，改成按鈕垂直置中（網址框高度不變；只限設定頁的分享連結卡，團購頁那顆不動） */
+body #app .share .share-row>.copy-icon{align-self:center}
 body #app .share-row>.copy-icon{flex:0 0 32px}
 @media(min-width:769px){
   body :is(.modal-actions,.pay-actions,.order-success-actions,.my-groups,.menu-search,.aoe-panel) .btn,
