@@ -107,3 +107,25 @@
     50% { transform: scale(1.025); }
   }
 }
+
+/* 2026-11-28 首頁副標換成小語錄：時段問候＋表情語錄排成一行（窄螢幕放不下才自然換行），字比原本小一號 */
+.hero p.home-greeting {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #6e6865;
+}
+.hero p.home-greeting [data-kaomoji-greeting]:not(:empty) {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+@media (max-width: 600px) {
+  /* 手機：字距歸零＋11px，一般手機（390 寬）平日的語錄都能排在一行；節日長句才自然換行，不會被切掉 */
+  .hero p.home-greeting { font-size: 11px; letter-spacing: 0; }
+}
+@media (max-width: 380px) {
+  .hero p.home-greeting { font-size: 10.5px; }
+}

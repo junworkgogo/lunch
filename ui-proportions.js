@@ -4,6 +4,7 @@
   var selector='.home-switch,.shop-categories,.member-order-filters,.shop-category-choice,.tabsx,.tabs,.account-tab-list';
   var pending=false,observed=new Set();
   var resize=typeof ResizeObserver==='function'?new ResizeObserver(schedule):null;
+  /* 2026-11-28：複製「團購分享連結」（#copyLink）用鏈結圖示，其他複製鈕維持兩個方框的複製圖示 */
   function compactCopyButtons(){
     document.querySelectorAll('[data-shop-copy],#copyLink,#copySum,.pay-copy[data-copy],[data-waiting-copy]').forEach(function(button){
       if(button.childElementCount===1&&button.firstElementChild.matches('svg[data-copy-icon]'))return;
@@ -12,7 +13,7 @@
       var done=/^已複製/.test(text)||button.classList.contains('is-done');
       button.setAttribute('aria-label',done?'已複製':label);button.title=done?'已複製':label;
       button.classList.add('copy-icon');
-      button.innerHTML='<svg data-copy-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(done?'<path d="M5 12.5l4.5 4.5L19 7.5"/>':'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>')+'</svg>';
+      button.innerHTML='<svg data-copy-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(done?'<path d="M5 12.5l4.5 4.5L19 7.5"/>':button.id==='copyLink'?'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>':'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>')+'</svg>';
     });
   }
   function measure(){

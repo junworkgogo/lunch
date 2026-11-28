@@ -106,3 +106,6 @@
 .shop-cuisine-options input:checked + span { color: #a34a12; background: #fff5eb; border-color: #e99152; }
 .shop-cuisine-options input:focus-visible + span { outline: 2px solid #a34a12; outline-offset: 3px; }
 .shop-business-state[data-state="unknown"] { color: var(--muted,#62656b); background: #f1f2f3; }
+
+/* 2026-11-28 營業時間只當提醒（不擋開團）：提醒用一般灰字，店家不存在才維持錯誤色 */
+.shop-availability-warning.is-note { color: var(--muted); }

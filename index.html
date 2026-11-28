@@ -6,9 +6,9 @@
 <title>FOODJUN</title>
 <meta name="theme-color" content="#F58220">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="kaomoji.css?v=20261126release1">
+<link rel="stylesheet" href="kaomoji.css?v=20261128quote1">
 <link rel="stylesheet" href="pwa.css?v=20261126release1">
-<link rel="stylesheet" href="shop-contact.css?v=20261126hours2">
+<link rel="stylesheet" href="shop-contact.css?v=20261128open1">
 <script src="shop-hours.js?v=20261126hours1"></script>
 <script src="shop-contact.js?v=20261126editor4"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="./assets/jun-orange-smile-64-v5.png">
@@ -545,6 +545,7 @@ var P={
  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
  x:'<path d="M6 6l12 12M18 6L6 18"/>',
  copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+ link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
  share:'<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/>',
  store:'<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/>',
  shopBento:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 5v14m0-7h11"/>',
@@ -1034,7 +1035,7 @@ function emptyBox(msg,btn){return '<div class="empty card">'+esc(msg)+(btn||'')+
 
 /* ---------- 首頁 ---------- */
 function homeHero(){
-  return '<section class="hero"><div><h1>今天吃什麼？</h1><p>點進開放中的團就能點餐，想自己揪團就按「開新團」</p><p class="home-greeting"><span data-kaomoji-daypart></span> <span data-kaomoji-greeting></span></p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a></div></section>';
+  return '<section class="hero"><div><h1>今天吃什麼？</h1><p class="home-greeting"><span data-kaomoji-daypart></span> <span data-kaomoji-greeting></span></p></div><div class="hero-actions"><a class="btn primary" href="#/new">'+I('plus')+'開新團</a></div></section>';
 }
 function homeTabs(view){
   return '<nav class="home-switch home-switch-three" aria-label="團購分類"><a href="#/"'+(view==='active'?' aria-current="page"':'')+'>進行中</a><a href="#/?view=ended"'+(view==='ended'?' aria-current="page"':'')+'>已結束</a><a href="#/my-groups"'+(view==='mine'?' aria-current="page"':'')+'>我開的團</a></nav>';
@@ -1645,7 +1646,8 @@ function pageShopEdit(root,id){
 function pageNew(root,q){
   var shops={},titleTouched=false,built=false,audiencePicker=null,syncShopOptions=null,alive=true,busy=false,C=window.LunchShopContact;
   root.innerHTML='<div class="page"><p class="muted">載入中…</p></div>';
-  function defTitle(shopName){return '週'+WD[taipeiClock(now()).getUTCDay()]+'午餐｜'+(shopName||'');}
+  // 2026-11-28：預設團名的星期跟著截止日期走（提早開團時才不會寫成今天的星期）
+  function defTitle(shopName){var t=deadlineValue();if(!Number.isFinite(t))t=now();return '週'+WD[taipeiClock(t).getUTCDay()]+'午餐｜'+(shopName||'');}
   function currentShopIds(){
     return Object.keys(shops).filter(function(k){return shops[k]&&!shops[k].deleted;}).sort(function(a,b){return (shops[b].updatedAt||0)-(shops[a].updatedAt||0);});
   }
@@ -1656,14 +1658,18 @@ function pageNew(root,q){
   function deadlineState(shop, timestamp){
     return C.stateOf(shop,timestamp===undefined?deadlineValue():timestamp);
   }
+  /* 2026-11-28 使用者：截止時間店家休息不能擋開團（提早開團預定餐點是正常用法）。
+     營業時間只當提醒，不再停用店家選項或送出鈕；只有店家不存在／已刪除才擋。 */
   function availabilityMessage(shop,timestamp){
     if(!shop||shop.deleted)return '請選擇一間正常供應的店家。';
-    return deadlineState(shop,timestamp)==='resting'?'店家在截止時間休息，請調整截止日期／時間，或選其他店家。':'截止時間的營業狀況待確認，開團前請先向店家確認。';
+    var state=deadlineState(shop,timestamp);
+    if(state==='resting')return '提醒：截止時間店家休息中，一樣可以開團，記得在店家營業時間叫餐。';
+    return state==='unknown'?'截止時間的營業狀況待確認，開團前請先向店家確認。':'';
   }
   function shopOptions(ids,sel,timestamp){
     return ids.map(function(k){
-      var s=shops[k],state=deadlineState(s,timestamp),orderable=C.isOrderable(s,timestamp);
-      return '<option value="'+esc(k,true)+'"'+(k===sel?' selected':'')+(orderable?'':' disabled')+'>'+esc(s.name)+(orderable?'':'（'+(state==='resting'?'截止時間休息':C.states[state])+'）')+'</option>';
+      var s=shops[k];
+      return '<option value="'+esc(k,true)+'"'+(k===sel?' selected':'')+'>'+esc(s.name)+'</option>';
     }).join('');
   }
   function build(){
@@ -1687,11 +1693,10 @@ function pageNew(root,q){
     function syncTitle(){if(!titleTouched)gt.value=defTitle(shops[gs.value]&&shops[gs.value].name);}
     function syncShipping(){var threshold=parseFreeShippingThreshold(shops[gs.value]&&shops[gs.value].freeShippingThreshold);root.querySelector('#gfs').value=Number.isFinite(threshold)&&threshold>0?String(threshold):'';}
     function syncStatus(){
-      var selected=shops[gs.value],timestamp=deadlineValue(),valid=Number.isFinite(timestamp),state=deadlineState(selected,timestamp);
-      var available=valid&&C.isOrderable(selected,timestamp);
-      gsStatus.hidden=available&&state!=='unknown';
-      gsStatus.textContent=valid?availabilityMessage(selected,timestamp):'請選好截止日期與時間，以確認店家營業狀況。';
-      submit.disabled=busy||!available;
+      var selected=shops[gs.value],timestamp=deadlineValue(),valid=Number.isFinite(timestamp),ok=!!selected&&!selected.deleted;
+      var msg=!ok?availabilityMessage(selected):valid?availabilityMessage(selected,timestamp):'請選好截止日期與時間。';
+      gsStatus.hidden=!msg;gsStatus.textContent=msg;gsStatus.classList.toggle('is-note',ok);
+      submit.disabled=busy||!ok;
     }
     syncTitle();syncShipping();syncStatus();
     gs.addEventListener('change',function(){syncTitle();syncShipping();syncStatus();});
@@ -1703,7 +1708,7 @@ function pageNew(root,q){
       syncStatus();
     };
     ['#gd','#gm'].forEach(function(selector){
-      ['input','change'].forEach(function(event){root.querySelector(selector).addEventListener(event,function(){syncShopOptions();});});
+      ['input','change'].forEach(function(event){root.querySelector(selector).addEventListener(event,function(){syncShopOptions();syncTitle();});});
     });
     form.addEventListener('submit',function(e){
       e.preventDefault();
@@ -1717,7 +1722,7 @@ function pageNew(root,q){
       if(!owner){root.querySelector('#go').focus();return;}
       if(isNaN(dls)){er('請選好截止日期與時間');return;}
       if(dls<=now()){er('截止時間已經過了，請選之後的時間');return;}
-      if(!C.isOrderable(sh,dls)){syncStatus();return;}
+      if(!sh||sh.deleted){syncStatus();return;}
 
       var freeShippingThreshold=parseFreeShippingThreshold(root.querySelector('#gfs').value);
       if(!Number.isFinite(freeShippingThreshold)){er('免運門檻請填 0–1,000,000 的整數，或留白');root.querySelector('#gfs').focus();return;}
@@ -1728,7 +1733,7 @@ function pageNew(root,q){
         if(latest)shops[selected]=latest;else delete shops[selected];
         syncShopOptions();
         if(deadlineValue()!==dls){er('截止日期或時間已變更，請確認後重新送出。');return;}
-        if(!C.isOrderable(latest,dls)){er(availabilityMessage(latest,dls));return;}
+        if(!latest||latest.deleted){er(availabilityMessage(latest,dls));return;}
         if(dls<=now()){er('截止時間已經過了，請選之後的時間');return;}
         var menu=parseMenu(latest.menuText);
         if(!menu.count){er('這家店還沒有菜單，請先到店家頁補上品項');return;}
@@ -1993,7 +1998,7 @@ function pageGroup(root,gid){
     var closed=groupClosed(group);lastClosed=closed;
     $('#gCard').className='group'+(closed?' ended':'');
     var live=liveOrders(orders),qn=live.reduce(function(s,o){return s+arr(o.items).reduce(function(a,it){return a+(Number(it.qty)||0);},0);},0);
-    $('#gCard').innerHTML='<p class="eyebrow">'+(closed?'已截止的團購':'進行中的團購')+'</p><h1>'+esc(group.title)+'</h1><ul class="meta"><li>'+I('user')+'負責人 '+esc(group.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(group.deadline))+' 截止・<b id="left"></b></li><li>'+I('people')+'已有 '+peopleCount(orders)+' 人訂購・'+qn+' 份<button type="button" class="all-open" data-all-open aria-haspopup="dialog" aria-controls="all" title="看大家點了什麼">'+I('list',14)+'清單</button></li></ul><div class="share-row" style="margin:12px 0"><input id="shareUrl" readonly value="'+esc(shareUrl(gid))+'" aria-label="團購分享連結"><button type="button" class="btn" id="copyLink">'+I('copy')+'複製團購連結</button>'+(canManageGroup()?'<a class="btn primary" href="#/g/'+esc(gid)+'/admin" aria-label="管理此團購">管理</a>':'')+'</div><div id="freeShippingProgress" aria-live="polite"></div>';
+    $('#gCard').innerHTML='<p class="eyebrow">'+(closed?'已截止的團購':'進行中的團購')+'</p><h1>'+esc(group.title)+'</h1><ul class="meta"><li>'+I('user')+'負責人 '+esc(group.owner)+'</li><li>'+I('clock')+esc(fmtDeadline(group.deadline))+' 截止・<b id="left"></b></li><li>'+I('people')+'已有 '+peopleCount(orders)+' 人訂購・'+qn+' 份<button type="button" class="all-open" data-all-open aria-haspopup="dialog" aria-controls="all" title="看大家點了什麼">'+I('list',14)+'清單</button></li></ul><div class="share-row" style="margin:12px 0"><input id="shareUrl" readonly value="'+esc(shareUrl(gid))+'" aria-label="團購分享連結"><button type="button" class="btn" id="copyLink">'+I('link')+'複製團購連結</button>'+(canManageGroup()?'<a class="btn primary" href="#/g/'+esc(gid)+'/admin" aria-label="管理此團購">管理</a>':'')+'</div><div id="freeShippingProgress" aria-live="polite"></div>';
     wireShare($('#gCard'),gid,group.title);
     // 2026-11-23 團主換了菜單：這頁還是舊菜單，提示重新整理（送出也會擋）
     if(menuStale){$('#gCard').insertAdjacentHTML('beforeend','<div class="menu-stale"><span>店家菜單剛更新了，重新整理後就會看到新菜單'+(cart.length?'，購物車要重新點':'')+'</span><button type="button" class="btn sm primary" data-menu-reload>重新整理</button></div>');$('#gCard [data-menu-reload]').addEventListener('click',function(){location.reload();});}
@@ -2303,7 +2308,7 @@ function pageGroup(root,gid){
 /* ---------- 管理頁 ---------- */
 function shareBlock(gid){
   var url=shareUrl(gid);
-  return '<section class="card share"><h2>分享連結</h2><p class="muted">把連結貼到 同事群組，同事點開就能點餐。</p><div class="share-row"><input id="shareUrl" readonly value="'+esc(url)+'" aria-label="分享連結"><button type="button" class="btn primary" id="copyLink">'+I('copy')+'複製連結</button></div></section>';
+  return '<section class="card share"><h2>分享連結</h2><p class="muted">把連結貼到 同事群組，同事點開就能點餐。</p><div class="share-row"><input id="shareUrl" readonly value="'+esc(url)+'" aria-label="分享連結"><button type="button" class="btn primary" id="copyLink">'+I('link')+'複製連結</button></div></section>';
 }
 function wireShare(scope,gid,title){
   var url=shareUrl(gid),cl=scope.querySelector('#copyLink'),inp=scope.querySelector('#shareUrl'),sb=scope.querySelector('#shareBtn');
@@ -2798,7 +2803,7 @@ if(!window.LUNCH_DEFER_BOOT&&parseHash().parts[0]!=='my-groups')route();
 <script src="toppings.js?v=20261123tp1"></script>
 <script src="drink-options.js?v=20261124five1"></script>
 <script src="happy-rain.js?v=20261119faces1"></script>
-<script src="interface.js?v=20261126editor4"></script>
+<script src="interface.js?v=20261128quote1"></script>
 <script src="participants.js?v=20261126settings2"></script>
 <script src="order-assignment.js?v=20261124five1"></script>
 <script src="admin-order-editor.js?v=20261124five1"></script>
@@ -2811,7 +2816,7 @@ if(!window.LUNCH_DEFER_BOOT&&parseHash().parts[0]!=='my-groups')route();
 <script src="pwa.js?v=20261126release1"></script>
 <script src="members.js?v=20261126orders3"></script>
 <script src="mobile-nav.js?v=20261124mygroups1"></script>
-<script src="ui-proportions.js?v=20261126compact2"></script>
+<script src="ui-proportions.js?v=20261128link1"></script>
 </body>
 </html>
 
