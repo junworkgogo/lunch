@@ -2450,18 +2450,18 @@ function pageAdmin(root,gid,q){
     var products=new Map(),live=liveOrders(orders),totalQty=0,totalMoney=0,latestCategories=new Map();
     function categoryName(value){var name=String(value==null?'':value).trim();return !name||/^_*(undefined|null)_*$/i.test(name)?'未分類':name;}
     menuOf(group.shop).forEach(function(c){c.items.forEach(function(it){var category=categoryName(c.c);latestCategories.set(it.n,latestCategories.has(it.n)&&latestCategories.get(it.n)!==category?null:category);});});
-    live.forEach(function(o){lines(o).forEach(function(it){
+    live.forEach(function(o,oi){lines(o).forEach(function(it){
       var item=String(it.item||'未命名品項'),cat=categoryName(it.cat);if(cat==='未分類')cat=latestCategories.get(item)||cat;var key=JSON.stringify([cat,item]);
       if(!products.has(key))products.set(key,{cat:cat,item:item,label:item,qty:0,variants:[],variantMap:new Map()});
       var m=products.get(key),qty=Number(it.qty)||0,opts=lineOpts(it),note=String(it.note||'').trim();
       var signature=JSON.stringify([opts.map(function(x){return [x.group,x.choice,Number(x.add)||0];}).sort(function(a,b){return JSON.stringify(a).localeCompare(JSON.stringify(b));}),note,lineUnit(it)]);
       if(!m.variantMap.has(signature)){
-        var variant={label:opts.map(function(x){return (x.group?x.group+'：':'')+x.choice;}).join('、'),note:note,qty:0,people:new Map()};
+        var variant={label:opts.map(function(x){return (x.group?x.group+'：':'')+x.choice;}).join('、'),choices:copyOptChoices(opts),note:note,qty:0,people:new Map()};
         m.variantMap.set(signature,variant);m.variants.push(variant);
       }
       var v=m.variantMap.get(signature),person=personKey(o);
       v.qty+=qty;m.qty+=qty;totalQty+=qty;totalMoney+=lineTotal(it);
-      if(!v.people.has(person))v.people.set(person,{name:o.name,qty:0});
+      if(!v.people.has(person))v.people.set(person,{name:o.name,qty:0,seq:oi});
       v.people.get(person).qty+=qty;
     });});
     var rank=new Map(),r=0;menuOf(group.shop).forEach(function(c){c.items.forEach(function(it){rank.set(JSON.stringify([categoryName(c.c),it.n]),r++);});});
@@ -2474,40 +2474,61 @@ function pageAdmin(root,gid,q){
   var copyKey='lunch_summary_copy_v1_'+userId()+'_'+gid;
   var savedCopy=LS.get(copyKey,{});
   if(!savedCopy||typeof savedCopy!=='object'||Array.isArray(savedCopy))savedCopy={};
-  var copyChoices=Object.assign({groupTitle:false,shopName:true,shopPhone:false,shopAddress:false,deliveryAddress:false,items:true,contactName:false,contactPhone:false,totals:true,orderers:false},savedCopy.choices||{});
+  // 2026-11-28 使用者：拿掉「團名」「店家地址」；預設勾 店家名稱、送達地址、點餐清單、聯絡電話、數量與金額。
+  // 舊版（沒有 v:2）存的勾選一律不沿用，才會套到新預設；送達地址、聯絡電話照舊保留。
+  var copyChoices=Object.assign({shopName:true,shopPhone:false,contactName:false,contactPhone:true,deliveryAddress:true,items:true,totals:true,orderers:false},(savedCopy.v===2&&savedCopy.choices)||{});
   var copyValues={deliveryAddress:typeof savedCopy.deliveryAddress==='string'&&savedCopy.deliveryAddress.trim()?savedCopy.deliveryAddress.slice(0,300):'臺中市西屯區惠來里市政路500號11樓-3號',contactPhone:typeof savedCopy.contactPhone==='string'&&savedCopy.contactPhone.trim()?savedCopy.contactPhone.slice(0,60):'04 2254 5358'};
-  var copyFields=[['groupTitle','團名'],['shopName','店家名稱'],['shopPhone','店家電話'],['shopAddress','店家地址'],['deliveryAddress','送達地址＋地圖'],['items','點餐清單'],['contactName','聯絡人'],['contactPhone','聯絡電話'],['totals','數量與金額'],['orderers','訂購人']];
+  var copyFields=[['shopName','店家名稱'],['shopPhone','店家電話'],['contactName','聯絡人'],['contactPhone','聯絡電話'],['deliveryAddress','送達地址＋地圖'],['items','點餐清單'],['totals','數量與金額'],['orderers','訂購人']];
   function copyFieldAvailable(key){
     if(key==='shopPhone')return !!group.shop.phone;
-    if(key==='shopAddress')return !!group.shop.address;
     return true;
   }
   function sumLabel(m){return m.item+' ×'+m.qty;}
   function variantLabel(v){return (v.label||'未指定規格')+(v.note?'；備註：'+v.note:'');}
   function variantPeople(v){return Array.from(v.people.values()).map(function(p){return p.name+' ×'+p.qty;}).join('、');}
-  function sumText(a){
-    var t=[];
-    if(copyChoices.groupTitle)t.push(group.title);
-    if(copyChoices.shopName)t.push('店家名稱：'+group.shop.name);
-    if(copyChoices.shopPhone&&group.shop.phone)t.push('店家電話：'+group.shop.phone);
-    if(copyChoices.shopAddress&&group.shop.address)t.push('店家地址：'+group.shop.address);
-    if(copyChoices.deliveryAddress&&copyValues.deliveryAddress.trim())t.push('送達地址：'+copyValues.deliveryAddress.trim(),'送達地圖：'+mapUrls(copyValues.deliveryAddress.trim()).open);
-    if(copyChoices.contactName)t.push('聯絡人：'+group.owner);
-    if(copyChoices.contactPhone&&copyValues.contactPhone.trim())t.push('聯絡電話：'+copyValues.contactPhone.trim());
-    if(copyChoices.items)a.cats.forEach(function(c){
-      t.push('','【'+c.c+'】');
-      c.lines.forEach(function(m){
-        t.push(sumLabel(m));
-        m.variants.forEach(function(v){
-          var detail=m.variants.length>1||v.label||v.note;
-          if(detail)t.push('  · '+variantLabel(v)+' ×'+v.qty);
-          if(copyChoices.orderers)t.push('    '+variantPeople(v));
-        });
-      });
+  // 2026-11-28 使用者：飲料預設是冰的，只有特地選熱的才寫出來——溫度選「冷／冰」不寫進複製文字
+  function isColdTemp(x){var g=String(x.group||'').replace(/\s/g,''),c=String(x.choice||'').replace(/\s*\+\s*\$?\s*\d+\s*元?$/,'').trim();return /溫度|冷熱|冷[／\/]熱|冰[／\/]?熱/.test(g)&&/^(冷|冰|冷飲|冰飲)$/.test(c);}
+  function copyOptChoices(opts){return opts.filter(function(x){return x&&String(x.choice||'').trim()&&!isColdTemp(x);}).map(function(x){return String(x.choice).trim();});}
+  // 公司地址用使用者指定的地圖短網址，其他地址才用 Google 地圖搜尋連結
+  function deliveryMapUrl(addr){return /^[臺台]中市西屯區(惠來里)?市政路500號/.test(addr.replace(/\s/g,''))?'https://maps.app.goo.gl/5fHyAy9paKgVDbJY7':mapUrls(addr).open;}
+  // 同一品項裡，複製出來文字相同的規格併成一行：「訂購人：選項 ×數量」；沒有選項也沒勾訂購人就不另起一行
+  function copyVariantLines(m){
+    var rows=[],byKey=new Map();
+    m.variants.forEach(function(v){
+      var parts=(v.choices||[]).slice();if(v.note)parts.push('備註：'+v.note);
+      var detail=parts.join('、');
+      if(!byKey.has(detail)){byKey.set(detail,{detail:detail,qty:0,people:new Map()});rows.push(byKey.get(detail));}
+      var r=byKey.get(detail);r.qty+=v.qty;
+      v.people.forEach(function(p,k){if(!r.people.has(k))r.people.set(k,{name:p.name,qty:0,seq:p.seq});var q=r.people.get(k);q.qty+=p.qty;if(p.seq<q.seq)q.seq=p.seq;});
     });
-    if(copyChoices.orderers&&!copyChoices.items){var names=new Map();liveOrders(orders).forEach(function(o){names.set(personKey(o),o.name);});t.push('訂購人：'+Array.from(names.values()).join('、'));}
-    if(copyChoices.totals){var calc=settlement(orders,group);t.push('','總共 '+a.qty+' 份　餐點原價 '+money(a.money),'運費 '+money(calc.shipping)+'　折扣 −'+money(calc.discount)+'　實付 '+money(calc.due));}
-    return t.join('\n').trim();
+    return rows.map(function(r){
+      var names=copyChoices.orderers?Array.from(r.people.values()).sort(function(x,y){return (x.seq||0)-(y.seq||0);}).map(function(p){return p.name+(p.qty>1?'×'+p.qty:'');}).join('、'):'';
+      var body=names&&r.detail?names+'：'+r.detail:(names||r.detail);
+      return body?body+' ×'+r.qty:'';
+    }).filter(Boolean);
+  }
+  // 2026-11-28 照使用者給的範例：不放團名與分類標題；沒填的資料整行不寫；區塊之間用「-」隔開
+  function sumText(a){
+    var head=[],contact=[],list=[],tot=[],addr=copyValues.deliveryAddress.trim(),phone=copyValues.contactPhone.trim(),owner=String(group.owner||'').trim();
+    if(copyChoices.shopName&&group.shop.name)head.push('店家名稱：'+group.shop.name);
+    if(copyChoices.shopPhone&&group.shop.phone)head.push('店家電話：'+group.shop.phone);
+    if(copyChoices.deliveryAddress&&addr)head.push('送達地址：'+addr,deliveryMapUrl(addr));
+    if(copyChoices.contactName&&owner)contact.push('聯絡人：'+owner);
+    if(copyChoices.contactPhone&&phone)contact.push('聯絡電話：'+phone);
+    if(copyChoices.items)a.cats.forEach(function(c){c.lines.forEach(function(m){
+      if(list.length)list.push('');
+      list.push('．'+m.item+' ×'+m.qty);
+      copyVariantLines(m).forEach(function(line){list.push(line);});
+    });});
+    else if(copyChoices.orderers){var names=new Map();liveOrders(orders).forEach(function(o){names.set(personKey(o),o.name);});if(names.size)list.push('訂購人：'+Array.from(names.values()).join('、'));}
+    if(copyChoices.totals){
+      var calc=settlement(orders,group),pay=[];
+      if(calc.shipping)pay.push('運費 '+money(calc.shipping));
+      if(calc.discount)pay.push('折扣 −'+money(calc.discount));
+      pay.push('實付 '+money(calc.due));
+      tot.push('總共 '+a.qty+' 份　餐點原價 '+money(a.money),pay.join('　'));
+    }
+    return [head,contact,list,tot].filter(function(b){return b.length;}).map(function(b){return b.join('\n');}).join('\n-\n').trim();
   }
   function copyControls(a){
     var fields=copyFields.map(function(f){var available=copyFieldAvailable(f[0]);return '<label'+(available?'':' class="is-unavailable"')+'><input type="checkbox" data-summary-field="'+f[0]+'"'+(copyChoices[f[0]]&&available?' checked':'')+(available?'':' disabled')+'><span>'+f[1]+(available?'':'（未填）')+'</span></label>';}).join('');
@@ -2520,7 +2541,7 @@ function pageAdmin(root,gid,q){
     if(!field&&!value)return;
     if(field&&copyFields.some(function(f){return f[0]===field;}))copyChoices[field]=event.target.checked;
     if(value&&Object.prototype.hasOwnProperty.call(copyValues,value))copyValues[value]=event.target.value;
-    LS.set(copyKey,{choices:copyChoices,deliveryAddress:copyValues.deliveryAddress,contactPhone:copyValues.contactPhone});
+    LS.set(copyKey,{v:2,choices:copyChoices,deliveryAddress:copyValues.deliveryAddress,contactPhone:copyValues.contactPhone});
     var preview=$('#summaryCopyPreview'),text=sumText(aggregate());if(preview)preview.textContent=text;
     var fallback=$('#cpf textarea');if(fallback)fallback.value=text;
     var error=$('#summaryCopyError');if(error)error.hidden=true;
@@ -2672,8 +2693,7 @@ function pageAdmin(root,gid,q){
     if(e.target.closest('#copySum')){
       var txt=sumText(aggregate()),error=$('#summaryCopyError');
       function rejectCopy(message,input){if(error){error.textContent=message;error.hidden=false;}if(input)input.focus();}
-      if(copyChoices.deliveryAddress&&!copyValues.deliveryAddress.trim()){rejectCopy('請先填寫送達地址，或取消勾選。',$('#summaryDelivery'));return;}
-      if(copyChoices.contactPhone&&!copyValues.contactPhone.trim()){rejectCopy('請先填寫聯絡電話，或取消勾選。',$('#summaryPhone'));return;}
+      // 2026-11-28 使用者：沒填的資料就不寫，不再擋複製（sumText 會略過空白的送達地址／聯絡電話）
       if(!txt){rejectCopy('請至少勾選一項可複製的內容。');return;}
       copyText(txt,function(){return adminMounted()&&tab==='sum'&&sumText(aggregate())===txt;}).then(function(ok){
         if(ok){toast('已複製勾選內容，可以貼給店家');return;}
